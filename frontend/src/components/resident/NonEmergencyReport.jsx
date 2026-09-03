@@ -9,7 +9,6 @@ import {
   Broom,
   MessageSquare,
   CircleHelp,
-  Info,
   MapPin,
   UserRound,
   Users,
@@ -24,10 +23,7 @@ import {
 } from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext';
-import {
-  nonEmergencyTypes,
-  purokOptions,
-} from '../../data/mockData';
+import { nonEmergencyTypes, purokOptions } from '../../data/mockData';
 
 // ============ ICONS ============
 const iconMap = {
@@ -39,6 +35,8 @@ const iconMap = {
   'community-concern': MessageSquare,
   'other-assistance': CircleHelp,
 };
+
+// ============ CATEGORY INFO ============
 const concernCategoryInfo = {
   'evac-assistance': {
     label: 'Evacuation Help',
@@ -71,19 +69,22 @@ const concernCategoryInfo = {
 };
 
 function getConcernInfo(type) {
-  return (
-    concernCategoryInfo[type?.id] || {
-      label: type?.label || '',
-      description: '',
-    }
-  );
+  return concernCategoryInfo[type?.id] || {
+    label: type?.label || '',
+    description: '',
+  };
 }
 
 // ============ SUBCATEGORIES ============
 const subcategories = {
   'evac-assistance': ['Transportation', 'Temporary Shelter', 'Supplies'],
   'bhw-assistance': ['Health Check', 'Home Visit', 'Medicine Assistance'],
-  'road-obstruction': ['Fallen Tree / Branch', 'Debris Blocking Road', 'Vehicle / Object Blocking Road', 'Other Road Obstruction',],
+  'road-obstruction': [
+    'Fallen Tree / Branch',
+    'Debris Blocking Road',
+    'Vehicle / Object Blocking Road',
+    'Other Road Obstruction',
+  ],
   'damaged-facility': ['Street Light', 'Road', 'Drainage', 'Barangay Facility'],
   cleanup: ['Waste Collection', 'Storm Debris / Branches', 'Drainage Clean-up'],
   'community-concern': ['Sanitation', 'Noise', 'Stray Animals', 'Public Area'],
@@ -96,23 +97,6 @@ const affectedOptions = [
   'Pregnant Person',
   'Injured Person',
 ];
-
-const concernHints = {
-  'evac-assistance':
-    'Use this for non-urgent help preparing for or getting to an evacuation center. If there is immediate danger, use Emergency → Urgent Evacuation.',
-  'bhw-assistance':
-    'Describe the health concern and mention any important medicines, conditions, or allergies if known.',
-  'road-obstruction':
-    'Use this when a road or pathway is blocked. Mention whether passage is fully or partly blocked and any hazards nearby.',
-  'damaged-facility':
-    'Use this for damaged public infrastructure such as streetlights, roads, drainage, or barangay facilities.',
-  cleanup:
-    'Use this when an area needs waste or debris removal. If a road or pathway is blocked, choose Blocked Road / Obstruction instead.',
-  'community-concern':
-    'Use this for neighborhood concerns such as sanitation, noise, stray animals, or unsafe public areas.',
-  'other-assistance':
-    'Choose this only when the assistance you need does not match the other categories.',
-};
 
 export default function NonEmergencyReport() {
   const navigate = useNavigate();
@@ -134,7 +118,6 @@ export default function NonEmergencyReport() {
   const [description, setDescription] = useState('');
   const [assistance, setAssistance] = useState('');
   const [affected, setAffected] = useState([]);
-
   const [photoPreview, setPhotoPreview] = useState('');
 
   const [error, setError] = useState('');
@@ -159,6 +142,7 @@ export default function NonEmergencyReport() {
   const handlePhoto = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     if (photoPreview) URL.revokeObjectURL(photoPreview);
     setPhotoPreview(URL.createObjectURL(file));
   };
@@ -171,10 +155,12 @@ export default function NonEmergencyReport() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
+
     if (!location.trim()) {
       setError('Please provide the incident location.');
       return;
     }
+
     if (!description.trim()) {
       setError('Please add a short description of the concern.');
       return;
@@ -185,6 +171,7 @@ export default function NonEmergencyReport() {
 
   const handleSubmit = () => {
     setIsSubmitting(true);
+
     setTimeout(() => {
       setIsSubmitting(false);
       setShowConfirm(false);
@@ -245,6 +232,7 @@ export default function NonEmergencyReport() {
 
   return (
     <div className="px-4 pt-5 pb-28 min-h-screen bg-slate-50">
+
       {/* ============ HEADER ============ */}
       <div className="mb-4">
         <h1 className="text-xl font-bold text-slate-900">Non-Emergency Report</h1>
@@ -275,6 +263,7 @@ export default function NonEmergencyReport() {
             icon={UserRound}
             onClick={() => setReportingFor('Myself')}
           />
+
           <ChoiceButton
             selected={reportingFor === 'Another Person'}
             label="Another Person"
@@ -294,6 +283,7 @@ export default function NonEmergencyReport() {
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 text-[12px] text-slate-700 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100 transition-all"
               />
             </Field>
+
             <Field label="Contact Number">
               <input
                 type="tel"
@@ -303,6 +293,7 @@ export default function NonEmergencyReport() {
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 text-[12px] text-slate-700 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100 transition-all"
               />
             </Field>
+
             <div className="sm:col-span-2">
               <Field label="Relationship / Note">
                 <input
@@ -320,7 +311,7 @@ export default function NonEmergencyReport() {
 
       {/* ============ CONCERN TYPE ============ */}
       <section className="bg-white border border-slate-200 rounded-2xl p-4 mb-4">
-        <h2 className="text-sm font-bold text-slate-900">What is your concern?</h2>
+        <h2 className="text-[15px] font-bold text-slate-900">What is your concern?</h2>
         <p className="text-[10px] text-slate-400 mt-0.5">
           Select the category that best matches your report.
         </p>
@@ -340,8 +331,8 @@ export default function NonEmergencyReport() {
                   setSubcategory('');
                   setError('');
                 }}
-                className={`p-3 min-h-[132px] rounded-xl border text-left transition-all ${
-                 type.id === 'other-assistance' ? 'col-span-2' : ''
+                className={`p-3 min-h-[124px] rounded-xl border text-left transition-all ${
+                  type.id === 'other-assistance' ? 'col-span-2' : ''
                 } ${
                   selected
                     ? 'bg-blue-50 border-blue-300 ring-1 ring-blue-100'
@@ -355,29 +346,34 @@ export default function NonEmergencyReport() {
                 >
                   <Icon className="w-4.5 h-4.5" />
                 </div>
-                <p className={`text-[11px] font-semibold mt-2 leading-snug ${
-                  selected ? 'text-blue-700' : 'text-slate-700'
-                }`}>
+
+                <p
+                  className={`text-[12px] font-bold mt-2 leading-snug ${
+                    selected ? 'text-blue-700' : 'text-slate-900'
+                  }`}
+                >
                   {info.label}
                 </p>
-                <p className={`text-[9px] mt-1 leading-relaxed ${
-                  selected ? 'text-blue-600/80' : 'text-slate-400'
-                }`}>
+
+                <p
+                  className={`text-[9px] mt-1.5 leading-relaxed ${
+                    selected ? 'text-blue-600/80' : 'text-slate-400'
+                  }`}
+                >
                   {info.description}
-</p>
+                </p>
               </button>
             );
           })}
         </div>
 
-               {/* Subcategory — emphasized with hint */}
+        {/* Subcategory */}
         {availableSubcategories.length > 0 && (
           <div className="mt-4 rounded-xl bg-slate-50 border border-slate-200 p-3">
-            <div className="flex items-center justify-between mb-2.5">
-              <p className="text-[11px] font-bold text-slate-700">
-                Specify the concern <span className="text-slate-400 font-medium">(optional)</span>
-              </p>
-            </div>
+            <p className="text-[11px] font-bold text-slate-700 mb-2.5">
+              Specify the concern{' '}
+              <span className="text-slate-400 font-medium">(optional)</span>
+            </p>
 
             <div className="flex flex-wrap gap-2">
               {availableSubcategories.map((item) => (
@@ -397,21 +393,13 @@ export default function NonEmergencyReport() {
             </div>
           </div>
         )}
-                {/* Clarifier — only shows for Evacuation Preparation */}
+
+        {/* Evacuation Clarifier */}
         {selectedType?.id === 'evac-assistance' && (
           <p className="mt-3 text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 leading-relaxed">
-            In danger right now? Use <strong>Emergency Report → Immediate Evacuation</strong> instead.
+            In danger right now? Use{' '}
+            <strong>Emergency Report → Urgent Evacuation</strong> instead.
           </p>
-        )}
-
-        {/* Contextual hint — tells the resident what info helps */}
-        {selectedType && concernHints[selectedType.id] && (
-          <div className="mt-3 flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2.5">
-            <Info className="w-3.5 h-3.5 text-blue-500 mt-0.5 shrink-0" />
-            <p className="text-[10px] text-blue-700 leading-relaxed">
-              <span className="font-bold">Tip:</span> {concernHints[selectedType.id]}
-            </p>
-          </div>
         )}
       </section>
 
@@ -424,6 +412,7 @@ export default function NonEmergencyReport() {
         >
           <div className="flex items-center gap-2 min-w-0">
             <MapPin className="w-4 h-4 text-blue-500 shrink-0" />
+
             <div className="min-w-0">
               <h2 className="text-sm font-bold text-slate-900">Incident Location</h2>
               <p className="text-[10px] text-slate-400 truncate">
@@ -431,6 +420,7 @@ export default function NonEmergencyReport() {
               </p>
             </div>
           </div>
+
           <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${showLocation ? 'rotate-180' : ''}`} />
         </button>
 
@@ -454,7 +444,10 @@ export default function NonEmergencyReport() {
               <Field label="Address / Incident Location">
                 <textarea
                   value={location}
-                  onChange={(e) => { setLocation(e.target.value); setError(''); }}
+                  onChange={(e) => {
+                    setLocation(e.target.value);
+                    setError('');
+                  }}
                   rows="2"
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 text-[12px] text-slate-700 resize-none outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100 transition-all"
                 />
@@ -494,7 +487,10 @@ export default function NonEmergencyReport() {
         <Field label="Description">
           <textarea
             value={description}
-            onChange={(e) => { setDescription(e.target.value); setError(''); }}
+            onChange={(e) => {
+              setDescription(e.target.value);
+              setError('');
+            }}
             rows="3"
             placeholder="Describe the concern briefly..."
             className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 text-[12px] text-slate-700 resize-none outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100 transition-all"
@@ -518,6 +514,7 @@ export default function NonEmergencyReport() {
       <section className="bg-white border border-slate-200 rounded-2xl p-4 mb-4">
         <div className="flex items-center gap-2">
           <Users className="w-4 h-4 text-teal-500" />
+
           <div>
             <h2 className="text-sm font-bold text-slate-900">Affected Individuals</h2>
             <p className="text-[10px] text-slate-400">Select all that apply. Optional.</p>
@@ -527,6 +524,7 @@ export default function NonEmergencyReport() {
         <div className="grid grid-cols-2 gap-2 mt-3">
           {affectedOptions.map((item) => {
             const selected = affected.includes(item);
+
             return (
               <button
                 key={item}
@@ -538,11 +536,14 @@ export default function NonEmergencyReport() {
                     : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                 }`}
               >
-                <div className={`w-4 h-4 rounded flex items-center justify-center border shrink-0 ${
-                  selected ? 'bg-teal-500 border-teal-500' : 'border-slate-300'
-                }`}>
+                <div
+                  className={`w-4 h-4 rounded flex items-center justify-center border shrink-0 ${
+                    selected ? 'bg-teal-500 border-teal-500' : 'border-slate-300'
+                  }`}
+                >
                   {selected && <Check className="w-3 h-3 text-white" />}
                 </div>
+
                 <span className="text-[10px] font-medium">{item}</span>
               </button>
             );
@@ -550,10 +551,11 @@ export default function NonEmergencyReport() {
         </div>
       </section>
 
-      {/* ============ OPTIONAL PHOTO ============ */}
+      {/* ============ PHOTO ============ */}
       <section className="bg-white border border-slate-200 rounded-2xl p-4 mb-4">
         <div className="flex items-center gap-2 mb-3">
           <Camera className="w-4 h-4 text-blue-500" />
+
           <div>
             <h2 className="text-sm font-bold text-slate-900">Photo Evidence</h2>
             <p className="text-[10px] text-slate-400">Optional only.</p>
@@ -570,6 +572,7 @@ export default function NonEmergencyReport() {
         ) : (
           <div className="relative">
             <img src={photoPreview} alt="Report preview" className="w-full h-40 object-cover rounded-xl" />
+
             <button
               type="button"
               onClick={() => {
@@ -584,13 +587,13 @@ export default function NonEmergencyReport() {
         )}
       </section>
 
-      {/* ============ AUTO REPORTER INFO ============ */}
+      {/* ============ REPORTER INFO ============ */}
       <div className="bg-teal-50/60 border border-teal-100 rounded-xl p-3 mb-4">
         <div className="flex items-start gap-2">
           <HandHeart className="w-4 h-4 text-teal-600 shrink-0 mt-0.5" />
+
           <p className="text-[10px] text-teal-700 leading-relaxed">
-            Your name, contact number, address, and purok will be included
-            automatically with this report.
+            Your name, contact number, address, and purok will be included automatically with this report.
           </p>
         </div>
       </div>
@@ -615,8 +618,11 @@ export default function NonEmergencyReport() {
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
               <div>
                 <p className="text-sm font-bold text-slate-900">Confirm Report</p>
-                <p className="text-[10px] text-slate-400 mt-0.5">Review the important details before submitting.</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  Review the important details before submitting.
+                </p>
               </div>
+
               <button
                 type="button"
                 onClick={() => setShowConfirm(false)}
@@ -627,18 +633,28 @@ export default function NonEmergencyReport() {
             </div>
 
             <div className="p-4">
-              {/* Concern */}
               <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-3">
                 <p className="text-[9px] font-bold text-blue-500 uppercase tracking-wide">Concern Type</p>
-                <p className="text-[13px] font-semibold text-blue-800 mt-1">{getConcernInfo(selectedType).label}</p>
-                {subcategory && <p className="text-[10px] text-blue-600 mt-1">{subcategory}</p>}
+                <p className="text-[13px] font-bold text-blue-800 mt-1">
+                  {getConcernInfo(selectedType).label}
+                </p>
+
+                {subcategory && (
+                  <p className="text-[10px] text-blue-600 mt-1">{subcategory}</p>
+                )}
               </div>
 
               <InfoRow label="Reporting For" value={reportingFor} />
-              {reportingFor === 'Another Person' && personName && <InfoRow label="Person" value={personName} />}
+
+              {reportingFor === 'Another Person' && personName && (
+                <InfoRow label="Person" value={personName} />
+              )}
+
               <InfoRow label="Purok" value={purok} />
               <InfoRow label="Location" value={location} />
+
               {landmark && <InfoRow label="Landmark" value={landmark} />}
+
               <InfoRow label="Status" value="Pending Verification" />
 
               <div className="mt-3 bg-slate-50 rounded-xl p-3">
@@ -656,9 +672,13 @@ export default function NonEmergencyReport() {
               {affected.length > 0 && (
                 <div className="mt-3">
                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">Affected Individuals</p>
+
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     {affected.map((item) => (
-                      <span key={item} className="text-[9px] font-medium bg-teal-50 text-teal-600 px-2 py-1 rounded-full">
+                      <span
+                        key={item}
+                        className="text-[9px] font-medium bg-teal-50 text-teal-600 px-2 py-1 rounded-full"
+                      >
                         {item}
                       </span>
                     ))}
@@ -675,6 +695,7 @@ export default function NonEmergencyReport() {
                 >
                   Go Back
                 </button>
+
                 <button
                   type="button"
                   onClick={handleSubmit}
@@ -682,7 +703,10 @@ export default function NonEmergencyReport() {
                   className="py-3 rounded-xl bg-gradient-to-r from-teal-500 to-blue-600 text-white text-[12px] font-bold flex items-center justify-center gap-2 disabled:opacity-70"
                 >
                   {isSubmitting ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</>
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Submitting...
+                    </>
                   ) : (
                     'Confirm & Submit'
                   )}
@@ -717,7 +741,9 @@ function ChoiceButton({ selected, label, icon: Icon, onClick }) {
 function Field({ label, children }) {
   return (
     <div>
-      <label className="block text-[10px] font-semibold text-slate-500 mb-1.5">{label}</label>
+      <label className="block text-[10px] font-semibold text-slate-500 mb-1.5">
+        {label}
+      </label>
       {children}
     </div>
   );
@@ -727,7 +753,9 @@ function InfoRow({ label, value }) {
   return (
     <div className="flex items-start justify-between gap-4 py-2 border-b border-slate-100 last:border-0">
       <span className="text-[10px] text-slate-400 shrink-0">{label}</span>
-      <span className="text-[10px] font-medium text-slate-700 text-right">{value || 'Not provided'}</span>
+      <span className="text-[10px] font-medium text-slate-700 text-right">
+        {value || 'Not provided'}
+      </span>
     </div>
   );
 }

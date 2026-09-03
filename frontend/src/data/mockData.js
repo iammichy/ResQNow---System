@@ -233,6 +233,115 @@ export const mockAnnouncements = [
   },
 ];
 
+// ============ BARANGAY CONTACTS ============
+export const mockBarangayContacts = [
+  {
+    id: 'BRGY-001',
+    name: 'Barangay Camunatan Hotline',
+    role: 'Barangay Hotline',
+    phoneNumber: '0917-123-4567',
+    group: 'Hotline',
+  },
+  {
+    id: 'BRGY-002',
+    name: 'Juan Dela Cruz',
+    role: 'Punong Barangay / Barangay Captain',
+    phoneNumber: '0917-000-0001',
+    group: 'Official',
+  },
+  {
+    id: 'BRGY-003',
+    name: 'Barangay Kagawad 1',
+    role: 'Barangay Kagawad',
+    phoneNumber: '0917-000-0002',
+    group: 'Official',
+  },
+  {
+    id: 'BRGY-004',
+    name: 'Barangay Kagawad 2',
+    role: 'Barangay Kagawad',
+    phoneNumber: '0917-000-0003',
+    group: 'Official',
+  },
+  {
+    id: 'BRGY-005',
+    name: 'Barangay Kagawad 3',
+    role: 'Barangay Kagawad',
+    phoneNumber: '0917-000-0004',
+    group: 'Official',
+  },
+  {
+    id: 'BRGY-006',
+    name: 'Barangay Kagawad 4',
+    role: 'Barangay Kagawad',
+    phoneNumber: '0917-000-0005',
+    group: 'Official',
+  },
+  {
+    id: 'BRGY-007',
+    name: 'Barangay Kagawad 5',
+    role: 'Barangay Kagawad',
+    phoneNumber: '0917-000-0006',
+    group: 'Official',
+  },
+  {
+    id: 'BRGY-008',
+    name: 'Barangay Kagawad 6',
+    role: 'Barangay Kagawad',
+    phoneNumber: '0917-000-0007',
+    group: 'Official',
+  },
+  {
+    id: 'BRGY-009',
+    name: 'Barangay Kagawad 7',
+    role: 'Barangay Kagawad',
+    phoneNumber: '0917-000-0008',
+    group: 'Official',
+  },
+  {
+    id: 'BRGY-010',
+    name: 'SK Chairperson',
+    role: 'Sangguniang Kabataan Chairperson',
+    phoneNumber: '0917-000-0009',
+    group: 'Official',
+  },
+  {
+    id: 'BRGY-011',
+    name: 'Barangay Secretary',
+    role: 'Barangay Secretary',
+    phoneNumber: '0917-000-0010',
+    group: 'Personnel',
+  },
+  {
+    id: 'BRGY-012',
+    name: 'Barangay Treasurer',
+    role: 'Barangay Treasurer',
+    phoneNumber: '0917-000-0011',
+    group: 'Personnel',
+  },
+  {
+    id: 'BRGY-013',
+    name: 'BDRRMO Personnel',
+    role: 'Disaster Response',
+    phoneNumber: '0917-678-9012',
+    group: 'Personnel',
+  },
+  {
+    id: 'BRGY-014',
+    name: 'Barangay Health Worker',
+    role: 'Health Assistance',
+    phoneNumber: '0917-000-0012',
+    group: 'Personnel',
+  },
+  {
+    id: 'BRGY-015',
+    name: 'Barangay Tanod',
+    role: 'Peace and Order',
+    phoneNumber: '0917-000-0013',
+    group: 'Personnel',
+  },
+];
+
 export const mockEmergencyContacts = [
   {
     id: 'CT-001',
