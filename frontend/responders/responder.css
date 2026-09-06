@@ -1,0 +1,117 @@
+.responder-shell {
+  background: #f4f7f8;
+  color: #172033;
+  width: min(100%, 430px);
+  min-height: 100dvh;
+  margin: 0 auto;
+  overflow-x: hidden;
+  box-shadow: 0 0 40px rgba(15, 54, 63, .12);
+}
+
+html:has(.responder-shell),
+body:has(.responder-shell) {
+  background: #dce5e7;
+}
+
+body:has(.responder-shell) { margin: 0; }
+
+.responder-grid {
+  background-image: linear-gradient(rgba(15, 118, 110, .035) 1px, transparent 1px), linear-gradient(90deg, rgba(15, 118, 110, .035) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.map-surface {
+  background-color: #dcefeb;
+  background-image: linear-gradient(32deg, transparent 46%, rgba(255,255,255,.9) 47%, rgba(255,255,255,.9) 51%, transparent 52%), linear-gradient(110deg, transparent 40%, rgba(255,255,255,.65) 41%, rgba(255,255,255,.65) 44%, transparent 45%);
+  background-size: 150px 120px, 190px 150px;
+}
+
+.responder-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+.responder-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+
+@media (max-width: 767px) {
+  .responder-content { padding-bottom: 92px; }
+}
+
+/* The responder portal follows the resident app's phone canvas at every viewport. */
+.responder-shell > .md\:pl-64 {
+  min-width: 0;
+  padding-left: 0 !important;
+}
+
+.responder-shell aside { display: none !important; }
+
+.responder-shell main {
+  width: 100%;
+  padding: 20px 16px 92px !important;
+}
+
+.responder-shell > nav {
+  left: 50%;
+  width: min(100%, 430px);
+  transform: translateX(-50%);
+}
+
+.responder-shell > nav { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+
+.responder-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.responder-content > div:has(.mt-6.grid) {
+  display: contents;
+}
+
+.responder-content > div:has(.mt-6.grid) > .mt-6.grid {
+  order: 3;
+}
+
+.responder-content > div:has(.mt-6.grid) > section.mt-6 {
+  order: 4;
+}
+
+.responder-content > .responder-dashboard-map {
+  order: 2;
+}
+
+.responder-content .mt-6.grid > section:nth-child(2) {
+  display: none;
+}
+
+/* With admin instructions removed, the remaining dashboard sections share one column. */
+.responder-content .mt-6.grid.gap-6 {
+  grid-template-columns: 1fr !important;
+}
+
+.responder-shell .lg\:grid-cols-2,
+.responder-shell .lg\:grid-cols-4,
+.responder-shell .lg\:grid-cols-\[1fr_\.85fr\],
+.responder-shell .lg\:grid-cols-\[1\.35fr_\.8fr\],
+.responder-shell .lg\:grid-cols-\[1\.4fr_\.7fr\] {
+  grid-template-columns: 1fr !important;
+}
+
+@media (min-width: 768px) {
+  .responder-shell {
+    width: min(100%, 1100px);
+    box-shadow: 0 0 40px rgba(15, 54, 63, .12);
+  }
+
+  .responder-shell header > div,
+  .responder-shell main {
+    max-width: 1024px !important;
+  }
+
+  .responder-shell main {
+    padding: 28px 32px 104px !important;
+  }
+
+  .responder-shell > nav {
+    width: min(100%, 1100px);
+  }
+
+  .responder-content > div:has(.mt-6.grid) > .grid.grid-cols-2.gap-3 {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}
