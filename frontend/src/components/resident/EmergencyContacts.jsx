@@ -20,34 +20,36 @@ import {
 } from '../../data/mockData';
 
 // ============ SERVICE STYLE ============
+// Colors for each emergency service category
 const contactStyle = {
   Fire: {
     icon: Flame,
-    iconBg: 'bg-red-100',
-    iconColor: 'text-red-600',
-    card: 'bg-red-50 border-red-200',
+    iconBg: 'bg-resqnow-critical/15',
+    iconColor: 'text-resqnow-critical',
+    card: 'bg-resqnow-critical/5 border-resqnow-critical/20',
   },
   Police: {
     icon: Shield,
-    iconBg: 'bg-indigo-100',
-    iconColor: 'text-indigo-600',
-    card: 'bg-indigo-50 border-indigo-200',
+    iconBg: 'bg-resqnow-violet/15',
+    iconColor: 'text-resqnow-violet',
+    card: 'bg-resqnow-violet/5 border-resqnow-violet/20',
   },
   Medical: {
     icon: Stethoscope,
-    iconBg: 'bg-teal-100',
-    iconColor: 'text-teal-600',
-    card: 'bg-teal-50 border-teal-200',
+    iconBg: 'bg-resqnow-mint/15',
+    iconColor: 'text-resqnow-mint',
+    card: 'bg-resqnow-mint/5 border-resqnow-mint/20',
   },
   Rescue: {
     icon: LifeBuoy,
-    iconBg: 'bg-orange-100',
-    iconColor: 'text-orange-600',
-    card: 'bg-orange-50 border-orange-200',
+    iconBg: 'bg-resqnow-coral/15',
+    iconColor: 'text-resqnow-coral',
+    card: 'bg-resqnow-coral/5 border-resqnow-coral/20',
   },
 };
 
 // ============ LOCATIONS ============
+// Map contact IDs to readable location names
 const contactLocations = {
   'CT-001': 'Barangay Camunatan Hall',
   'CT-002': 'BFP Fire Station',
@@ -73,24 +75,25 @@ export default function EmergencyContacts() {
   const [selectedLocation, setSelectedLocation] = useState(null);
 
   return (
-    <div className="px-4 pt-4 pb-28 min-h-screen bg-slate-50">
+    <div className="px-4 pt-4 pb-28 min-h-screen">
+
       {/* ============ HEADER ============ */}
       <div className="mb-3">
-        <h1 className="text-lg font-bold text-slate-900">Emergency Contacts</h1>
-        <p className="text-[11px] text-slate-500 mt-0.5">
+        <h1 className="text-lg font-bold text-resqnow-primary">Emergency Contacts</h1>
+        <p className="text-[11px] text-resqnow-muted mt-0.5">
           Barangay contacts, emergency services, and important locations.
         </p>
       </div>
 
       {/* ============ BARANGAY HOTLINE ============ */}
-      <section className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl p-4 mb-3 text-white shadow-[0_8px_20px_rgba(37,99,235,0.20)]">
+      <section className="bg-brand-gradient rounded-2xl p-4 mb-3 text-white shadow-[0_8px_20px_rgba(131,70,242,0.20)]">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
             <Building2 className="w-5 h-5" />
           </div>
 
           <div className="flex-1 min-w-0">
-            <p className="text-[9px] text-blue-100 font-bold uppercase tracking-wide">
+            <p className="text-[9px] text-white/70 font-bold uppercase tracking-wide">
               Barangay Hotline
             </p>
             <p className="text-[13px] font-bold mt-0.5">Barangay Camunatan</p>
@@ -102,55 +105,49 @@ export default function EmergencyContacts() {
 
         <a
           href={`tel:${(hotline?.phoneNumber || '').replace(/[^0-9+]/g, '')}`}
-          className="mt-3 w-full py-2.5 rounded-xl bg-white text-blue-700 text-[11px] font-bold flex items-center justify-center gap-1.5 active:scale-[0.99] transition-all"
+          className="mt-3 w-full py-2.5 rounded-xl bg-white text-resqnow-violet text-[11px] font-bold flex items-center justify-center gap-1.5 active:scale-[0.99] transition-all"
         >
           <Phone className="w-3.5 h-3.5" />
           Call Barangay Hotline
         </a>
       </section>
 
-      {/* ============ BARANGAY PERSONNEL BANNER ============ */}
+      {/* ============ BARANGAY PERSONNEL ============ */}
       <section className="mb-3">
         <button
           type="button"
           onClick={() => setShowPersonnel((prev) => !prev)}
           className={`w-full p-3.5 rounded-2xl border flex items-center gap-3 text-left transition-all ${
             showPersonnel
-              ? 'bg-blue-100 border-blue-300'
-              : 'bg-blue-50 border-blue-200 hover:bg-blue-100'
+              ? 'bg-resqnow-violet/10 border-resqnow-violet/30'
+              : 'bg-resqnow-violet/5 border-resqnow-violet/20 hover:bg-resqnow-violet/10'
           }`}
         >
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-blue-100 text-blue-600">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-resqnow-violet/10 text-resqnow-violet">
             <Users className="w-5 h-5" />
           </div>
 
           <div className="flex-1">
-            <p className="text-[14px] font-bold text-blue-900">
+            <p className="text-[14px] font-bold text-resqnow-primary">
               Barangay Officials & Personnel
             </p>
-
-            <p className="text-[10px] text-blue-600 mt-0.5">
+            <p className="text-[10px] text-resqnow-violet mt-0.5">
               Captain, Kagawads, SK, Secretary, Treasurer and personnel
             </p>
           </div>
 
           <ChevronDown
-            className={`w-4 h-4 text-blue-500 shrink-0 transition-transform ${
+            className={`w-4 h-4 text-resqnow-violet/70 shrink-0 transition-transform ${
               showPersonnel ? 'rotate-180' : ''
             }`}
           />
         </button>
 
-        {/* Personnel Contacts */}
         {showPersonnel && (
           <div className="mt-2 bg-white border border-slate-200 rounded-2xl p-3">
             <div className="flex items-center justify-between px-0.5 mb-2.5">
-              <p className="text-[11px] font-bold text-slate-700">
-                Contact Directory
-              </p>
-              <p className="text-[9px] text-slate-400">
-                Tap a card to call
-              </p>
+              <p className="text-[11px] font-bold text-resqnow-primary">Contact Directory</p>
+              <p className="text-[9px] text-resqnow-muted">Tap a card to call</p>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -158,25 +155,20 @@ export default function EmergencyContacts() {
                 <a
                   key={person.id}
                   href={`tel:${person.phoneNumber.replace(/[^0-9+]/g, '')}`}
-                  className="min-h-[110px] border border-slate-200 rounded-xl p-3 bg-white hover:bg-blue-50 hover:border-blue-200 active:scale-[0.98] transition-all"
+                  className="min-h-[110px] border border-slate-200 rounded-xl p-3 bg-white hover:bg-resqnow-violet/5 hover:border-resqnow-violet/20 active:scale-[0.98] transition-all"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-resqnow-violet/10 text-resqnow-violet flex items-center justify-center mb-2">
                     <UserRound className="w-4 h-4" />
                   </div>
-
-                  <p className="text-[8px] font-bold text-blue-500 uppercase tracking-wide leading-tight">
+                  <p className="text-[8px] font-bold text-resqnow-violet/70 uppercase tracking-wide leading-tight">
                     {person.role}
                   </p>
-
-                  <p className="text-[11px] font-bold text-slate-900 mt-1 leading-snug">
+                  <p className="text-[11px] font-bold text-resqnow-primary mt-1 leading-snug">
                     {person.name}
                   </p>
-
                   <div className="flex items-center gap-1 mt-2">
-                    <Phone className="w-3 h-3 text-slate-500 shrink-0" />
-                    <p className="text-[10px] font-bold text-slate-700">
-                      {person.phoneNumber}
-                    </p>
+                    <Phone className="w-3 h-3 text-resqnow-muted shrink-0" />
+                    <p className="text-[10px] font-bold text-resqnow-primary">{person.phoneNumber}</p>
                   </div>
                 </a>
               ))}
@@ -188,46 +180,26 @@ export default function EmergencyContacts() {
       {/* ============ MAP ============ */}
       <section className="bg-white border border-slate-200 rounded-2xl overflow-hidden mb-3">
         <div className="px-3.5 py-3 border-b border-slate-100 flex items-center gap-2">
-          <MapPin className="w-4 h-4 text-blue-500" />
-
+          <MapPin className="w-4 h-4 text-resqnow-violet" />
           <div>
-            <h2 className="text-[13px] font-bold text-slate-900">
-              Emergency Locations
-            </h2>
-
-            <p className="text-[9px] text-slate-400 mt-0.5">
-              Barangay and nearby emergency facilities.
-            </p>
+            <h2 className="text-[13px] font-bold text-resqnow-primary">Emergency Locations</h2>
+            <p className="text-[9px] text-resqnow-muted mt-0.5">Barangay and nearby emergency facilities.</p>
           </div>
         </div>
 
         <div className="p-3">
-          <div className="h-[125px] bg-blue-50 border border-dashed border-blue-200 rounded-xl flex flex-col items-center justify-center text-center px-4">
-            <Navigation className="w-6 h-6 text-blue-500" />
-
+          <div className="h-[125px] bg-resqnow-mist/50 border border-dashed border-resqnow-violet/20 rounded-xl flex flex-col items-center justify-center text-center px-4">
+            <Navigation className="w-6 h-6 text-resqnow-violet" />
             {selectedLocation ? (
               <>
-                <p className="text-[11px] font-bold text-blue-800 mt-1.5">
-                  {contactLocations[selectedLocation.id]}
-                </p>
-
-                <p className="text-[9px] text-blue-500 mt-0.5">
-                  {selectedLocation.name}
-                </p>
-
-                <p className="text-[8px] text-slate-400 mt-1">
-                  Map integration will be connected later.
-                </p>
+                <p className="text-[11px] font-bold text-resqnow-primary mt-1.5">{contactLocations[selectedLocation.id]}</p>
+                <p className="text-[9px] text-resqnow-violet mt-0.5">{selectedLocation.name}</p>
+                <p className="text-[8px] text-resqnow-muted mt-1">Map integration will be connected later.</p>
               </>
             ) : (
               <>
-                <p className="text-[11px] font-semibold text-blue-700 mt-1.5">
-                  Select a location
-                </p>
-
-                <p className="text-[9px] text-blue-500 mt-0.5">
-                  Tap one of the locations below.
-                </p>
+                <p className="text-[11px] font-semibold text-resqnow-primary mt-1.5">Select a location</p>
+                <p className="text-[9px] text-resqnow-violet mt-0.5">Tap one of the locations below.</p>
               </>
             )}
           </div>
@@ -240,8 +212,8 @@ export default function EmergencyContacts() {
                 onClick={() => setSelectedLocation(contact)}
                 className={`shrink-0 px-3 py-1.5 rounded-full text-[9px] font-semibold border transition-all ${
                   selectedLocation?.id === contact.id
-                    ? 'bg-blue-600 border-blue-600 text-white'
-                    : 'bg-white border-slate-200 text-slate-500 hover:border-blue-300'
+                    ? 'bg-resqnow-violet border-resqnow-violet text-white'
+                    : 'bg-white border-slate-200 text-resqnow-muted hover:border-resqnow-violet/30'
                 }`}
               >
                 {contactLocations[contact.id]}
@@ -254,20 +226,14 @@ export default function EmergencyContacts() {
       {/* ============ LGU CONTACTS ============ */}
       <section className="mb-3">
         <div className="px-1 mb-2">
-          <h2 className="text-[13px] font-bold text-slate-900">
-            LGU & Emergency Services
-          </h2>
-
-          <p className="text-[10px] text-slate-400 mt-0.5">
-            Tap a service to call.
-          </p>
+          <h2 className="text-[13px] font-bold text-resqnow-primary">LGU & Emergency Services</h2>
+          <p className="text-[10px] text-resqnow-muted mt-0.5">Tap a service to call.</p>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
           {lguContacts.map((contact) => {
             const style = contactStyle[contact.category] || contactStyle.Rescue;
             const Icon = style.icon;
-
             return (
               <a
                 key={contact.id}
@@ -277,20 +243,11 @@ export default function EmergencyContacts() {
                 <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${style.iconBg}`}>
                   <Icon className={`w-4 h-4 ${style.iconColor}`} />
                 </div>
-
-                <p className={`text-[9px] font-bold uppercase tracking-wide mt-2 ${style.iconColor}`}>
-                  {contact.category}
-                </p>
-
-                <p className="text-[12px] font-bold text-slate-900 mt-1 leading-snug">
-                  {contact.name}
-                </p>
-
+                <p className={`text-[9px] font-bold uppercase tracking-wide mt-2 ${style.iconColor}`}>{contact.category}</p>
+                <p className="text-[12px] font-bold text-resqnow-primary mt-1 leading-snug">{contact.name}</p>
                 <div className="flex items-center gap-1 mt-2">
-                  <Phone className="w-3 h-3 text-slate-500 shrink-0" />
-                  <p className="text-[10px] font-bold text-slate-700">
-                    {contact.phoneNumber}
-                  </p>
+                  <Phone className="w-3 h-3 text-resqnow-muted shrink-0" />
+                  <p className="text-[10px] font-bold text-resqnow-primary">{contact.phoneNumber}</p>
                 </div>
               </a>
             );
