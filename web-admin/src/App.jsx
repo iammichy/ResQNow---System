@@ -1,122 +1,164 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useState } from "react";
+
+import AdminLogin from "./auth/AdminLogin";
+import AdminLayout from "./components/layout/AdminLayout";
+
+import Dashboard from "./pages/dashboard/Dashboard";
+import AuditLogs from "./pages/audit-logs/AuditLogs";
+import SettingsRoles from "./pages/settings/SettingsRoles";
+import ManualAddReport from "./pages/manual-report/ManualAddReport";
+import AnnouncementsPage from "./pages/announcements/AnnouncementsPage";
+import IncidentMap from "./pages/map/IncidentMap";
+import AllReports from "./pages/all-reports/AllReports";
+import LiveUpdates from "./pages/live-updates/LiveUpdates";
+import Verification from "./pages/verification/Verification";
+import ReportDetails from "./pages/report-details/ReportDetails";
+import Prioritization from "./pages/prioritization/Prioritization";
+import ResidentsPage from "./pages/residents/ResidentsPage";
+import PersonnelPage from "./pages/personnel/PersonnelPage";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return sessionStorage.getItem("resqnow_admin_session") === "true";
+  });
+
+  const [activePage, setActivePage] = useState("dashboard");
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [selectedResident, setSelectedResident] = useState(null);
+
+  const handleLogin = (adminData) => {
+    sessionStorage.setItem("resqnow_admin_session", "true");
+    sessionStorage.setItem("resqnow_admin_user", JSON.stringify(adminData));
+
+    setIsAuthenticated(true);
+    setActivePage("dashboard");
+  };
+
+  const handleLogout = () => {
+    sessionStorage.removeItem("resqnow_admin_session");
+    sessionStorage.removeItem("resqnow_admin_user");
+
+    setIsAuthenticated(false);
+    setActivePage("dashboard");
+    setSelectedReport(null);
+  };
+
+  const handleNavigate = (pageId) => {
+    if (pageId !== "all-reports") {
+      setSelectedResident(null);
+    }
+
+    setActivePage(pageId);
+  };
+
+  const handleOpenReport = (report) => {
+    setSelectedReport(report);
+    setActivePage("report-details");
+  };
+
+  const handleViewResidentReports = (resident) => {
+    setSelectedResident(resident);
+    setActivePage("all-reports");
+  };
+
+  const renderPage = () => {
+    switch (activePage) {
+      case "dashboard":
+        return (
+          <Dashboard
+            onOpenReport={handleOpenReport}
+            onNavigate={handleNavigate}
+          />
+        );
+
+      case "all-reports":
+        return (
+          <AllReports
+            onOpenReport={handleOpenReport}
+            onNavigate={handleNavigate}
+            selectedResident={selectedResident}
+          />
+        );
+
+      case "verification":
+        return <Verification />;
+
+      case "prioritization":
+        return <Prioritization />;
+
+      case "map":
+        return <IncidentMap />;
+
+      case "live-updates":
+  return (
+    <LiveUpdates
+      onBack={() => handleNavigate("dashboard")}
+    />
+  );
+
+      case "residents":
+        return (
+          <ResidentsPage onViewResidentReports={handleViewResidentReports} />
+        );
+
+      case "personnel":
+        return <PersonnelPage />;
+
+      case "announcements":
+        return <AnnouncementsPage />;
+
+      case "audit-logs":
+        return <AuditLogs />;
+
+      case "settings":
+        return <SettingsRoles />;
+
+      case "manual-report":
+        return <ManualAddReport />;
+
+      case "report-details":
+        return (
+          <ReportDetails
+            report={selectedReport}
+            onBack={() => handleNavigate("all-reports")}
+          />
+        );
+
+      default:
+        return (
+          <div className="flex min-h-full items-center justify-center">
+            <div className="rounded-2xl border border-[#E4E7EC] bg-white px-8 py-10 text-center shadow-sm">
+              <p className="text-sm font-semibold text-[#8346F2]">
+                ResQNow Web Admin
+              </p>
+
+              <h1 className="mt-2 text-2xl font-extrabold text-[#1F1D47]">
+                Module Not Implemented Yet
+              </h1>
+
+              <p className="mt-2 text-sm text-[#667085]">
+                This module will be implemented in a future phase.
+              </p>
+            </div>
+          </div>
+        );
+    }
+  };
+
+  if (!isAuthenticated) {
+    return <AdminLogin onLogin={handleLogin} />;
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+    <AdminLayout
+      activePage={activePage}
+      onNavigate={handleNavigate}
+      onLogout={handleLogout}
+      onAddManualReport={() => handleNavigate("manual-report")}
+    >
+      {renderPage()}
+    </AdminLayout>
+  );
 }
 
-export default App
+export default App;
