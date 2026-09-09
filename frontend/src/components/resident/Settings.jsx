@@ -3,14 +3,36 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  UserRound, Phone, Mail, MapPin, MapPinned, Users, ShieldCheck, LockKeyhole, Languages,
-  Bell, FileText, Megaphone, Siren, ChevronDown, Pencil, Save, Eye, EyeOff,
-  CheckCircle2, AlertCircle, Minus, Plus, LogOut,
+  UserRound,
+  Phone,
+  Mail,
+  MapPin,
+  MapPinned,
+  Users,
+  ShieldCheck,
+  LockKeyhole,
+  Languages,
+  Bell,
+  FileText,
+  Megaphone,
+  Siren,
+  ChevronDown,
+  Pencil,
+  Save,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  AlertCircle,
+  Minus,
+  Plus,
+  LogOut,
 } from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext';
 import { purokOptions } from '../../data/mockData';
 
+// ============ SETTINGS PAGE ============
+// Resident profile, security, preferences, privacy, and sign out
 export default function Settings() {
   const navigate = useNavigate();
   const { user, updateProfile, logout } = useAuth();
@@ -18,25 +40,37 @@ export default function Settings() {
 
   // Accordion state
   const [openSection, setOpenSection] = useState('profile');
+
+  // Profile edit state
   const [isEditing, setIsEditing] = useState(false);
 
-  // Profile form state
+  // Resident information
   const [fullName, setFullName] = useState(user?.fullName || '');
   const [contactNumber, setContactNumber] = useState(user?.contactNumber || '');
   const [email, setEmail] = useState(user?.email || '');
   const [address, setAddress] = useState(user?.address || '');
   const [purok, setPurok] = useState(user?.purok || 'Purok 1');
-  const [householdCount, setHouseholdCount] = useState(user?.householdCount || 1);
+  const [householdCount, setHouseholdCount] = useState(
+    user?.householdCount || 1
+  );
+
+  // Household information
   const [householdProfile, setHouseholdProfile] = useState({
-    hasSeniorCitizen: user?.householdProfile?.hasSeniorCitizen || false,
-    hasChild: user?.householdProfile?.hasChild || false,
-    hasPWD: user?.householdProfile?.hasPWD || false,
-    hasPregnantPerson: user?.householdProfile?.hasPregnantPerson || false,
+    hasSeniorCitizen:
+      user?.householdProfile?.hasSeniorCitizen || false,
+    hasChild:
+      user?.householdProfile?.hasChild || false,
+    hasPWD:
+      user?.householdProfile?.hasPWD || false,
+    hasPregnantPerson:
+      user?.householdProfile?.hasPregnantPerson || false,
   });
+
+  // Profile feedback
   const [profileError, setProfileError] = useState('');
   const [profileSaved, setProfileSaved] = useState(false);
 
-  // Password form state
+  // Password state
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -45,269 +79,1362 @@ export default function Settings() {
   const [passwordSaved, setPasswordSaved] = useState(false);
 
   // Notification preferences
-  const [notifications, setNotifications] = useState({ reportUpdates: true, announcements: true, emergencyAlerts: true });
+  const [notifications, setNotifications] = useState({
+    reportUpdates: true,
+    announcements: true,
+    emergencyAlerts: true,
+  });
+
   const [preferencesSaved, setPreferencesSaved] = useState(false);
 
-  const toggleSection = (section) => setOpenSection((prev) => (prev === section ? null : section));
+  // ============ ACCORDION ============
+  // Open or close a settings section
+  const toggleSection = (section) => {
+    setOpenSection((prev) =>
+      prev === section ? null : section
+    );
+  };
 
-  // Language change handler
+  // ============ LANGUAGE ============
+  // Change app language
   const handleLanguageChange = async (e) => {
     const newLanguage = e.target.value;
+
     await i18n.changeLanguage(newLanguage);
-    localStorage.setItem('resqnow_language', newLanguage);
-    document.documentElement.lang = newLanguage;
+
+    localStorage.setItem(
+      'resqnow_language',
+      newLanguage
+    );
+
+    document.documentElement.lang =
+      newLanguage;
+
     setPreferencesSaved(false);
   };
 
-  const toggleHousehold = (key) => { if (!isEditing) return; setHouseholdProfile((prev) => ({ ...prev, [key]: !prev[key] })); };
+  // ============ HOUSEHOLD ============
+  // Toggle one household characteristic
+  const toggleHousehold = (key) => {
+    if (!isEditing) return;
 
-  // Save profile changes
+    setHouseholdProfile((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  // ============ PROFILE ============
+  // Validate and save resident profile
   const handleProfileSave = () => {
-    setProfileError(''); setProfileSaved(false);
-    if (!fullName.trim()) { setProfileError('Full name is required.'); return; }
-    if (!/^09\d{9}$/.test(contactNumber)) { setProfileError('Enter a valid 11-digit mobile number starting with 09.'); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setProfileError('Enter a valid email address.'); return; }
-    if (!address.trim()) { setProfileError('Address is required.'); return; }
-    updateProfile({ fullName, contactNumber, email, address, purok, householdCount, householdProfile });
-    setIsEditing(false); setProfileSaved(true);
-    setTimeout(() => setProfileSaved(false), 2500);
+    setProfileError('');
+    setProfileSaved(false);
+
+    if (!fullName.trim()) {
+      setProfileError(
+        'Full name is required.'
+      );
+      return;
+    }
+
+    if (!/^09\d{9}$/.test(contactNumber)) {
+      setProfileError(
+        'Enter a valid 11-digit mobile number starting with 09.'
+      );
+      return;
+    }
+
+    if (
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+        email
+      )
+    ) {
+      setProfileError(
+        'Enter a valid email address.'
+      );
+      return;
+    }
+
+    if (!address.trim()) {
+      setProfileError(
+        'Address is required.'
+      );
+      return;
+    }
+
+    updateProfile({
+      fullName,
+      contactNumber,
+      email,
+      address,
+      purok,
+      householdCount,
+      householdProfile,
+    });
+
+    setIsEditing(false);
+    setProfileSaved(true);
+
+    setTimeout(() => {
+      setProfileSaved(false);
+    }, 2500);
   };
 
+  // Cancel profile editing
   const handleCancelEdit = () => {
-    setFullName(user?.fullName || ''); setContactNumber(user?.contactNumber || ''); setEmail(user?.email || '');
-    setAddress(user?.address || ''); setPurok(user?.purok || 'Purok 1'); setHouseholdCount(user?.householdCount || 1);
-    setHouseholdProfile({ hasSeniorCitizen: user?.householdProfile?.hasSeniorCitizen || false, hasChild: user?.householdProfile?.hasChild || false, hasPWD: user?.householdProfile?.hasPWD || false, hasPregnantPerson: user?.householdProfile?.hasPregnantPerson || false });
-    setProfileError(''); setIsEditing(false);
+    setFullName(user?.fullName || '');
+
+    setContactNumber(
+      user?.contactNumber || ''
+    );
+
+    setEmail(user?.email || '');
+    setAddress(user?.address || '');
+
+    setPurok(
+      user?.purok || 'Purok 1'
+    );
+
+    setHouseholdCount(
+      user?.householdCount || 1
+    );
+
+    setHouseholdProfile({
+      hasSeniorCitizen:
+        user?.householdProfile
+          ?.hasSeniorCitizen || false,
+
+      hasChild:
+        user?.householdProfile
+          ?.hasChild || false,
+
+      hasPWD:
+        user?.householdProfile
+          ?.hasPWD || false,
+
+      hasPregnantPerson:
+        user?.householdProfile
+          ?.hasPregnantPerson || false,
+    });
+
+    setProfileError('');
+    setIsEditing(false);
   };
 
-  const validPassword = (p) => p.length >= 8 && /[A-Z]/.test(p) && /\d/.test(p) && /[^A-Za-z0-9]/.test(p);
+  // ============ PASSWORD ============
+  // Check password requirements
+  const validPassword = (password) => {
+    return (
+      password.length >= 8 &&
+      /[A-Z]/.test(password) &&
+      /\d/.test(password) &&
+      /[^A-Za-z0-9]/.test(password)
+    );
+  };
 
+  // Validate and save new password
   const handlePasswordSave = () => {
-    setPasswordError(''); setPasswordSaved(false);
-    if (!currentPassword) { setPasswordError('Enter your current password.'); return; }
-    if (!validPassword(newPassword)) { setPasswordError('New password must have 8 characters, an uppercase letter, number, and special character.'); return; }
-    if (newPassword !== confirmPassword) { setPasswordError('New passwords do not match.'); return; }
-    setCurrentPassword(''); setNewPassword(''); setConfirmPassword(''); setPasswordSaved(true);
-    setTimeout(() => setPasswordSaved(false), 2500);
+    setPasswordError('');
+    setPasswordSaved(false);
+
+    if (!currentPassword) {
+      setPasswordError(
+        'Enter your current password.'
+      );
+      return;
+    }
+
+    if (!validPassword(newPassword)) {
+      setPasswordError(
+        'New password must have 8 characters, an uppercase letter, number, and special character.'
+      );
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError(
+        'New passwords do not match.'
+      );
+      return;
+    }
+
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+
+    setPasswordSaved(true);
+
+    setTimeout(() => {
+      setPasswordSaved(false);
+    }, 2500);
   };
 
-  const toggleNotification = (key) => { setNotifications((prev) => ({ ...prev, [key]: !prev[key] })); setPreferencesSaved(false); };
-  const handlePreferencesSave = () => { setPreferencesSaved(true); setTimeout(() => setPreferencesSaved(false), 2500); };
-  const handleLogout = () => { logout(); navigate('/login', { replace: true }); };
+  // ============ NOTIFICATIONS ============
+  // Toggle one notification preference
+  const toggleNotification = (key) => {
+    setNotifications((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
 
-  const firstLetter = (user?.fullName || 'Resident').charAt(0).toUpperCase();
+    setPreferencesSaved(false);
+  };
+
+  // Mock save preferences
+  const handlePreferencesSave = () => {
+    setPreferencesSaved(true);
+
+    setTimeout(() => {
+      setPreferencesSaved(false);
+    }, 2500);
+  };
+
+  // ============ LOGOUT ============
+  // Sign resident out and return to Login
+  const handleLogout = () => {
+    logout();
+
+    navigate('/login', {
+      replace: true,
+    });
+  };
+
+  // Avatar letter
+  const firstLetter = (
+    user?.fullName || 'Resident'
+  )
+    .charAt(0)
+    .toUpperCase();
 
   return (
     <div className="px-4 pt-4 pb-28 min-h-screen">
 
       {/* ============ HEADER ============ */}
       <div className="mb-3">
-        <h1 className="text-lg font-bold text-resqnow-primary">{t('settings.title')}</h1>
-        <p className="text-[11px] text-resqnow-muted mt-0.5">{t('settings.subtitle')}</p>
+
+        <h1 className="text-lg font-bold text-resqnow-primary">
+          {t('settings.title')}
+        </h1>
+
+        <p className="text-[11px] text-resqnow-muted mt-0.5">
+          {t('settings.subtitle')}
+        </p>
       </div>
 
       {/* ============ PROFILE SUMMARY ============ */}
-      <section className="bg-brand-gradient rounded-2xl p-4 text-white mb-3">
+      <section className="bg-brand-gradient rounded-2xl p-4 text-white mb-3 shadow-[0_8px_20px_rgba(131,70,242,0.18)]">
+
         <div className="flex items-center gap-3">
+
+          {/* Avatar */}
           <div className="w-14 h-14 rounded-full bg-white/20 border border-white/20 flex items-center justify-center shrink-0">
-            <span className="text-xl font-bold">{firstLetter}</span>
+
+            <span className="text-xl font-bold">
+              {firstLetter}
+            </span>
           </div>
+
+          {/* Resident information */}
           <div className="flex-1 min-w-0">
+
             <div className="flex items-center gap-1.5">
-              <p className="text-[15px] font-bold truncate">{user?.fullName || 'Resident'}</p>
-              {user?.accountStatus === 'Verified' && <ShieldCheck className="w-4 h-4 text-white shrink-0" />}
+
+              <p className="text-[15px] font-bold truncate">
+                {user?.fullName ||
+                  'Resident'}
+              </p>
+
+              {user?.accountStatus ===
+                'Verified' && (
+                <ShieldCheck className="w-4 h-4 text-white shrink-0" />
+              )}
             </div>
-            <p className="text-[10px] text-white/70 mt-0.5">{user?.accountStatus === 'Verified' ? t('settings.verifiedResident') : user?.accountStatus || 'Resident'}</p>
+
+            <p className="text-[10px] text-white/80 mt-0.5">
+
+              {user?.accountStatus ===
+              'Verified'
+                ? t(
+                    'settings.verifiedResident'
+                  )
+                : user?.accountStatus ||
+                  'Resident'}
+            </p>
+
             <div className="flex items-center gap-1 mt-1">
-              <MapPin className="w-3 h-3 text-white/60" />
-              <p className="text-[10px] text-white/70 truncate">{user?.purok || 'Barangay Camunatan'}</p>
+
+              <MapPin className="w-3 h-3 text-white/70" />
+
+              <p className="text-[10px] text-white/80 truncate">
+                {user?.purok ||
+                  'Barangay Camunatan'}
+              </p>
             </div>
           </div>
-          <button type="button" onClick={() => { setOpenSection('profile'); setIsEditing(true); }} className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0 hover:bg-white/30 transition-colors">
+
+          {/* Edit shortcut */}
+          <button
+            type="button"
+            onClick={() => {
+              setOpenSection('profile');
+              setIsEditing(true);
+            }}
+            aria-label="Edit profile"
+            className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0 hover:bg-white/30 active:scale-95 transition-all"
+          >
             <Pencil className="w-4 h-4" />
           </button>
         </div>
       </section>
 
-      {/* ============ PROFILE SECTION ============ */}
-      <section className="bg-white border border-slate-200 rounded-2xl overflow-hidden mb-3">
-        <button type="button" onClick={() => toggleSection('profile')} className="w-full px-4 py-3.5 flex items-center gap-3 text-left hover:bg-slate-50 transition-colors">
-          <div className="w-9 h-9 rounded-xl bg-resqnow-violet/10 text-resqnow-violet flex items-center justify-center shrink-0"><UserRound className="w-4 h-4" /></div>
-          <div className="flex-1"><p className="text-[13px] font-bold text-resqnow-primary">{t('settings.personalHousehold')}</p><p className="text-[9px] text-resqnow-muted mt-0.5">{t('settings.personalHouseholdHint')}</p></div>
-          <ChevronDown className={`w-4 h-4 text-resqnow-muted transition-transform ${openSection === 'profile' ? 'rotate-180' : ''}`} />
+      {/* ============ PERSONAL & HOUSEHOLD ============ */}
+      <section className="bg-white border border-resqnow-border-soft rounded-2xl overflow-hidden mb-3">
+
+        {/* Accordion heading */}
+        <button
+          type="button"
+          onClick={() =>
+            toggleSection('profile')
+          }
+          aria-expanded={
+            openSection === 'profile'
+          }
+          className="w-full min-h-[64px] px-4 py-3.5 flex items-center gap-3 text-left hover:bg-resqnow-canvas active:bg-resqnow-violet/5 transition-colors"
+        >
+          {/* Icon */}
+          <div className="w-9 h-9 rounded-xl bg-resqnow-violet/10 text-resqnow-violet flex items-center justify-center shrink-0">
+
+            <UserRound className="w-4 h-4" />
+          </div>
+
+          <div className="flex-1">
+
+            <p className="text-[13px] font-bold text-resqnow-primary">
+              {t(
+                'settings.personalHousehold'
+              )}
+            </p>
+
+            <p className="text-[9px] text-resqnow-muted mt-0.5">
+              {t(
+                'settings.personalHouseholdHint'
+              )}
+            </p>
+          </div>
+
+          <ChevronDown
+            className={`w-4 h-4 text-resqnow-muted transition-transform ${
+              openSection === 'profile'
+                ? 'rotate-180'
+                : ''
+            }`}
+          />
         </button>
 
+        {/* Profile content */}
         {openSection === 'profile' && (
-          <div className="px-4 pb-4 border-t border-slate-100">
+          <div className="px-4 pb-4 border-t border-resqnow-border-soft">
+
+            {/* Resident information heading */}
             <div className="flex items-center justify-between mt-4 mb-3">
-              <p className="text-[11px] font-bold text-resqnow-primary">{t('settings.residentInformation')}</p>
-              {!isEditing && <button type="button" onClick={() => setIsEditing(true)} className="flex items-center gap-1 text-[10px] font-bold text-resqnow-violet"><Pencil className="w-3 h-3" />{t('settings.edit')}</button>}
-            </div>
 
-            {profileError && <div className="flex items-start gap-2 bg-resqnow-critical/10 border border-resqnow-critical/20 rounded-xl px-3 py-2.5 mb-3"><AlertCircle className="w-4 h-4 text-resqnow-critical shrink-0 mt-0.5" /><p className="text-[10px] text-resqnow-critical">{profileError}</p></div>}
-            {profileSaved && <div className="flex items-center gap-2 bg-resqnow-safe/10 border border-resqnow-safe/20 rounded-xl px-3 py-2.5 mb-3"><CheckCircle2 className="w-4 h-4 text-resqnow-safe" /><p className="text-[10px] font-semibold text-resqnow-safe">{t('settings.profileUpdated')}</p></div>}
+              <p className="text-[11px] font-bold text-resqnow-secondary">
+                {t(
+                  'settings.residentInformation'
+                )}
+              </p>
 
-            <div className="space-y-3">
-              <ProfileField icon={UserRound} label={t('settings.fullName')} value={fullName} editing={isEditing} onChange={setFullName} />
-              <ProfileField icon={Phone} label={t('settings.contactNumber')} value={contactNumber} editing={isEditing} onChange={setContactNumber} type="tel" />
-              <ProfileField icon={Mail} label={t('settings.email')} value={email} editing={isEditing} onChange={setEmail} type="email" />
-              <ProfileField icon={MapPin} label={t('settings.address')} value={address} editing={isEditing} onChange={setAddress} />
-              <div>
-                <label className="text-[9px] font-semibold text-resqnow-muted">{t('settings.purok')}</label>
-                {isEditing ? (
-                  <select value={purok} onChange={(e) => setPurok(e.target.value)} className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-[11px] text-resqnow-primary outline-none focus:border-resqnow-violet/40 focus:ring-2 focus:ring-resqnow-violet/10">
-                    {purokOptions.map((item) => <option key={item} value={item}>{item}</option>)}
-                  </select>
-                ) : <p className="text-[12px] font-semibold text-resqnow-primary mt-1">{purok}</p>}
-              </div>
-            </div>
+              {!isEditing && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setIsEditing(true)
+                  }
+                  className="min-h-[36px] flex items-center gap-1 px-2 text-[10px] font-bold text-resqnow-violet"
+                >
+                  <Pencil className="w-3 h-3" />
 
-            {/* Home location */}
-            <div className="mt-4">
-              <p className="text-[11px] font-bold text-resqnow-primary mb-2">{t('settings.homeLocation')}</p>
-              <div className="bg-resqnow-violet/5 border border-resqnow-violet/10 rounded-xl p-3 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-resqnow-violet/10 text-resqnow-violet flex items-center justify-center shrink-0"><MapPinned className="w-4 h-4" /></div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-bold text-resqnow-primary">{t('settings.savedHomeLocation')}</p>
-                  <p className="text-[9px] text-resqnow-muted mt-0.5 truncate">{address || purok}</p>
-                  <p className="text-[8px] text-resqnow-muted mt-0.5">{t('settings.mapLater')}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Household */}
-            <div className="mt-4 pt-4 border-t border-slate-100">
-              <div className="flex items-center gap-2 mb-3"><Users className="w-4 h-4 text-resqnow-mint" /><p className="text-[11px] font-bold text-resqnow-primary">{t('settings.householdInformation')}</p></div>
-              <div className="flex items-center justify-between bg-slate-50 rounded-xl p-3">
-                <div><p className="text-[10px] font-semibold text-resqnow-primary">{t('settings.householdMembers')}</p><p className="text-[9px] text-resqnow-muted mt-0.5">{t('settings.householdMembersHint')}</p></div>
-                <div className="flex items-center gap-2">
-                  {isEditing && <button type="button" onClick={() => setHouseholdCount((prev) => Math.max(1, prev - 1))} className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-resqnow-muted"><Minus className="w-3 h-3" /></button>}
-                  <span className="text-sm font-bold text-resqnow-primary w-6 text-center">{householdCount}</span>
-                  {isEditing && <button type="button" onClick={() => setHouseholdCount((prev) => prev + 1)} className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-resqnow-muted"><Plus className="w-3 h-3" /></button>}
-                </div>
-              </div>
-              {isEditing && (
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {[{ key: 'hasSeniorCitizen', icon: PersonStanding, label: t('settings.senior') }, { key: 'hasChild', icon: Baby, label: t('settings.child') }, { key: 'hasPWD', icon: Accessibility, label: t('settings.pwd') }, { key: 'hasPregnantPerson', icon: HeartPulse, label: t('settings.pregnant') }].map(({ key, icon: HIcon, label }) => (
-                    <button key={key} type="button" onClick={() => toggleHousehold(key)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-medium border transition-all ${householdProfile[key] ? 'bg-resqnow-mint/10 border-resqnow-mint text-resqnow-mint' : 'bg-white border-slate-200 text-resqnow-muted'}`}>
-                      <HIcon className="w-3 h-3" />{label}
-                    </button>
-                  ))}
-                </div>
+                  {t('settings.edit')}
+                </button>
               )}
             </div>
 
+            {/* Profile error */}
+            {profileError && (
+              <div className="flex items-start gap-2 bg-resqnow-critical/10 border border-resqnow-critical/20 rounded-xl px-3 py-2.5 mb-3">
+
+                <AlertCircle className="w-4 h-4 text-resqnow-critical shrink-0 mt-0.5" />
+
+                <p className="text-[10px] text-resqnow-crimson">
+                  {profileError}
+                </p>
+              </div>
+            )}
+
+            {/* Profile success */}
+            {profileSaved && (
+              <div className="flex items-center gap-2 bg-resqnow-safe/10 border border-resqnow-safe/20 rounded-xl px-3 py-2.5 mb-3">
+
+                <CheckCircle2 className="w-4 h-4 text-resqnow-safe" />
+
+                <p className="text-[10px] font-semibold text-resqnow-safe">
+                  {t(
+                    'settings.profileUpdated'
+                  )}
+                </p>
+              </div>
+            )}
+
+            {/* Profile fields */}
+            <div className="space-y-3">
+
+              <ProfileField
+                icon={UserRound}
+                label={t(
+                  'settings.fullName'
+                )}
+                value={fullName}
+                editing={isEditing}
+                onChange={setFullName}
+              />
+
+              <ProfileField
+                icon={Phone}
+                label={t(
+                  'settings.contactNumber'
+                )}
+                value={contactNumber}
+                editing={isEditing}
+                onChange={
+                  setContactNumber
+                }
+                type="tel"
+              />
+
+              <ProfileField
+                icon={Mail}
+                label={t(
+                  'settings.email'
+                )}
+                value={email}
+                editing={isEditing}
+                onChange={setEmail}
+                type="email"
+              />
+
+              <ProfileField
+                icon={MapPin}
+                label={t(
+                  'settings.address'
+                )}
+                value={address}
+                editing={isEditing}
+                onChange={setAddress}
+              />
+
+              {/* Purok */}
+              <div>
+
+                <label className="text-[9px] font-semibold text-resqnow-muted">
+                  {t('settings.purok')}
+                </label>
+
+                {isEditing ? (
+                  <select
+                    value={purok}
+                    onChange={(e) =>
+                      setPurok(
+                        e.target.value
+                      )
+                    }
+                    className="w-full mt-1 bg-resqnow-canvas border border-resqnow-border rounded-xl px-3 py-2.5 text-[11px] text-resqnow-primary outline-none focus:border-resqnow-violet/40 focus:ring-2 focus:ring-resqnow-violet/10 transition-all"
+                  >
+                    {purokOptions.map(
+                      (item) => (
+                        <option
+                          key={item}
+                          value={item}
+                        >
+                          {item}
+                        </option>
+                      )
+                    )}
+                  </select>
+                ) : (
+                  <p className="text-[12px] font-semibold text-resqnow-primary mt-1">
+                    {purok}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* ============ HOME LOCATION ============ */}
+            <div className="mt-4">
+
+              <p className="text-[11px] font-bold text-resqnow-secondary mb-2">
+                {t(
+                  'settings.homeLocation'
+                )}
+              </p>
+
+              <div className="bg-resqnow-violet/5 border border-resqnow-violet/15 rounded-xl p-3 flex items-center gap-3">
+
+                <div className="w-9 h-9 rounded-lg bg-resqnow-violet/10 text-resqnow-violet flex items-center justify-center shrink-0">
+
+                  <MapPinned className="w-4 h-4" />
+                </div>
+
+                <div className="flex-1 min-w-0">
+
+                  <p className="text-[10px] font-bold text-resqnow-primary">
+                    {t(
+                      'settings.savedHomeLocation'
+                    )}
+                  </p>
+
+                  <p className="text-[9px] text-resqnow-violet mt-0.5 truncate">
+                    {address || purok}
+                  </p>
+
+                  <p className="text-[8px] text-resqnow-muted mt-0.5">
+                    {t(
+                      'settings.mapLater'
+                    )}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* ============ HOUSEHOLD ============ */}
+            <div className="mt-4 pt-4 border-t border-resqnow-border-soft">
+
+              <div className="flex items-center gap-2 mb-3">
+
+                <Users className="w-4 h-4 text-resqnow-violet" />
+
+                <p className="text-[11px] font-bold text-resqnow-secondary">
+                  {t(
+                    'settings.householdInformation'
+                  )}
+                </p>
+              </div>
+
+              {/* Household count */}
+              <div className="flex items-center justify-between bg-resqnow-canvas rounded-xl p-3">
+
+                <div>
+
+                  <p className="text-[10px] font-semibold text-resqnow-secondary">
+                    {t(
+                      'settings.householdMembers'
+                    )}
+                  </p>
+
+                  <p className="text-[9px] text-resqnow-muted mt-0.5">
+                    {t(
+                      'settings.householdMembersHint'
+                    )}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+
+                  {/* Decrease */}
+                  {isEditing && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setHouseholdCount(
+                          (prev) =>
+                            Math.max(
+                              1,
+                              prev - 1
+                            )
+                        )
+                      }
+                      aria-label="Decrease household count"
+                      className="w-9 h-9 rounded-lg border border-resqnow-border bg-white flex items-center justify-center text-resqnow-muted hover:text-resqnow-violet hover:border-resqnow-violet/30 active:scale-95 transition-all"
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+
+                  <span className="w-7 text-center text-[13px] font-bold text-resqnow-primary">
+                    {householdCount}
+                  </span>
+
+                  {/* Increase */}
+                  {isEditing && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setHouseholdCount(
+                          (prev) =>
+                            prev + 1
+                        )
+                      }
+                      aria-label="Increase household count"
+                      className="w-9 h-9 rounded-lg border border-resqnow-border bg-white flex items-center justify-center text-resqnow-muted hover:text-resqnow-violet hover:border-resqnow-violet/30 active:scale-95 transition-all"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Household profile */}
+              <p className="text-[9px] font-semibold text-resqnow-muted mt-3 mb-2">
+                {t(
+                  'settings.householdProfile'
+                )}
+              </p>
+
+              <div className="grid grid-cols-2 gap-2">
+
+                <HouseholdOption
+                  label={t(
+                    'settings.seniorCitizen'
+                  )}
+                  selected={
+                    householdProfile.hasSeniorCitizen
+                  }
+                  disabled={!isEditing}
+                  onClick={() =>
+                    toggleHousehold(
+                      'hasSeniorCitizen'
+                    )
+                  }
+                />
+
+                <HouseholdOption
+                  label={t(
+                    'settings.child'
+                  )}
+                  selected={
+                    householdProfile.hasChild
+                  }
+                  disabled={!isEditing}
+                  onClick={() =>
+                    toggleHousehold(
+                      'hasChild'
+                    )
+                  }
+                />
+
+                <HouseholdOption
+                  label={t(
+                    'settings.pwd'
+                  )}
+                  selected={
+                    householdProfile.hasPWD
+                  }
+                  disabled={!isEditing}
+                  onClick={() =>
+                    toggleHousehold(
+                      'hasPWD'
+                    )
+                  }
+                />
+
+                <HouseholdOption
+                  label={t(
+                    'settings.pregnantPerson'
+                  )}
+                  selected={
+                    householdProfile.hasPregnantPerson
+                  }
+                  disabled={!isEditing}
+                  onClick={() =>
+                    toggleHousehold(
+                      'hasPregnantPerson'
+                    )
+                  }
+                />
+              </div>
+            </div>
+
+            {/* Editing actions */}
             {isEditing && (
-              <div className="flex gap-2 mt-5">
-                <button type="button" onClick={handleCancelEdit} className="flex-1 py-2.5 rounded-xl border border-slate-200 bg-white text-resqnow-muted text-[12px] font-semibold hover:bg-slate-50 transition-colors">Cancel</button>
-                <button type="button" onClick={handleProfileSave} className="flex-1 py-2.5 rounded-xl bg-brand-gradient text-white text-[12px] font-semibold flex items-center justify-center gap-1.5"><Save className="w-4 h-4" />{t('settings.saveChanges')}</button>
+              <div className="grid grid-cols-2 gap-2 mt-4">
+
+                {/* Cancel */}
+                <button
+                  type="button"
+                  onClick={
+                    handleCancelEdit
+                  }
+                  className="min-h-[44px] py-2.5 rounded-xl border border-resqnow-border bg-white text-resqnow-muted text-[11px] font-semibold hover:bg-resqnow-canvas active:scale-[0.98] transition-all"
+                >
+                  {t(
+                    'settings.cancel'
+                  )}
+                </button>
+
+                {/* Save */}
+                <button
+                  type="button"
+                  onClick={
+                    handleProfileSave
+                  }
+                  className="min-h-[44px] py-2.5 rounded-xl bg-brand-gradient text-white text-[11px] font-bold flex items-center justify-center gap-1.5 shadow-[0_4px_14px_rgba(131,70,242,0.16)] active:scale-[0.98] transition-all"
+                >
+                  <Save className="w-3.5 h-3.5" />
+
+                  {t(
+                    'settings.saveChanges'
+                  )}
+                </button>
               </div>
             )}
           </div>
         )}
       </section>
 
-      {/* ============ PASSWORD ============ */}
-      <section className="bg-white border border-slate-200 rounded-2xl overflow-hidden mb-3">
-        <button type="button" onClick={() => toggleSection('password')} className="w-full px-4 py-3.5 flex items-center gap-3 text-left hover:bg-slate-50 transition-colors">
-          <div className="w-9 h-9 rounded-xl bg-resqnow-caution/10 text-resqnow-caution flex items-center justify-center shrink-0"><LockKeyhole className="w-4 h-4" /></div>
-          <div className="flex-1"><p className="text-[13px] font-bold text-resqnow-primary">{t('settings.changePassword')}</p><p className="text-[9px] text-resqnow-muted mt-0.5">{t('settings.changePasswordHint')}</p></div>
-          <ChevronDown className={`w-4 h-4 text-resqnow-muted transition-transform ${openSection === 'password' ? 'rotate-180' : ''}`} />
+      {/* ============ ACCOUNT & SECURITY ============ */}
+      <section className="bg-white border border-resqnow-border-soft rounded-2xl overflow-hidden mb-3">
+
+        {/* Security accordion */}
+        <button
+          type="button"
+          onClick={() =>
+            toggleSection('security')
+          }
+          aria-expanded={
+            openSection === 'security'
+          }
+          className="w-full min-h-[64px] px-4 py-3.5 flex items-center gap-3 text-left hover:bg-resqnow-canvas active:bg-resqnow-violet/5 transition-colors"
+        >
+          {/* Icon */}
+          <div className="w-9 h-9 rounded-xl bg-resqnow-violet/10 text-resqnow-violet flex items-center justify-center shrink-0">
+
+            <LockKeyhole className="w-4 h-4" />
+          </div>
+
+          <div className="flex-1">
+
+            <p className="text-[13px] font-bold text-resqnow-primary">
+              {t(
+                'settings.security'
+              )}
+            </p>
+
+            <p className="text-[9px] text-resqnow-muted mt-0.5">
+              {t(
+                'settings.securityHint'
+              )}
+            </p>
+          </div>
+
+          <ChevronDown
+            className={`w-4 h-4 text-resqnow-muted transition-transform ${
+              openSection === 'security'
+                ? 'rotate-180'
+                : ''
+            }`}
+          />
         </button>
-        {openSection === 'password' && (
-          <div className="px-4 pb-4 border-t border-slate-100">
-            {passwordError && <div className="flex items-start gap-2 bg-resqnow-critical/10 border border-resqnow-critical/20 rounded-xl px-3 py-2.5 mt-4 mb-3"><AlertCircle className="w-4 h-4 text-resqnow-critical shrink-0 mt-0.5" /><p className="text-[10px] text-resqnow-crimson">{passwordError}</p></div>}
-            {passwordSaved && <div className="flex items-center gap-2 bg-resqnow-safe/10 border border-resqnow-safe/20 rounded-xl px-3 py-2.5 mt-4 mb-3"><CheckCircle2 className="w-4 h-4 text-resqnow-safe" /><p className="text-[10px] font-semibold text-resqnow-safe">{t('settings.passwordUpdated')}</p></div>}
-            <div className="space-y-3 mt-4">
-              <PasswordField icon={LockKeyhole} label={t('settings.currentPassword')} value={currentPassword} onChange={setCurrentPassword} show={showPasswords} placeholder="Enter current password" />
-              <PasswordField icon={LockKeyhole} label={t('settings.newPassword')} value={newPassword} onChange={setNewPassword} show={showPasswords} placeholder="Create new password" />
-              <PasswordField icon={LockKeyhole} label={t('settings.confirmPassword')} value={confirmPassword} onChange={setConfirmPassword} show={showPasswords} placeholder="Confirm new password" />
+
+        {/* Security content */}
+        {openSection === 'security' && (
+          <div className="px-4 pb-4 border-t border-resqnow-border-soft">
+
+            <div className="mt-4 space-y-3">
+
+              {/* Password error */}
+              {passwordError && (
+                <div className="flex items-start gap-2 bg-resqnow-critical/10 border border-resqnow-critical/20 rounded-xl px-3 py-2.5">
+
+                  <AlertCircle className="w-4 h-4 text-resqnow-critical shrink-0 mt-0.5" />
+
+                  <p className="text-[10px] text-resqnow-crimson">
+                    {passwordError}
+                  </p>
+                </div>
+              )}
+
+              {/* Password success */}
+              {passwordSaved && (
+                <div className="flex items-center gap-2 bg-resqnow-safe/10 border border-resqnow-safe/20 rounded-xl px-3 py-2.5">
+
+                  <CheckCircle2 className="w-4 h-4 text-resqnow-safe" />
+
+                  <p className="text-[10px] font-semibold text-resqnow-safe">
+                    {t(
+                      'settings.passwordUpdated'
+                    )}
+                  </p>
+                </div>
+              )}
+
+              <PasswordField
+                label={t(
+                  'settings.currentPassword'
+                )}
+                value={
+                  currentPassword
+                }
+                onChange={
+                  setCurrentPassword
+                }
+                show={showPasswords}
+              />
+
+              <PasswordField
+                label={t(
+                  'settings.newPassword'
+                )}
+                value={newPassword}
+                onChange={
+                  setNewPassword
+                }
+                show={showPasswords}
+              />
+
+              <PasswordField
+                label={t(
+                  'settings.confirmPassword'
+                )}
+                value={
+                  confirmPassword
+                }
+                onChange={
+                  setConfirmPassword
+                }
+                show={showPasswords}
+              />
+
+              {/* Show passwords */}
+              <button
+                type="button"
+                onClick={() =>
+                  setShowPasswords(
+                    (prev) => !prev
+                  )
+                }
+                className="min-h-[36px] flex items-center gap-1.5 text-[10px] font-semibold text-resqnow-muted hover:text-resqnow-violet transition-colors"
+              >
+                {showPasswords ? (
+                  <EyeOff className="w-3.5 h-3.5" />
+                ) : (
+                  <Eye className="w-3.5 h-3.5" />
+                )}
+
+                {showPasswords
+                  ? t(
+                      'settings.hidePasswords'
+                    )
+                  : t(
+                      'settings.showPasswords'
+                    )}
+              </button>
+
+              {/* Requirements */}
+              <div className="bg-resqnow-canvas border border-resqnow-border-soft rounded-xl p-3">
+
+                <p className="text-[9px] font-bold text-resqnow-secondary">
+                  {t(
+                    'settings.passwordRequirements'
+                  )}
+                </p>
+
+                <p className="text-[9px] text-resqnow-muted mt-1 leading-relaxed">
+                  {t(
+                    'settings.passwordRequirementsText'
+                  )}
+                </p>
+              </div>
+
+              {/* Change password */}
+              <button
+                type="button"
+                onClick={
+                  handlePasswordSave
+                }
+                className="w-full min-h-[44px] py-2.5 rounded-xl bg-brand-gradient text-white text-[11px] font-bold shadow-[0_4px_14px_rgba(131,70,242,0.16)] active:scale-[0.98] transition-all"
+              >
+                {t(
+                  'settings.changePassword'
+                )}
+              </button>
             </div>
-            <button type="button" onClick={() => setShowPasswords(!showPasswords)} className="mt-2 text-[10px] font-semibold text-resqnow-violet flex items-center gap-1">{showPasswords ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}{showPasswords ? 'Hide' : 'Show'} passwords</button>
-            <button type="button" onClick={handlePasswordSave} className="w-full mt-4 py-2.5 rounded-xl bg-resqnow-caution text-white text-[12px] font-semibold flex items-center justify-center gap-1.5"><Save className="w-4 h-4" />{t('settings.updatePassword')}</button>
           </div>
         )}
       </section>
 
-      {/* ============ NOTIFICATIONS ============ */}
-      <section className="bg-white border border-slate-200 rounded-2xl overflow-hidden mb-3">
-        <button type="button" onClick={() => toggleSection('notifications')} className="w-full px-4 py-3.5 flex items-center gap-3 text-left hover:bg-slate-50 transition-colors">
-          <div className="w-9 h-9 rounded-xl bg-resqnow-info/10 text-resqnow-info flex items-center justify-center shrink-0"><Bell className="w-4 h-4" /></div>
-          <div className="flex-1"><p className="text-[13px] font-bold text-resqnow-primary">{t('settings.notifications')}</p><p className="text-[9px] text-resqnow-muted mt-0.5">{t('settings.notificationsHint')}</p></div>
-          <ChevronDown className={`w-4 h-4 text-resqnow-muted transition-transform ${openSection === 'notifications' ? 'rotate-180' : ''}`} />
+      {/* ============ PREFERENCES ============ */}
+      <section className="bg-white border border-resqnow-border-soft rounded-2xl overflow-hidden mb-3">
+
+        {/* Preferences accordion */}
+        <button
+          type="button"
+          onClick={() =>
+            toggleSection(
+              'preferences'
+            )
+          }
+          aria-expanded={
+            openSection ===
+            'preferences'
+          }
+          className="w-full min-h-[64px] px-4 py-3.5 flex items-center gap-3 text-left hover:bg-resqnow-canvas active:bg-resqnow-violet/5 transition-colors"
+        >
+          {/* Icon */}
+          <div className="w-9 h-9 rounded-xl bg-resqnow-violet/10 text-resqnow-violet flex items-center justify-center shrink-0">
+
+            <Bell className="w-4 h-4" />
+          </div>
+
+          <div className="flex-1">
+
+            <p className="text-[13px] font-bold text-resqnow-primary">
+              {t(
+                'settings.preferences'
+              )}
+            </p>
+
+            <p className="text-[9px] text-resqnow-muted mt-0.5">
+              {t(
+                'settings.preferencesHint'
+              )}
+            </p>
+          </div>
+
+          <ChevronDown
+            className={`w-4 h-4 text-resqnow-muted transition-transform ${
+              openSection ===
+              'preferences'
+                ? 'rotate-180'
+                : ''
+            }`}
+          />
         </button>
-        {openSection === 'notifications' && (
-          <div className="px-4 pb-4 border-t border-slate-100">
-            {preferencesSaved && <div className="flex items-center gap-2 bg-resqnow-safe/10 border border-resqnow-safe/20 rounded-xl px-3 py-2.5 mt-4 mb-3"><CheckCircle2 className="w-4 h-4 text-resqnow-safe" /><p className="text-[10px] font-semibold text-resqnow-safe">{t('settings.preferencesSaved')}</p></div>}
-            <div className="space-y-3 mt-4">
-              <ToggleRow icon={FileText} label={t('settings.reportUpdates')} checked={notifications.reportUpdates} onChange={() => toggleNotification('reportUpdates')} />
-              <ToggleRow icon={Megaphone} label={t('settings.announcements')} checked={notifications.announcements} onChange={() => toggleNotification('announcements')} />
-              <ToggleRow icon={Siren} label={t('settings.emergencyAlerts')} checked={notifications.emergencyAlerts} onChange={() => toggleNotification('emergencyAlerts')} />
+
+        {/* Preferences content */}
+        {openSection ===
+          'preferences' && (
+          <div className="px-4 pb-4 border-t border-resqnow-border-soft">
+
+            {/* Language */}
+            <div className="mt-4">
+
+              <div className="flex items-center gap-2 mb-2">
+
+                <Languages className="w-4 h-4 text-resqnow-violet" />
+
+                <p className="text-[11px] font-bold text-resqnow-secondary">
+                  {t(
+                    'settings.language'
+                  )}
+                </p>
+              </div>
+
+              <select
+                value={
+                  i18n.resolvedLanguage ||
+                  i18n.language ||
+                  'en'
+                }
+                onChange={
+                  handleLanguageChange
+                }
+                className="w-full bg-resqnow-canvas border border-resqnow-border rounded-xl px-3 py-2.5 text-[11px] text-resqnow-primary outline-none focus:border-resqnow-violet/40 focus:ring-2 focus:ring-resqnow-violet/10 transition-all"
+              >
+                {/* English + Tagalog only for now */}
+                <option value="en">
+                  {t(
+                    'settings.languages.en'
+                  )}
+                </option>
+
+                <option value="tl">
+                  {t(
+                    'settings.languages.tl'
+                  )}
+                </option>
+              </select>
             </div>
-            <button type="button" onClick={handlePreferencesSave} className="w-full mt-4 py-2.5 rounded-xl bg-resqnow-info/10 text-resqnow-info text-[12px] font-semibold hover:bg-resqnow-info/20 transition-colors">Save Preferences</button>
+
+            {/* Notifications */}
+            <div className="mt-4 pt-4 border-t border-resqnow-border-soft">
+
+              <p className="text-[11px] font-bold text-resqnow-secondary mb-2.5">
+                {t(
+                  'settings.notifications'
+                )}
+              </p>
+
+              <div className="space-y-2">
+
+                {/* Report updates */}
+                <NotificationOption
+                  icon={FileText}
+                  title={t(
+                    'settings.reportUpdates'
+                  )}
+                  description={t(
+                    'settings.reportUpdatesHint'
+                  )}
+                  enabled={
+                    notifications.reportUpdates
+                  }
+                  onClick={() =>
+                    toggleNotification(
+                      'reportUpdates'
+                    )
+                  }
+                />
+
+                {/* Announcements */}
+                <NotificationOption
+                  icon={Megaphone}
+                  title={t(
+                    'settings.announcements'
+                  )}
+                  description={t(
+                    'settings.announcementsHint'
+                  )}
+                  enabled={
+                    notifications.announcements
+                  }
+                  onClick={() =>
+                    toggleNotification(
+                      'announcements'
+                    )
+                  }
+                />
+
+                {/* Emergency alerts */}
+                <NotificationOption
+                  icon={Siren}
+                  title={t(
+                    'settings.emergencyAlerts'
+                  )}
+                  description={t(
+                    'settings.emergencyAlertsHint'
+                  )}
+                  enabled={
+                    notifications.emergencyAlerts
+                  }
+                  onClick={() =>
+                    toggleNotification(
+                      'emergencyAlerts'
+                    )
+                  }
+                  important
+                />
+              </div>
+            </div>
+
+            {/* Preference success */}
+            {preferencesSaved && (
+              <div className="mt-3 flex items-center gap-2 bg-resqnow-safe/10 border border-resqnow-safe/20 rounded-xl px-3 py-2.5">
+
+                <CheckCircle2 className="w-4 h-4 text-resqnow-safe" />
+
+                <p className="text-[10px] font-semibold text-resqnow-safe">
+                  {t(
+                    'settings.preferencesSaved'
+                  )}
+                </p>
+              </div>
+            )}
+
+            {/* Save preferences */}
+            <button
+              type="button"
+              onClick={
+                handlePreferencesSave
+              }
+              className="w-full min-h-[44px] mt-3 py-2.5 rounded-xl bg-brand-gradient text-white text-[11px] font-bold flex items-center justify-center gap-1.5 shadow-[0_4px_14px_rgba(131,70,242,0.16)] active:scale-[0.98] transition-all"
+            >
+              <Save className="w-3.5 h-3.5" />
+
+              {t(
+                'settings.savePreferences'
+              )}
+            </button>
           </div>
         )}
       </section>
 
-      {/* ============ LANGUAGE ============ */}
-      <section className="bg-white border border-slate-200 rounded-2xl overflow-hidden mb-3">
-        <div className="px-4 py-3.5 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-resqnow-mint/10 text-resqnow-mint flex items-center justify-center shrink-0"><Languages className="w-4 h-4" /></div>
-          <div className="flex-1"><p className="text-[13px] font-bold text-resqnow-primary">{t('settings.language')}</p><p className="text-[9px] text-resqnow-muted mt-0.5">{t('settings.languageHint')}</p></div>
-          <select value={i18n.language} onChange={handleLanguageChange} className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-[11px] text-resqnow-primary outline-none">
-            <option value="en">English</option>
-            <option value="tl">Filipino</option>
-          </select>
-        </div>
+      {/* ============ PRIVACY & DATA ============ */}
+      <section className="bg-white border border-resqnow-border-soft rounded-2xl overflow-hidden mb-3">
+
+        {/* Privacy accordion */}
+        <button
+          type="button"
+          onClick={() =>
+            toggleSection('privacy')
+          }
+          aria-expanded={
+            openSection === 'privacy'
+          }
+          className="w-full min-h-[64px] px-4 py-3.5 flex items-center gap-3 text-left hover:bg-resqnow-canvas active:bg-resqnow-info/5 transition-colors"
+        >
+          {/* Privacy icon */}
+          <div className="w-9 h-9 rounded-xl bg-resqnow-info/10 text-resqnow-info flex items-center justify-center shrink-0">
+
+            <ShieldCheck className="w-4 h-4" />
+          </div>
+
+          <div className="flex-1">
+
+            <p className="text-[13px] font-bold text-resqnow-primary">
+              {t(
+                'settings.privacy'
+              )}
+            </p>
+
+            <p className="text-[9px] text-resqnow-muted mt-0.5">
+              {t(
+                'settings.privacyHint'
+              )}
+            </p>
+          </div>
+
+          <ChevronDown
+            className={`w-4 h-4 text-resqnow-muted transition-transform ${
+              openSection === 'privacy'
+                ? 'rotate-180'
+                : ''
+            }`}
+          />
+        </button>
+
+        {/* Privacy content */}
+        {openSection === 'privacy' && (
+          <div className="px-4 pb-4 border-t border-resqnow-border-soft">
+
+            {/* Privacy notice */}
+            <div className="mt-4 bg-resqnow-info/5 border border-resqnow-info/15 rounded-xl p-3">
+
+              <div className="flex items-start gap-2">
+
+                <ShieldCheck className="w-4 h-4 text-resqnow-info mt-0.5 shrink-0" />
+
+                <div>
+
+                  <p className="text-[10px] font-bold text-resqnow-info">
+                    {t(
+                      'settings.residentDataPrivacy'
+                    )}
+                  </p>
+
+                  <p className="text-[9px] text-resqnow-secondary mt-1 leading-relaxed">
+                    {t(
+                      'settings.privacyMessage'
+                    )}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-[9px] text-resqnow-muted mt-3 leading-relaxed">
+              {t(
+                'settings.privacyDetails'
+              )}
+            </p>
+          </div>
+        )}
       </section>
 
-      {/* ============ LOGOUT ============ */}
-      <section className="mb-3">
-        <button type="button" onClick={handleLogout} className="w-full p-3.5 rounded-2xl border border-resqnow-critical/20 bg-resqnow-critical/5 flex items-center gap-3 text-left hover:bg-resqnow-critical/10 transition-all">
-          <div className="w-9 h-9 rounded-xl bg-resqnow-critical/10 text-resqnow-critical flex items-center justify-center shrink-0"><LogOut className="w-4 h-4" /></div>
-          <div className="flex-1"><p className="text-[13px] font-bold text-resqnow-crimson">{t('settings.logout')}</p><p className="text-[10px] text-resqnow-critical mt-0.5">{t('settings.logoutHint')}</p></div>
-        </button>
-      </section>
+      {/* ============ SIGN OUT ============ */}
+      <button
+        type="button"
+        onClick={handleLogout}
+        className="w-full min-h-[44px] py-3 rounded-xl border border-resqnow-crimson/20 bg-resqnow-crimson/10 text-resqnow-crimson text-[11px] font-bold flex items-center justify-center gap-1.5 hover:bg-resqnow-crimson/15 active:scale-[0.98] transition-all"
+      >
+        <LogOut className="w-4 h-4" />
+
+        {t('settings.signOut')}
+      </button>
+
+      {/* Resident ID */}
+      <p className="text-[9px] text-resqnow-muted text-center mt-2">
+
+        {t('settings.residentId')}:{' '}
+        {user?.id ||
+          'Not available'}
+      </p>
     </div>
   );
 }
 
-// ============ SMALL COMPONENTS ============
-function ProfileField({ icon: Icon, label, value, editing, onChange, type }) {
+// ============ PROFILE FIELD ============
+// Read-only field that becomes editable when Edit is active
+function ProfileField({
+  icon: Icon,
+  label,
+  value,
+  editing,
+  onChange,
+  type = 'text',
+}) {
   return (
     <div>
-      <label className="text-[9px] font-semibold text-resqnow-muted">{label}</label>
+
+      <label className="text-[9px] font-semibold text-resqnow-muted">
+        {label}
+      </label>
+
       {editing ? (
-        <input type={type || 'text'} value={value} onChange={(e) => onChange(e.target.value)} className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-[11px] text-resqnow-primary outline-none focus:border-resqnow-violet/40 focus:ring-2 focus:ring-resqnow-violet/10" />
+        <div className="relative mt-1">
+
+          <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-resqnow-placeholder" />
+
+          <input
+            type={type}
+            value={value}
+            onChange={(e) =>
+              onChange(e.target.value)
+            }
+            className="w-full bg-resqnow-canvas border border-resqnow-border rounded-xl pl-9 pr-3 py-2.5 text-[11px] text-resqnow-primary outline-none focus:border-resqnow-violet/40 focus:ring-2 focus:ring-resqnow-violet/10 transition-all"
+          />
+        </div>
       ) : (
         <div className="flex items-center gap-2 mt-1">
-          {Icon && <Icon className="w-3.5 h-3.5 text-resqnow-muted shrink-0" />}
-          <p className="text-[12px] font-semibold text-resqnow-primary">{value || 'Not provided'}</p>
+
+          <Icon className="w-3.5 h-3.5 text-resqnow-muted" />
+
+          <p className="text-[12px] font-semibold text-resqnow-primary break-words">
+            {value ||
+              'Not provided'}
+          </p>
         </div>
       )}
     </div>
   );
 }
 
-function PasswordField({ icon: Icon, label, value, onChange, show, placeholder }) {
+// ============ HOUSEHOLD OPTION ============
+// Violet represents normal selected UI
+function HouseholdOption({
+  label,
+  selected,
+  disabled,
+  onClick,
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-pressed={selected}
+      className={`min-h-[44px] p-2.5 rounded-xl border text-[10px] font-semibold text-left transition-all ${
+        selected
+          ? 'bg-resqnow-violet/10 border-resqnow-violet/30 text-resqnow-violet'
+          : 'bg-white border-resqnow-border-soft text-resqnow-muted'
+      } ${
+        disabled
+          ? 'cursor-default'
+          : 'hover:border-resqnow-violet/30 hover:bg-resqnow-violet/5 active:scale-[0.98]'
+      }`}
+    >
+      <div className="flex items-center gap-2">
+
+        {/* Selected indicator */}
+        <div
+          className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+            selected
+              ? 'bg-resqnow-violet border-resqnow-violet'
+              : 'border-resqnow-border'
+          }`}
+        >
+          {selected && (
+            <CheckCircle2 className="w-3 h-3 text-white" />
+          )}
+        </div>
+
+        {label}
+      </div>
+    </button>
+  );
+}
+
+// ============ PASSWORD FIELD ============
+// Shared password input
+function PasswordField({
+  label,
+  value,
+  onChange,
+  show,
+}) {
   return (
     <div>
-      <label className="text-[9px] font-semibold text-resqnow-muted">{label}</label>
-      <div className="relative mt-1">
-        {Icon && <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-resqnow-muted" />}
-        <input type={show ? 'text' : 'password'} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-resqnow-primary outline-none focus:border-resqnow-violet/40 focus:ring-2 focus:ring-resqnow-violet/10" />
-      </div>
+
+      <label className="block text-[9px] font-semibold text-resqnow-muted mb-1">
+        {label}
+      </label>
+
+      <input
+        type={
+          show ? 'text' : 'password'
+        }
+        value={value}
+        onChange={(e) =>
+          onChange(e.target.value)
+        }
+        className="w-full bg-resqnow-canvas border border-resqnow-border rounded-xl px-3 py-2.5 text-[11px] text-resqnow-primary outline-none focus:border-resqnow-violet/40 focus:ring-2 focus:ring-resqnow-violet/10 transition-all"
+      />
     </div>
   );
 }
 
-function ToggleRow({ icon: Icon, label, checked, onChange }) {
+// ============ NOTIFICATION OPTION ============
+// Notification preference with Violet normal toggle
+function NotificationOption({
+  icon: Icon,
+  title,
+  description,
+  enabled,
+  onClick,
+  important = false,
+}) {
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2"><Icon className="w-4 h-4 text-resqnow-muted" /><span className="text-[12px] text-resqnow-primary">{label}</span></div>
-      <button type="button" onClick={onChange} className={`w-11 h-6 rounded-full relative transition-colors ${checked ? 'bg-resqnow-mint' : 'bg-slate-300'}`}>
-        <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${checked ? 'left-[22px]' : 'left-0.5'}`} />
-      </button>
-    </div>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={enabled}
+      className="w-full min-h-[60px] flex items-center gap-3 p-3 rounded-xl bg-resqnow-canvas border border-transparent text-left hover:border-resqnow-border-soft active:scale-[0.995] transition-all"
+    >
+      {/* Notification icon */}
+      <div
+        className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+          important
+            ? 'bg-resqnow-critical/10 text-resqnow-critical'
+            : 'bg-resqnow-info/10 text-resqnow-info'
+        }`}
+      >
+        <Icon className="w-4 h-4" />
+      </div>
+
+      <div className="flex-1">
+
+        <p className="text-[11px] font-bold text-resqnow-primary">
+          {title}
+        </p>
+
+        <p className="text-[9px] text-resqnow-muted mt-0.5">
+          {description}
+        </p>
+      </div>
+
+      {/* Toggle */}
+      <div
+        className={`w-10 h-5 rounded-full relative transition-colors shrink-0 ${
+          enabled
+            ? 'bg-resqnow-violet'
+            : 'bg-resqnow-border'
+        }`}
+      >
+        <div
+          className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all ${
+            enabled
+              ? 'left-[22px]'
+              : 'left-0.5'
+          }`}
+        />
+      </div>
+    </button>
   );
 }

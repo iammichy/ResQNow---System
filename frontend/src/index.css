@@ -24,9 +24,15 @@
   --warm-ivory: #FFF8ED;
   --soft-blue-mist: #EEF8FF;
   --card-white: #FFFFFF;
+  --canvas-neutral: #F8FAFC;
+
   --text-primary: #1F1D47;
+  --text-secondary: #344054;
   --text-muted: #667085;
+  --text-placeholder: #98A2B3;
+
   --border-mist: #D0D5DD;
+  --border-soft: #E4E7EC;
 
   /* Report CTA */
   --report-coral: #FF5A36;
@@ -35,31 +41,45 @@
 
 /* ============ TAILWIND THEME ============ */
 @theme {
-  /* New ResQNow Palette */
+  /* Main brand */
   --color-resqnow-violet: #8346F2;
   --color-resqnow-mint: #00C9A7;
   --color-resqnow-indigo: #1F1D47;
 
+  /* Emergency */
   --color-resqnow-critical: #FF2D55;
   --color-resqnow-crimson: #D90429;
 
+  /* Warning & Pending */
   --color-resqnow-caution: #FFB800;
   --color-resqnow-pending: #FF8C42;
 
+  /* Status */
   --color-resqnow-safe: #2ED47A;
   --color-resqnow-info: #38BDF8;
   --color-resqnow-insight: #818CF8;
 
+  /* Background */
   --color-resqnow-ivory: #FFF8ED;
   --color-resqnow-mist: #EEF8FF;
   --color-resqnow-card: #FFFFFF;
-  --color-resqnow-primary: #1F1D47;
-  --color-resqnow-muted: #667085;
-  --color-resqnow-border: #D0D5DD;
+  --color-resqnow-canvas: #F8FAFC;
 
+  /* Text */
+  --color-resqnow-primary: #1F1D47;
+  --color-resqnow-secondary: #344054;
+  --color-resqnow-muted: #667085;
+  --color-resqnow-placeholder: #98A2B3;
+
+  /* Border */
+  --color-resqnow-border: #D0D5DD;
+  --color-resqnow-border-soft: #E4E7EC;
+
+  /* Report CTA */
   --color-resqnow-coral: #FF5A36;
 
-  /* Legacy aliases - keep old components working */
+  /* ============ LEGACY ALIASES ============ */
+  /* Keep old components working */
   --color-resqnow-red: #D90429;
   --color-resqnow-orange: #FF5A36;
   --color-resqnow-amber: #FF8C42;
@@ -70,6 +90,8 @@
 }
 
 /* ============ RESQNOW GRADIENTS ============ */
+
+/* Normal brand action */
 .bg-brand-gradient {
   background: linear-gradient(
     90deg,
@@ -78,6 +100,7 @@
   );
 }
 
+/* Success / active support */
 .bg-active-gradient {
   background: linear-gradient(
     90deg,
@@ -86,6 +109,7 @@
   );
 }
 
+/* Emergency */
 .bg-emergency-gradient {
   background: linear-gradient(
     90deg,
@@ -94,6 +118,7 @@
   );
 }
 
+/* Warning */
 .bg-warning-gradient {
   background: linear-gradient(
     90deg,
@@ -102,6 +127,7 @@
   );
 }
 
+/* Information */
 .bg-info-gradient {
   background: linear-gradient(
     90deg,
@@ -110,6 +136,7 @@
   );
 }
 
+/* Report action */
 .bg-report-gradient {
   background: linear-gradient(
     90deg,
@@ -133,9 +160,18 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+
   background-color: var(--warm-ivory);
   color: var(--text-primary);
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
   @apply antialiased;
 }
 
@@ -144,4 +180,55 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+/* ============ PAGE TRANSITION ============ */
+/* Small animation when changing resident pages */
+.resqnow-page-transition {
+  animation: resqnowPageEnter 180ms ease-out;
+}
+
+/* Page softly appears */
+@keyframes resqnowPageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============ NOTIFICATION BADGE ============ */
+/* Small pop when unread count changes */
+.resqnow-badge-pop {
+  animation: resqnowBadgePop 260ms ease-out;
+}
+
+@keyframes resqnowBadgePop {
+  0% {
+    opacity: 0;
+    transform: scale(0.65);
+  }
+
+  60% {
+    opacity: 1;
+    transform: scale(1.18);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ============ REDUCED MOTION ============ */
+/* Remove animations when device requests less movement */
+@media (prefers-reduced-motion: reduce) {
+  .resqnow-page-transition,
+  .resqnow-badge-pop {
+    animation: none;
+  }
 }

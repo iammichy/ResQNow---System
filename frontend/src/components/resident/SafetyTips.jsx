@@ -15,11 +15,12 @@ import {
   TreePine,
   Wrench,
   Broom,
-  MessageSquare,
   CircleHelp,
 } from 'lucide-react';
+
 import { safetyTips } from '../../data/mockData';
 
+// ============ TIP ICONS ============
 // Map each safety tip ID to an icon
 const iconMap = {
   'life-death': HeartPulse,
@@ -38,79 +39,190 @@ const iconMap = {
   'other-assistance': CircleHelp,
 };
 
+// ============ SAFETY TIPS ============
+// Quick safety guides for emergencies and barangay concerns
 export default function SafetyTips() {
+  // Currently opened safety guide
   const [openId, setOpenId] = useState(null);
 
-  // Toggle a tip accordion open or closed
-  const toggle = (id) => setOpenId((prev) => (prev === id ? null : id));
+  // Toggle a safety tip open or closed
+  const toggle = (id) => {
+    setOpenId((prev) =>
+      prev === id ? null : id
+    );
+  };
 
   return (
     <div className="min-h-screen">
-      <main className="max-w-lg mx-auto px-4 py-5 pb-10">
-        {/* Intro banner */}
-        <div className="bg-brand-gradient rounded-2xl p-4 mb-5 text-white flex items-start gap-3 shadow-sm">
-          <ShieldCheck className="w-8 h-8 shrink-0 mt-0.5" />
+
+      <main className="max-w-lg mx-auto px-4 pt-5 pb-28">
+
+        {/* ============ INTRO BANNER ============ */}
+        <div className="bg-brand-gradient rounded-2xl p-4 mb-5 text-white flex items-start gap-3 shadow-[0_6px_18px_rgba(131,70,242,0.18)]">
+
+          {/* Safety icon */}
+          <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+            <ShieldCheck className="w-5 h-5" />
+          </div>
+
           <div>
-            <p className="text-sm font-bold">Stay informed. Stay safe.</p>
+            <p className="text-sm font-bold">
+              Stay informed. Stay safe.
+            </p>
+
             <p className="text-[12px] text-white/90 leading-relaxed mt-0.5">
-              These quick guides help you respond correctly to every emergency
-              and community concern covered by ResQNow.
+              These quick guides help you respond correctly to emergencies and community concerns covered by ResQNow.
             </p>
           </div>
         </div>
 
-        {/* Tip groups by category */}
-        {safetyTips.map((group) => (
-          <section key={group.category} className="mb-6">
-            <h2 className="text-[11px] font-bold text-resqnow-muted uppercase tracking-widest mb-2 px-1">
-              {group.category}
-            </h2>
-            <div className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
-              {group.items.map((item) => {
-                const Icon = iconMap[item.id] || ShieldCheck;
-                const isOpen = openId === item.id;
-                const isEmergency = group.category === 'Emergency Safety';
+        {/* ============ TIP GROUPS ============ */}
+        {safetyTips.map((group) => {
+          const isEmergency =
+            group.category === 'Emergency Safety';
 
-                return (
-                  <div key={item.id}>
-                    <button
-                      onClick={() => toggle(item.id)}
-                      className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-slate-50 transition-colors"
-                    >
-                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                        isEmergency ? 'bg-resqnow-critical/10' : 'bg-resqnow-mint/10'
-                      }`}>
-                        <Icon className={`w-5 h-5 ${isEmergency ? 'text-resqnow-critical' : 'text-resqnow-mint'}`} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-semibold text-resqnow-primary">{item.title}</p>
-                        <p className="text-[11px] text-resqnow-muted">{item.tips.length} reminders</p>
-                      </div>
-                      <ChevronDown className={`w-4 h-4 text-resqnow-muted transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
-                    </button>
+          return (
+            <section
+              key={group.category}
+              className="mb-6"
+            >
+              {/* Group heading */}
+              <div className="flex items-center gap-2 mb-2 px-1">
 
-                    {isOpen && (
-                      <ul className="px-4 pb-4 space-y-2 bg-slate-50/50">
-                        {item.tips.map((tip, i) => (
-                          <li key={i} className="flex items-start gap-2.5 text-[13px] text-slate-600 leading-relaxed">
-                            <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-resqnow-mint shrink-0" />
-                            {tip}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        ))}
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    isEmergency
+                      ? 'bg-resqnow-critical'
+                      : 'bg-resqnow-info'
+                  }`}
+                />
 
-        {/* Footer note */}
-        <p className="text-[11px] text-resqnow-muted text-center leading-relaxed px-6">
-          This system requires internet connection or mobile signal. If your
-          emergency report cannot be sent, call the barangay hotline directly.
-        </p>
+                <h2
+                  className={`text-[11px] font-bold uppercase tracking-widest ${
+                    isEmergency
+                      ? 'text-resqnow-critical'
+                      : 'text-resqnow-info'
+                  }`}
+                >
+                  {group.category}
+                </h2>
+              </div>
+
+              {/* Tip list */}
+              <div className="bg-white rounded-2xl border border-resqnow-border-soft divide-y divide-resqnow-border-soft overflow-hidden">
+
+                {group.items.map((item) => {
+                  const Icon =
+                    iconMap[item.id] ||
+                    ShieldCheck;
+
+                  const isOpen =
+                    openId === item.id;
+
+                  return (
+                    <div key={item.id}>
+
+                      {/* ============ TIP BUTTON ============ */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          toggle(item.id)
+                        }
+                        aria-expanded={isOpen}
+                        className={`w-full min-h-[60px] flex items-center gap-3 px-4 py-3.5 text-left active:scale-[0.995] transition-all ${
+                          isOpen
+                            ? isEmergency
+                              ? 'bg-resqnow-critical/5'
+                              : 'bg-resqnow-info/5'
+                            : 'hover:bg-resqnow-canvas'
+                        }`}
+                      >
+                        {/* Tip icon */}
+                        <div
+                          className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                            isEmergency
+                              ? 'bg-resqnow-critical/10'
+                              : 'bg-resqnow-info/10'
+                          }`}
+                        >
+                          <Icon
+                            className={`w-5 h-5 ${
+                              isEmergency
+                                ? 'text-resqnow-critical'
+                                : 'text-resqnow-info'
+                            }`}
+                          />
+                        </div>
+
+                        {/* Tip title */}
+                        <div className="flex-1 min-w-0">
+
+                          <p className="text-[13px] font-semibold text-resqnow-primary">
+                            {item.title}
+                          </p>
+
+                          <p className="text-[11px] text-resqnow-muted mt-0.5">
+                            {item.tips.length}{' '}
+                            {item.tips.length === 1
+                              ? 'reminder'
+                              : 'reminders'}
+                          </p>
+                        </div>
+
+                        {/* Accordion arrow */}
+                        <ChevronDown
+                          className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
+                            isOpen
+                              ? isEmergency
+                                ? 'rotate-180 text-resqnow-critical'
+                                : 'rotate-180 text-resqnow-info'
+                              : 'text-resqnow-muted'
+                          }`}
+                        />
+                      </button>
+
+                      {/* ============ TIP CONTENT ============ */}
+                      {isOpen && (
+                        <ul className="px-4 pb-4 pt-1 space-y-2 bg-resqnow-canvas/70">
+
+                          {item.tips.map(
+                            (tip, index) => (
+                              <li
+                                key={index}
+                                className="flex items-start gap-2.5 text-[12px] text-resqnow-secondary leading-relaxed"
+                              >
+                                {/* Reminder bullet */}
+                                <span
+                                  className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${
+                                    isEmergency
+                                      ? 'bg-resqnow-critical'
+                                      : 'bg-resqnow-info'
+                                  }`}
+                                />
+
+                                <span>
+                                  {tip}
+                                </span>
+                              </li>
+                            )
+                          )}
+                        </ul>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })}
+
+        {/* ============ SIGNAL NOTE ============ */}
+        <div className="bg-resqnow-caution/10 border border-resqnow-caution/20 rounded-xl px-4 py-3">
+
+          <p className="text-[10px] text-resqnow-secondary text-center leading-relaxed">
+            If an emergency report cannot be sent because of weak internet or mobile signal, use the Contacts page to call the barangay hotline directly.
+          </p>
+        </div>
       </main>
     </div>
   );

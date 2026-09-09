@@ -5,18 +5,31 @@
 // Used by Dashboard, TrackReports, and ReportDetail
 function getStatusStyle(status) {
   switch (status) {
-    case 'Resolved':
-      return 'bg-resqnow-safe/20 text-resqnow-safe';
-    case 'In Progress':
-    case 'Responded':
-    case 'Responders En Route':
-      return 'bg-resqnow-pending/20 text-resqnow-pending';
+    case 'Submitted':
+      return 'bg-resqnow-info/15 text-resqnow-info';
+
     case 'Pending Verification':
-      return 'bg-resqnow-info/20 text-resqnow-info';
+      return 'bg-resqnow-pending/15 text-resqnow-pending';
+
     case 'Verified':
-      return 'bg-resqnow-mint/20 text-resqnow-mint';
+      return 'bg-resqnow-mint/15 text-resqnow-mint';
+
+    case 'Assigned':
+    case 'In Progress':
+      return 'bg-resqnow-insight/15 text-resqnow-insight';
+
+    case 'Responders En Route':
+      return 'bg-resqnow-violet/15 text-resqnow-violet';
+
+    case 'Responded':
+      return 'bg-resqnow-mint/15 text-resqnow-mint';
+
+    case 'Resolved':
+      return 'bg-resqnow-safe/15 text-resqnow-safe';
+
     case 'Invalid':
-      return 'bg-resqnow-critical/20 text-resqnow-critical';
+      return 'bg-resqnow-crimson/15 text-resqnow-crimson';
+
     default:
       return 'bg-slate-100 text-slate-600';
   }
@@ -26,12 +39,18 @@ function getStatusStyle(status) {
 // Returns Tailwind classes for a report's priority badge
 function getPriorityStyle(priority) {
   switch (priority) {
+    case 'Critical':
+      return 'bg-resqnow-crimson/10 text-resqnow-crimson border-resqnow-crimson/20';
+
     case 'High':
       return 'bg-resqnow-critical/10 text-resqnow-critical border-resqnow-critical/20';
+
     case 'Medium':
-      return 'bg-resqnow-caution/10 text-resqnow-caution border-resqnow-caution/20';
+      return 'bg-resqnow-pending/10 text-resqnow-pending border-resqnow-pending/20';
+
     case 'Low':
-      return 'bg-slate-50 text-slate-500 border-slate-200';
+      return 'bg-resqnow-info/10 text-resqnow-info border-resqnow-info/20';
+
     default:
       return 'bg-slate-50 text-slate-500 border-slate-200';
   }
