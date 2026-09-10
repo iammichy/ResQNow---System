@@ -1,27 +1,38 @@
 // src/utils/updateUtils.js
-// Combines announcements + notifications for display while
-// keeping them separate in the data layer (for the future backend).
 
+// ============ PRIORITY SCORE ============
+// Used when sorting updates
 const priorityScore = {
   critical: 3,
   important: 2,
   normal: 1,
 };
 
+// ============ NORMALIZE ANNOUNCEMENT ============
+// Adds shared fields used by Dashboard and Updates
 function normalizeAnnouncement(announcement) {
   return {
     ...announcement,
+
     updateSource: 'announcement',
+
     updateCategory:
-      announcement.priority === 'critical' ? 'alert' : 'announcement',
+      announcement.priority === 'critical'
+        ? 'alert'
+        : 'announcement',
+
     relatedReportId: null,
   };
 }
 
+// ============ NORMALIZE NOTIFICATION ============
+// Adds shared fields used by Dashboard and Updates
 function normalizeNotification(notification) {
   return {
     ...notification,
+
     updateSource: 'notification',
+
     updateCategory:
       notification.type === 'report_update'
         ? 'report'
@@ -31,82 +42,148 @@ function normalizeNotification(notification) {
   };
 }
 
+// ============ SORT UPDATES ============
+// Higher priority first, then newest
 function sortUpdates(a, b) {
+  const aPriority =
+    priorityScore[a.priority] || 0;
+
+  const bPriority =
+    priorityScore[b.priority] || 0;
+
   const priorityDifference =
-    priorityScore[b.priority] - priorityScore[a.priority];
+    bPriority - aPriority;
 
   if (priorityDifference !== 0) {
     return priorityDifference;
   }
 
-  return new Date(b.createdAt) - new Date(a.createdAt);
+  return (
+    new Date(b.createdAt) -
+    new Date(a.createdAt)
+  );
 }
 
-/* ============================================================
-   FULL UPDATES PAGE
-   - Keeps announcements, notifications, and report history
-   - Nothing is deleted, even expired items
-============================================================ */
-export function getAllUpdates(announcements, notifications) {
+// ============ ALL UPDATES ============
+// Keeps current and expired items
+// Updates page decides where expired items appear
+function getAllUpdates(
+  announcements,
+  notifications
+) {
   const combined = [
-    ...announcements.map(normalizeAnnouncement),
-    ...notifications.map(normalizeNotification),
+    ...announcements.map(
+      normalizeAnnouncement
+    ),
+
+    ...notifications.map(
+      normalizeNotification
+    ),
   ];
 
   return combined.sort(sortUpdates);
 }
 
-/* ============================================================
-   HOME DASHBOARD
-   1. Remove expired content
-   2. Highest priority first
-   3. Newest first within same priority
-   4. Only latest notification per report (dedup)
-   5. Maximum of 3 items
-============================================================ */
-export function getDashboardUpdates(announcements, notifications) {
+// ============ DASHBOARD UPDATES ============
+// Only active updates appear on Home
+// Only newest update per report is kept
+// Maximum of 2 compact items
+function getDashboardUpdates(
+  announcements,
+  notifications
+) {
   const now = new Date();
 
   let combined = [
-    ...announcements.map(normalizeAnnouncement),
-    ...notifications.map(normalizeNotification),
+    ...announcements.map(
+      normalizeAnnouncement
+    ),
+
+    ...notifications.map(
+      normalizeNotification
+    ),
   ];
 
-  // Remove expired items from Home
-  combined = combined.filter((item) => {
-    if (!item.expiresAt) {
-      return true;
-    }
-    return new Date(item.expiresAt) > now;
-  });
+  // Remove expired updates from Home
+  combined = combined.filter(
+    (item) => {
+      if (!item.expiresAt) {
+        return true;
+      }
 
-  // Sort first
+      const expiration =
+        new Date(
+          item.expiresAt
+        );
+
+      if (
+        Number.isNaN(
+          expiration.getTime()
+        )
+      ) {
+        return true;
+      }
+
+      return expiration > now;
+    }
+  );
+
+  // Sort by importance and date
   combined.sort(sortUpdates);
 
-  // Only latest notification per report
-  const seenReports = new Set();
+  // Only keep newest update per report
+  const seenReports =
+    new Set();
 
-  combined = combined.filter((item) => {
-    if (!item.relatedReportId) {
+  combined = combined.filter(
+    (item) => {
+      if (!item.relatedReportId) {
+        return true;
+      }
+
+      if (
+        seenReports.has(
+          item.relatedReportId
+        )
+      ) {
+        return false;
+      }
+
+      seenReports.add(
+        item.relatedReportId
+      );
+
       return true;
     }
-    if (seenReports.has(item.relatedReportId)) {
-      return false;
-    }
-    seenReports.add(item.relatedReportId);
-    return true;
-  });
+  );
 
-  // Home maximum
-  return combined.slice(0, 3);
+  // Dashboard only shows 2
+  return combined.slice(0, 2);
 }
 
-/* ============================================================
-   EXPIRED CHECK
-============================================================ */
-export function isUpdateExpired(update) {
+// ============ EXPIRED CHECK ============
+// Check whether an update already expired
+function isUpdateExpired(update) {
   if (!update.expiresAt) {
     return false;
   }
-  return new Date(update.expiresAt) <= new Date();
+
+  const expiration =
+    new Date(update.expiresAt);
+
+  if (
+    Number.isNaN(
+      expiration.getTime()
+    )
+  ) {
+    return false;
+  }
+
+  return expiration <= new Date();
 }
+
+export {
+  getAllUpdates,
+  getDashboardUpdates,
+  isUpdateExpired,
+};

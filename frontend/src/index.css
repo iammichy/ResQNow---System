@@ -145,12 +145,14 @@
   );
 }
 
-/* ============ PAGE BACKGROUND ============ */
+/* ============ RESIDENT PAGE BACKGROUND ============ */
+/* Keeps the header cutout and top content the same cream */
 .resqnow-page {
   background: linear-gradient(
     180deg,
     var(--warm-ivory) 0%,
-    #FFFFFF 45%,
+    var(--warm-ivory) 24%,
+    #FFFFFF 58%,
     var(--soft-blue-mist) 100%
   );
 }

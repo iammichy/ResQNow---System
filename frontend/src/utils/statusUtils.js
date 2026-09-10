@@ -1,8 +1,7 @@
 // src/utils/statusUtils.js
 
 // ============ STATUS STYLES ============
-// Returns Tailwind classes for a report's status badge
-// Used by Dashboard, TrackReports, and ReportDetail
+// Returns color classes for report status
 function getStatusStyle(status) {
   switch (status) {
     case 'Submitted':
@@ -36,7 +35,7 @@ function getStatusStyle(status) {
 }
 
 // ============ PRIORITY STYLES ============
-// Returns Tailwind classes for a report's priority badge
+// Returns color classes for report priority
 function getPriorityStyle(priority) {
   switch (priority) {
     case 'Critical':
@@ -56,4 +55,81 @@ function getPriorityStyle(priority) {
   }
 }
 
-export { getStatusStyle, getPriorityStyle };
+// ============ STATUS LABELS ============
+// Backend status stays English
+// Only the visible label gets translated
+const statusKeys = {
+  Submitted:
+    'status.submitted',
+
+  'Pending Verification':
+    'status.pendingVerification',
+
+  Verified:
+    'status.verified',
+
+  Assigned:
+    'status.assigned',
+
+  'In Progress':
+    'status.inProgress',
+
+  'Responders En Route':
+    'status.respondersEnRoute',
+
+  Responded:
+    'status.responded',
+
+  Resolved:
+    'status.resolved',
+
+  Invalid:
+    'status.invalid',
+};
+
+// Get translated report status
+function getStatusLabel(status, t) {
+  const key =
+    statusKeys[status];
+
+  if (!key || !t) {
+    return status;
+  }
+
+  return t(key);
+}
+
+// ============ PRIORITY LABELS ============
+// Backend priority stays English
+const priorityKeys = {
+  Critical:
+    'priority.critical',
+
+  High:
+    'priority.high',
+
+  Medium:
+    'priority.medium',
+
+  Low:
+    'priority.low',
+};
+
+// Get translated priority
+function getPriorityLabel(priority, t) {
+  const key =
+    priorityKeys[priority];
+
+  if (!key || !t) {
+    return priority;
+  }
+
+  return t(key);
+}
+
+export {
+  getStatusStyle,
+  getPriorityStyle,
+  getStatusLabel,
+  getPriorityLabel,
+};

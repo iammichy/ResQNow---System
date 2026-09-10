@@ -1,20 +1,68 @@
 // src/utils/dateUtils.js
 
-// ============ DATE FORMATTER ============
-// Formats a date string for Philippine locale display
-// Used by Dashboard, Updates, and anywhere dates appear
-function formatDate(dateString) {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) return dateString;
+// ============ DATE LOCALES ============
+// Locale used for displaying dates
+const dateLocales = {
+  en: 'en-PH',
+  tl: 'fil-PH',
+  ilo: 'ilo-PH',
 
-  return date.toLocaleString('en-PH', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
+  // Safe fallback because browser support
+  // for Ibanag Intl formatting is limited
+  ibg: 'en-PH',
+};
+
+// ============ DATE FORMATTER ============
+// Format date using the selected language
+function formatDate(
+  dateString,
+  language = 'en'
+) {
+  if (!dateString) return '';
+
+  const date =
+    new Date(dateString);
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return dateString;
+  }
+
+  const languageCode =
+    language?.split('-')[0] || 'en';
+
+  const locale =
+    dateLocales[languageCode] ||
+    dateLocales.en;
+
+  try {
+    return date.toLocaleString(
+      locale,
+      {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      }
+    );
+  } catch {
+    return date.toLocaleString(
+      dateLocales.en,
+      {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      }
+    );
+  }
 }
 
-export { formatDate };
+export {
+  formatDate,
+};

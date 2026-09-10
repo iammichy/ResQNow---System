@@ -30,6 +30,7 @@ import {
 
 import { useAuth } from '../../context/AuthContext';
 import { purokOptions } from '../../data/mockData';
+import { supportedLanguages } from '../../i18n/i18n';
 
 // ============ SETTINGS PAGE ============
 // Resident profile, security, preferences, privacy, and sign out
@@ -45,11 +46,26 @@ export default function Settings() {
   const [isEditing, setIsEditing] = useState(false);
 
   // Resident information
-  const [fullName, setFullName] = useState(user?.fullName || '');
-  const [contactNumber, setContactNumber] = useState(user?.contactNumber || '');
-  const [email, setEmail] = useState(user?.email || '');
-  const [address, setAddress] = useState(user?.address || '');
-  const [purok, setPurok] = useState(user?.purok || 'Purok 1');
+  const [fullName, setFullName] = useState(
+    user?.fullName || ''
+  );
+
+  const [contactNumber, setContactNumber] = useState(
+    user?.contactNumber || ''
+  );
+
+  const [email, setEmail] = useState(
+    user?.email || ''
+  );
+
+  const [address, setAddress] = useState(
+    user?.address || ''
+  );
+
+  const [purok, setPurok] = useState(
+    user?.purok || 'Purok 1'
+  );
+
   const [householdCount, setHouseholdCount] = useState(
     user?.householdCount || 1
   );
@@ -58,10 +74,13 @@ export default function Settings() {
   const [householdProfile, setHouseholdProfile] = useState({
     hasSeniorCitizen:
       user?.householdProfile?.hasSeniorCitizen || false,
+
     hasChild:
       user?.householdProfile?.hasChild || false,
+
     hasPWD:
       user?.householdProfile?.hasPWD || false,
+
     hasPregnantPerson:
       user?.householdProfile?.hasPregnantPerson || false,
   });
@@ -85,36 +104,34 @@ export default function Settings() {
     emergencyAlerts: true,
   });
 
-  const [preferencesSaved, setPreferencesSaved] = useState(false);
+  const [preferencesSaved, setPreferencesSaved] =
+    useState(false);
 
   // ============ ACCORDION ============
   // Open or close a settings section
   const toggleSection = (section) => {
     setOpenSection((prev) =>
-      prev === section ? null : section
+      prev === section
+        ? null
+        : section
     );
   };
 
   // ============ LANGUAGE ============
-  // Change app language
+  // Change resident app language
   const handleLanguageChange = async (e) => {
-    const newLanguage = e.target.value;
+    const newLanguage =
+      e.target.value;
 
-    await i18n.changeLanguage(newLanguage);
-
-    localStorage.setItem(
-      'resqnow_language',
+    await i18n.changeLanguage(
       newLanguage
     );
-
-    document.documentElement.lang =
-      newLanguage;
 
     setPreferencesSaved(false);
   };
 
   // ============ HOUSEHOLD ============
-  // Toggle one household characteristic
+  // Toggle household characteristic
   const toggleHousehold = (key) => {
     if (!isEditing) return;
 
@@ -132,15 +149,25 @@ export default function Settings() {
 
     if (!fullName.trim()) {
       setProfileError(
-        'Full name is required.'
+        t(
+          'settings.fullNameRequired'
+        )
       );
+
       return;
     }
 
-    if (!/^09\d{9}$/.test(contactNumber)) {
+    if (
+      !/^09\d{9}$/.test(
+        contactNumber
+      )
+    ) {
       setProfileError(
-        'Enter a valid 11-digit mobile number starting with 09.'
+        t(
+          'settings.invalidMobile'
+        )
       );
+
       return;
     }
 
@@ -150,15 +177,21 @@ export default function Settings() {
       )
     ) {
       setProfileError(
-        'Enter a valid email address.'
+        t(
+          'settings.invalidEmail'
+        )
       );
+
       return;
     }
 
     if (!address.trim()) {
       setProfileError(
-        'Address is required.'
+        t(
+          'settings.addressRequired'
+        )
       );
+
       return;
     }
 
@@ -182,14 +215,21 @@ export default function Settings() {
 
   // Cancel profile editing
   const handleCancelEdit = () => {
-    setFullName(user?.fullName || '');
+    setFullName(
+      user?.fullName || ''
+    );
 
     setContactNumber(
       user?.contactNumber || ''
     );
 
-    setEmail(user?.email || '');
-    setAddress(user?.address || '');
+    setEmail(
+      user?.email || ''
+    );
+
+    setAddress(
+      user?.address || ''
+    );
 
     setPurok(
       user?.purok || 'Purok 1'
@@ -201,20 +241,16 @@ export default function Settings() {
 
     setHouseholdProfile({
       hasSeniorCitizen:
-        user?.householdProfile
-          ?.hasSeniorCitizen || false,
+        user?.householdProfile?.hasSeniorCitizen || false,
 
       hasChild:
-        user?.householdProfile
-          ?.hasChild || false,
+        user?.householdProfile?.hasChild || false,
 
       hasPWD:
-        user?.householdProfile
-          ?.hasPWD || false,
+        user?.householdProfile?.hasPWD || false,
 
       hasPregnantPerson:
-        user?.householdProfile
-          ?.hasPregnantPerson || false,
+        user?.householdProfile?.hasPregnantPerson || false,
     });
 
     setProfileError('');
@@ -232,29 +268,45 @@ export default function Settings() {
     );
   };
 
-  // Validate and save new password
+  // Validate and save password
   const handlePasswordSave = () => {
     setPasswordError('');
     setPasswordSaved(false);
 
     if (!currentPassword) {
       setPasswordError(
-        'Enter your current password.'
+        t(
+          'settings.currentPasswordRequired'
+        )
       );
+
       return;
     }
 
-    if (!validPassword(newPassword)) {
+    if (
+      !validPassword(
+        newPassword
+      )
+    ) {
       setPasswordError(
-        'New password must have 8 characters, an uppercase letter, number, and special character.'
+        t(
+          'settings.newPasswordInvalid'
+        )
       );
+
       return;
     }
 
-    if (newPassword !== confirmPassword) {
+    if (
+      newPassword !==
+      confirmPassword
+    ) {
       setPasswordError(
-        'New passwords do not match.'
+        t(
+          'settings.passwordMismatch'
+        )
       );
+
       return;
     }
 
@@ -270,7 +322,7 @@ export default function Settings() {
   };
 
   // ============ NOTIFICATIONS ============
-  // Toggle one notification preference
+  // Toggle notification preference
   const toggleNotification = (key) => {
     setNotifications((prev) => ({
       ...prev,
@@ -290,18 +342,22 @@ export default function Settings() {
   };
 
   // ============ LOGOUT ============
-  // Sign resident out and return to Login
+  // Sign resident out
   const handleLogout = () => {
     logout();
 
-    navigate('/login', {
-      replace: true,
-    });
+    navigate(
+      '/login',
+      {
+        replace: true,
+      }
+    );
   };
 
   // Avatar letter
   const firstLetter = (
-    user?.fullName || 'Resident'
+    user?.fullName ||
+    t('settings.resident')
   )
     .charAt(0)
     .toUpperCase();
@@ -326,22 +382,21 @@ export default function Settings() {
 
         <div className="flex items-center gap-3">
 
-          {/* Avatar */}
           <div className="w-14 h-14 rounded-full bg-white/20 border border-white/20 flex items-center justify-center shrink-0">
-
             <span className="text-xl font-bold">
               {firstLetter}
             </span>
           </div>
 
-          {/* Resident information */}
           <div className="flex-1 min-w-0">
 
             <div className="flex items-center gap-1.5">
 
               <p className="text-[15px] font-bold truncate">
                 {user?.fullName ||
-                  'Resident'}
+                  t(
+                    'settings.resident'
+                  )}
               </p>
 
               {user?.accountStatus ===
@@ -351,18 +406,18 @@ export default function Settings() {
             </div>
 
             <p className="text-[10px] text-white/80 mt-0.5">
-
               {user?.accountStatus ===
               'Verified'
                 ? t(
                     'settings.verifiedResident'
                   )
                 : user?.accountStatus ||
-                  'Resident'}
+                  t(
+                    'settings.resident'
+                  )}
             </p>
 
             <div className="flex items-center gap-1 mt-1">
-
               <MapPin className="w-3 h-3 text-white/70" />
 
               <p className="text-[10px] text-white/80 truncate">
@@ -372,14 +427,20 @@ export default function Settings() {
             </div>
           </div>
 
-          {/* Edit shortcut */}
           <button
             type="button"
             onClick={() => {
-              setOpenSection('profile');
+              setOpenSection(
+                'profile'
+              );
+
               setIsEditing(true);
             }}
-            aria-label="Edit profile"
+            aria-label={
+              t(
+                'settings.editProfile'
+              )
+            }
             className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0 hover:bg-white/30 active:scale-95 transition-all"
           >
             <Pencil className="w-4 h-4" />
@@ -390,25 +451,24 @@ export default function Settings() {
       {/* ============ PERSONAL & HOUSEHOLD ============ */}
       <section className="bg-white border border-resqnow-border-soft rounded-2xl overflow-hidden mb-3">
 
-        {/* Accordion heading */}
         <button
           type="button"
           onClick={() =>
-            toggleSection('profile')
+            toggleSection(
+              'profile'
+            )
           }
           aria-expanded={
-            openSection === 'profile'
+            openSection ===
+            'profile'
           }
           className="w-full min-h-[64px] px-4 py-3.5 flex items-center gap-3 text-left hover:bg-resqnow-canvas active:bg-resqnow-violet/5 transition-colors"
         >
-          {/* Icon */}
           <div className="w-9 h-9 rounded-xl bg-resqnow-violet/10 text-resqnow-violet flex items-center justify-center shrink-0">
-
             <UserRound className="w-4 h-4" />
           </div>
 
           <div className="flex-1">
-
             <p className="text-[13px] font-bold text-resqnow-primary">
               {t(
                 'settings.personalHousehold'
@@ -424,18 +484,18 @@ export default function Settings() {
 
           <ChevronDown
             className={`w-4 h-4 text-resqnow-muted transition-transform ${
-              openSection === 'profile'
+              openSection ===
+              'profile'
                 ? 'rotate-180'
                 : ''
             }`}
           />
         </button>
 
-        {/* Profile content */}
-        {openSection === 'profile' && (
+        {openSection ===
+          'profile' && (
           <div className="px-4 pb-4 border-t border-resqnow-border-soft">
 
-            {/* Resident information heading */}
             <div className="flex items-center justify-between mt-4 mb-3">
 
               <p className="text-[11px] font-bold text-resqnow-secondary">
@@ -454,7 +514,9 @@ export default function Settings() {
                 >
                   <Pencil className="w-3 h-3" />
 
-                  {t('settings.edit')}
+                  {t(
+                    'settings.edit'
+                  )}
                 </button>
               )}
             </div>
@@ -495,7 +557,12 @@ export default function Settings() {
                 )}
                 value={fullName}
                 editing={isEditing}
-                onChange={setFullName}
+                onChange={
+                  setFullName
+                }
+                emptyText={t(
+                  'settings.notProvided'
+                )}
               />
 
               <ProfileField
@@ -509,6 +576,9 @@ export default function Settings() {
                   setContactNumber
                 }
                 type="tel"
+                emptyText={t(
+                  'settings.notProvided'
+                )}
               />
 
               <ProfileField
@@ -518,8 +588,13 @@ export default function Settings() {
                 )}
                 value={email}
                 editing={isEditing}
-                onChange={setEmail}
+                onChange={
+                  setEmail
+                }
                 type="email"
+                emptyText={t(
+                  'settings.notProvided'
+                )}
               />
 
               <ProfileField
@@ -529,14 +604,20 @@ export default function Settings() {
                 )}
                 value={address}
                 editing={isEditing}
-                onChange={setAddress}
+                onChange={
+                  setAddress
+                }
+                emptyText={t(
+                  'settings.notProvided'
+                )}
               />
 
               {/* Purok */}
               <div>
-
                 <label className="text-[9px] font-semibold text-resqnow-muted">
-                  {t('settings.purok')}
+                  {t(
+                    'settings.purok'
+                  )}
                 </label>
 
                 {isEditing ? (
@@ -580,7 +661,6 @@ export default function Settings() {
               <div className="bg-resqnow-violet/5 border border-resqnow-violet/15 rounded-xl p-3 flex items-center gap-3">
 
                 <div className="w-9 h-9 rounded-lg bg-resqnow-violet/10 text-resqnow-violet flex items-center justify-center shrink-0">
-
                   <MapPinned className="w-4 h-4" />
                 </div>
 
@@ -593,7 +673,8 @@ export default function Settings() {
                   </p>
 
                   <p className="text-[9px] text-resqnow-violet mt-0.5 truncate">
-                    {address || purok}
+                    {address ||
+                      purok}
                   </p>
 
                   <p className="text-[8px] text-resqnow-muted mt-0.5">
@@ -609,7 +690,6 @@ export default function Settings() {
             <div className="mt-4 pt-4 border-t border-resqnow-border-soft">
 
               <div className="flex items-center gap-2 mb-3">
-
                 <Users className="w-4 h-4 text-resqnow-violet" />
 
                 <p className="text-[11px] font-bold text-resqnow-secondary">
@@ -619,11 +699,9 @@ export default function Settings() {
                 </p>
               </div>
 
-              {/* Household count */}
               <div className="flex items-center justify-between bg-resqnow-canvas rounded-xl p-3">
 
                 <div>
-
                   <p className="text-[10px] font-semibold text-resqnow-secondary">
                     {t(
                       'settings.householdMembers'
@@ -639,7 +717,6 @@ export default function Settings() {
 
                 <div className="flex items-center gap-2">
 
-                  {/* Decrease */}
                   {isEditing && (
                     <button
                       type="button"
@@ -652,7 +729,11 @@ export default function Settings() {
                             )
                         )
                       }
-                      aria-label="Decrease household count"
+                      aria-label={
+                        t(
+                          'settings.decreaseHousehold'
+                        )
+                      }
                       className="w-9 h-9 rounded-lg border border-resqnow-border bg-white flex items-center justify-center text-resqnow-muted hover:text-resqnow-violet hover:border-resqnow-violet/30 active:scale-95 transition-all"
                     >
                       <Minus className="w-3.5 h-3.5" />
@@ -663,7 +744,6 @@ export default function Settings() {
                     {householdCount}
                   </span>
 
-                  {/* Increase */}
                   {isEditing && (
                     <button
                       type="button"
@@ -673,7 +753,11 @@ export default function Settings() {
                             prev + 1
                         )
                       }
-                      aria-label="Increase household count"
+                      aria-label={
+                        t(
+                          'settings.increaseHousehold'
+                        )
+                      }
                       className="w-9 h-9 rounded-lg border border-resqnow-border bg-white flex items-center justify-center text-resqnow-muted hover:text-resqnow-violet hover:border-resqnow-violet/30 active:scale-95 transition-all"
                     >
                       <Plus className="w-3.5 h-3.5" />
@@ -682,7 +766,6 @@ export default function Settings() {
                 </div>
               </div>
 
-              {/* Household profile */}
               <p className="text-[9px] font-semibold text-resqnow-muted mt-3 mb-2">
                 {t(
                   'settings.householdProfile'
@@ -753,11 +836,10 @@ export default function Settings() {
               </div>
             </div>
 
-            {/* Editing actions */}
+            {/* Save profile */}
             {isEditing && (
               <div className="grid grid-cols-2 gap-2 mt-4">
 
-                {/* Cancel */}
                 <button
                   type="button"
                   onClick={
@@ -770,7 +852,6 @@ export default function Settings() {
                   )}
                 </button>
 
-                {/* Save */}
                 <button
                   type="button"
                   onClick={
@@ -793,25 +874,24 @@ export default function Settings() {
       {/* ============ ACCOUNT & SECURITY ============ */}
       <section className="bg-white border border-resqnow-border-soft rounded-2xl overflow-hidden mb-3">
 
-        {/* Security accordion */}
         <button
           type="button"
           onClick={() =>
-            toggleSection('security')
+            toggleSection(
+              'security'
+            )
           }
           aria-expanded={
-            openSection === 'security'
+            openSection ===
+            'security'
           }
           className="w-full min-h-[64px] px-4 py-3.5 flex items-center gap-3 text-left hover:bg-resqnow-canvas active:bg-resqnow-violet/5 transition-colors"
         >
-          {/* Icon */}
           <div className="w-9 h-9 rounded-xl bg-resqnow-violet/10 text-resqnow-violet flex items-center justify-center shrink-0">
-
             <LockKeyhole className="w-4 h-4" />
           </div>
 
           <div className="flex-1">
-
             <p className="text-[13px] font-bold text-resqnow-primary">
               {t(
                 'settings.security'
@@ -827,20 +907,20 @@ export default function Settings() {
 
           <ChevronDown
             className={`w-4 h-4 text-resqnow-muted transition-transform ${
-              openSection === 'security'
+              openSection ===
+              'security'
                 ? 'rotate-180'
                 : ''
             }`}
           />
         </button>
 
-        {/* Security content */}
-        {openSection === 'security' && (
+        {openSection ===
+          'security' && (
           <div className="px-4 pb-4 border-t border-resqnow-border-soft">
 
             <div className="mt-4 space-y-3">
 
-              {/* Password error */}
               {passwordError && (
                 <div className="flex items-start gap-2 bg-resqnow-critical/10 border border-resqnow-critical/20 rounded-xl px-3 py-2.5">
 
@@ -852,7 +932,6 @@ export default function Settings() {
                 </div>
               )}
 
-              {/* Password success */}
               {passwordSaved && (
                 <div className="flex items-center gap-2 bg-resqnow-safe/10 border border-resqnow-safe/20 rounded-xl px-3 py-2.5">
 
@@ -876,18 +955,24 @@ export default function Settings() {
                 onChange={
                   setCurrentPassword
                 }
-                show={showPasswords}
+                show={
+                  showPasswords
+                }
               />
 
               <PasswordField
                 label={t(
                   'settings.newPassword'
                 )}
-                value={newPassword}
+                value={
+                  newPassword
+                }
                 onChange={
                   setNewPassword
                 }
-                show={showPasswords}
+                show={
+                  showPasswords
+                }
               />
 
               <PasswordField
@@ -900,15 +985,17 @@ export default function Settings() {
                 onChange={
                   setConfirmPassword
                 }
-                show={showPasswords}
+                show={
+                  showPasswords
+                }
               />
 
-              {/* Show passwords */}
               <button
                 type="button"
                 onClick={() =>
                   setShowPasswords(
-                    (prev) => !prev
+                    (prev) =>
+                      !prev
                   )
                 }
                 className="min-h-[36px] flex items-center gap-1.5 text-[10px] font-semibold text-resqnow-muted hover:text-resqnow-violet transition-colors"
@@ -928,7 +1015,6 @@ export default function Settings() {
                     )}
               </button>
 
-              {/* Requirements */}
               <div className="bg-resqnow-canvas border border-resqnow-border-soft rounded-xl p-3">
 
                 <p className="text-[9px] font-bold text-resqnow-secondary">
@@ -944,7 +1030,6 @@ export default function Settings() {
                 </p>
               </div>
 
-              {/* Change password */}
               <button
                 type="button"
                 onClick={
@@ -964,7 +1049,6 @@ export default function Settings() {
       {/* ============ PREFERENCES ============ */}
       <section className="bg-white border border-resqnow-border-soft rounded-2xl overflow-hidden mb-3">
 
-        {/* Preferences accordion */}
         <button
           type="button"
           onClick={() =>
@@ -978,14 +1062,11 @@ export default function Settings() {
           }
           className="w-full min-h-[64px] px-4 py-3.5 flex items-center gap-3 text-left hover:bg-resqnow-canvas active:bg-resqnow-violet/5 transition-colors"
         >
-          {/* Icon */}
           <div className="w-9 h-9 rounded-xl bg-resqnow-violet/10 text-resqnow-violet flex items-center justify-center shrink-0">
-
             <Bell className="w-4 h-4" />
           </div>
 
           <div className="flex-1">
-
             <p className="text-[13px] font-bold text-resqnow-primary">
               {t(
                 'settings.preferences'
@@ -1009,12 +1090,11 @@ export default function Settings() {
           />
         </button>
 
-        {/* Preferences content */}
         {openSection ===
           'preferences' && (
           <div className="px-4 pb-4 border-t border-resqnow-border-soft">
 
-            {/* Language */}
+            {/* ============ LANGUAGE ============ */}
             <div className="mt-4">
 
               <div className="flex items-center gap-2 mb-2">
@@ -1029,28 +1109,32 @@ export default function Settings() {
               </div>
 
               <select
-                value={
+                value={(
                   i18n.resolvedLanguage ||
                   i18n.language ||
                   'en'
-                }
+                ).split('-')[0]}
                 onChange={
                   handleLanguageChange
                 }
                 className="w-full bg-resqnow-canvas border border-resqnow-border rounded-xl px-3 py-2.5 text-[11px] text-resqnow-primary outline-none focus:border-resqnow-violet/40 focus:ring-2 focus:ring-resqnow-violet/10 transition-all"
               >
-                {/* English + Tagalog only for now */}
-                <option value="en">
-                  {t(
-                    'settings.languages.en'
-                  )}
-                </option>
-
-                <option value="tl">
-                  {t(
-                    'settings.languages.tl'
-                  )}
-                </option>
+                {supportedLanguages.map(
+                  (language) => (
+                    <option
+                      key={
+                        language.code
+                      }
+                      value={
+                        language.code
+                      }
+                    >
+                      {t(
+                        language.labelKey
+                      )}
+                    </option>
+                  )
+                )}
               </select>
             </div>
 
@@ -1065,7 +1149,6 @@ export default function Settings() {
 
               <div className="space-y-2">
 
-                {/* Report updates */}
                 <NotificationOption
                   icon={FileText}
                   title={t(
@@ -1084,7 +1167,6 @@ export default function Settings() {
                   }
                 />
 
-                {/* Announcements */}
                 <NotificationOption
                   icon={Megaphone}
                   title={t(
@@ -1103,7 +1185,6 @@ export default function Settings() {
                   }
                 />
 
-                {/* Emergency alerts */}
                 <NotificationOption
                   icon={Siren}
                   title={t(
@@ -1125,7 +1206,6 @@ export default function Settings() {
               </div>
             </div>
 
-            {/* Preference success */}
             {preferencesSaved && (
               <div className="mt-3 flex items-center gap-2 bg-resqnow-safe/10 border border-resqnow-safe/20 rounded-xl px-3 py-2.5">
 
@@ -1139,7 +1219,6 @@ export default function Settings() {
               </div>
             )}
 
-            {/* Save preferences */}
             <button
               type="button"
               onClick={
@@ -1160,20 +1239,20 @@ export default function Settings() {
       {/* ============ PRIVACY & DATA ============ */}
       <section className="bg-white border border-resqnow-border-soft rounded-2xl overflow-hidden mb-3">
 
-        {/* Privacy accordion */}
         <button
           type="button"
           onClick={() =>
-            toggleSection('privacy')
+            toggleSection(
+              'privacy'
+            )
           }
           aria-expanded={
-            openSection === 'privacy'
+            openSection ===
+            'privacy'
           }
           className="w-full min-h-[64px] px-4 py-3.5 flex items-center gap-3 text-left hover:bg-resqnow-canvas active:bg-resqnow-info/5 transition-colors"
         >
-          {/* Privacy icon */}
           <div className="w-9 h-9 rounded-xl bg-resqnow-info/10 text-resqnow-info flex items-center justify-center shrink-0">
-
             <ShieldCheck className="w-4 h-4" />
           </div>
 
@@ -1194,18 +1273,18 @@ export default function Settings() {
 
           <ChevronDown
             className={`w-4 h-4 text-resqnow-muted transition-transform ${
-              openSection === 'privacy'
+              openSection ===
+              'privacy'
                 ? 'rotate-180'
                 : ''
             }`}
           />
         </button>
 
-        {/* Privacy content */}
-        {openSection === 'privacy' && (
+        {openSection ===
+          'privacy' && (
           <div className="px-4 pb-4 border-t border-resqnow-border-soft">
 
-            {/* Privacy notice */}
             <div className="mt-4 bg-resqnow-info/5 border border-resqnow-info/15 rounded-xl p-3">
 
               <div className="flex items-start gap-2">
@@ -1213,7 +1292,6 @@ export default function Settings() {
                 <ShieldCheck className="w-4 h-4 text-resqnow-info mt-0.5 shrink-0" />
 
                 <div>
-
                   <p className="text-[10px] font-bold text-resqnow-info">
                     {t(
                       'settings.residentDataPrivacy'
@@ -1241,33 +1319,41 @@ export default function Settings() {
       {/* ============ SIGN OUT ============ */}
       <button
         type="button"
-        onClick={handleLogout}
+        onClick={
+          handleLogout
+        }
         className="w-full min-h-[44px] py-3 rounded-xl border border-resqnow-crimson/20 bg-resqnow-crimson/10 text-resqnow-crimson text-[11px] font-bold flex items-center justify-center gap-1.5 hover:bg-resqnow-crimson/15 active:scale-[0.98] transition-all"
       >
         <LogOut className="w-4 h-4" />
 
-        {t('settings.signOut')}
+        {t(
+          'settings.signOut'
+        )}
       </button>
 
-      {/* Resident ID */}
       <p className="text-[9px] text-resqnow-muted text-center mt-2">
-
-        {t('settings.residentId')}:{' '}
+        {t(
+          'settings.residentId'
+        )}
+        :{' '}
         {user?.id ||
-          'Not available'}
+          t(
+            'settings.notAvailable'
+          )}
       </p>
     </div>
   );
 }
 
 // ============ PROFILE FIELD ============
-// Read-only field that becomes editable when Edit is active
+// Profile field that becomes editable
 function ProfileField({
   icon: Icon,
   label,
   value,
   editing,
   onChange,
+  emptyText,
   type = 'text',
 }) {
   return (
@@ -1286,7 +1372,9 @@ function ProfileField({
             type={type}
             value={value}
             onChange={(e) =>
-              onChange(e.target.value)
+              onChange(
+                e.target.value
+              )
             }
             className="w-full bg-resqnow-canvas border border-resqnow-border rounded-xl pl-9 pr-3 py-2.5 text-[11px] text-resqnow-primary outline-none focus:border-resqnow-violet/40 focus:ring-2 focus:ring-resqnow-violet/10 transition-all"
           />
@@ -1298,7 +1386,7 @@ function ProfileField({
 
           <p className="text-[12px] font-semibold text-resqnow-primary break-words">
             {value ||
-              'Not provided'}
+              emptyText}
           </p>
         </div>
       )}
@@ -1307,7 +1395,7 @@ function ProfileField({
 }
 
 // ============ HOUSEHOLD OPTION ============
-// Violet represents normal selected UI
+// Normal selection uses Violet
 function HouseholdOption({
   label,
   selected,
@@ -1317,9 +1405,15 @@ function HouseholdOption({
   return (
     <button
       type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-pressed={selected}
+      onClick={
+        onClick
+      }
+      disabled={
+        disabled
+      }
+      aria-pressed={
+        selected
+      }
       className={`min-h-[44px] p-2.5 rounded-xl border text-[10px] font-semibold text-left transition-all ${
         selected
           ? 'bg-resqnow-violet/10 border-resqnow-violet/30 text-resqnow-violet'
@@ -1332,7 +1426,6 @@ function HouseholdOption({
     >
       <div className="flex items-center gap-2">
 
-        {/* Selected indicator */}
         <div
           className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
             selected
@@ -1352,7 +1445,7 @@ function HouseholdOption({
 }
 
 // ============ PASSWORD FIELD ============
-// Shared password input
+// Shared password field
 function PasswordField({
   label,
   value,
@@ -1368,11 +1461,17 @@ function PasswordField({
 
       <input
         type={
-          show ? 'text' : 'password'
+          show
+            ? 'text'
+            : 'password'
         }
-        value={value}
+        value={
+          value
+        }
         onChange={(e) =>
-          onChange(e.target.value)
+          onChange(
+            e.target.value
+          )
         }
         className="w-full bg-resqnow-canvas border border-resqnow-border rounded-xl px-3 py-2.5 text-[11px] text-resqnow-primary outline-none focus:border-resqnow-violet/40 focus:ring-2 focus:ring-resqnow-violet/10 transition-all"
       />
@@ -1381,7 +1480,7 @@ function PasswordField({
 }
 
 // ============ NOTIFICATION OPTION ============
-// Notification preference with Violet normal toggle
+// Notification setting with normal Violet toggle
 function NotificationOption({
   icon: Icon,
   title,
@@ -1393,11 +1492,14 @@ function NotificationOption({
   return (
     <button
       type="button"
-      onClick={onClick}
-      aria-pressed={enabled}
+      onClick={
+        onClick
+      }
+      aria-pressed={
+        enabled
+      }
       className="w-full min-h-[60px] flex items-center gap-3 p-3 rounded-xl bg-resqnow-canvas border border-transparent text-left hover:border-resqnow-border-soft active:scale-[0.995] transition-all"
     >
-      {/* Notification icon */}
       <div
         className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
           important
@@ -1419,7 +1521,6 @@ function NotificationOption({
         </p>
       </div>
 
-      {/* Toggle */}
       <div
         className={`w-10 h-5 rounded-full relative transition-colors shrink-0 ${
           enabled
