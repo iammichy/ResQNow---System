@@ -1,10 +1,19 @@
 // src/components/resident/Login.jsx
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Shield, Mail, Lock, ExternalLink, AlertCircle, Loader2, Radio } from 'lucide-react';
+import {
+  Eye,
+  EyeOff,
+  Shield,
+  Mail,
+  Lock,
+  ExternalLink,
+  AlertCircle,
+  Loader2,
+  Radio,
+} from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext';
-import { mockTestAccount, mockResident } from '../../data/mockData';
 import barangayPhoto from '../../assets/barangay/barangay-camunatan.jpg';
 
 // ============ LOGIN PAGE ============
@@ -13,7 +22,7 @@ export default function Login() {
   // Used for changing pages
   const navigate = useNavigate();
 
-  // Login function from AuthContext
+  // Real Laravel login function
   const { login } = useAuth();
 
   // Used to focus the email input
@@ -34,19 +43,37 @@ export default function Login() {
   const [touched, setTouched] = useState({});
   const [focusedField, setFocusedField] = useState(null);
 
-  // Focus email input when page opens
+  // ============ LOAD REMEMBERED EMAIL ============
+  // Restore saved email and focus the input
   useEffect(() => {
+    const rememberedEmail = localStorage.getItem(
+      'resqnow_remembered_email'
+    );
+
+    if (rememberedEmail) {
+      setEmail(rememberedEmail);
+      setRememberMe(true);
+    }
+
     emailRef.current?.focus();
   }, []);
 
   // ============ VALIDATION ============
   // Check each field for errors
   const validateField = (name, value) => {
-    if (name === 'email' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+    if (
+      name === 'email' &&
+      value &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+    ) {
       return 'Please enter a valid email address';
     }
 
-    if (name === 'password' && touched.password && !value) {
+    if (
+      name === 'password' &&
+      touched.password &&
+      !value
+    ) {
       return 'Password is required';
     }
 
@@ -55,11 +82,19 @@ export default function Login() {
 
   // Check field when user leaves the input
   const handleBlur = (field) => {
-    setTouched((prev) => ({ ...prev, [field]: true }));
+    setTouched((prev) => ({
+      ...prev,
+      [field]: true,
+    }));
 
     setFieldErrors((prev) => ({
       ...prev,
-      [field]: validateField(field, field === 'email' ? email : password),
+      [field]: validateField(
+        field,
+        field === 'email'
+          ? email
+          : password
+      ),
     }));
 
     setFocusedField(null);
@@ -68,51 +103,106 @@ export default function Login() {
   // Clear field error when user focuses the input
   const handleFocus = (field) => {
     setFocusedField(field);
-    setFieldErrors((prev) => ({ ...prev, [field]: '' }));
+
+    setFieldErrors((prev) => ({
+      ...prev,
+      [field]: '',
+    }));
+
     setError('');
   };
 
   // ============ LOGIN ============
-  // Check the mock account and login the resident
-  const handleSubmit = (e) => {
+  // Login resident through Laravel API
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
     setError('');
 
     const errors = {
-      email: !email.trim() ? 'Email is required' : validateField('email', email),
-      password: !password.trim() ? 'Password is required' : '',
+      email: !email.trim()
+        ? 'Email is required'
+        : validateField(
+            'email',
+            email
+          ),
+
+      password: !password.trim()
+        ? 'Password is required'
+        : '',
     };
 
     setFieldErrors(errors);
-    setTouched({ email: true, password: true });
+
+    setTouched({
+      email: true,
+      password: true,
+    });
 
     // Stop login if there are errors
-    if (errors.email || errors.password) return;
+    if (
+      errors.email ||
+      errors.password
+    ) {
+      return;
+    }
 
     setIsSubmitting(true);
 
-    // Temporary loading delay for mock login
-    setTimeout(() => {
-      if (email === mockTestAccount.email && password === mockTestAccount.password) {
+    try {
+      // Login using Laravel Sanctum
+      await login({
+        email: email
+          .trim()
+          .toLowerCase(),
 
-        // Save email when Remember Me is checked
-        if (rememberMe) {
-          localStorage.setItem('resqnow_remembered_email', email);
-        } else {
-          localStorage.removeItem('resqnow_remembered_email');
-        }
+        password,
 
-        // Login resident and go to dashboard
-        login(mockResident);
-        navigate('/dashboard', { replace: true });
+        remember: rememberMe,
+      });
+
+      // Save only the email
+      if (rememberMe) {
+        localStorage.setItem(
+          'resqnow_remembered_email',
+          email
+            .trim()
+            .toLowerCase()
+        );
       } else {
-        // Show error for incorrect account
-        setError('The email or password you entered is incorrect. Please try again.');
-        setFieldErrors({ email: ' ', password: ' ' });
+        localStorage.removeItem(
+          'resqnow_remembered_email'
+        );
       }
 
+      // Go to resident dashboard
+      navigate(
+        '/dashboard',
+        {
+          replace: true,
+        }
+      );
+    } catch (loginError) {
+      const backendErrors =
+        loginError.errors || {};
+
+      setError(
+        loginError.message ||
+        'Unable to sign in. Please try again.'
+      );
+
+      setFieldErrors({
+        email:
+          backendErrors.email?.[0] ||
+          ' ',
+
+        password:
+          backendErrors.password?.[0] ||
+          ' ',
+      });
+    } finally {
       setIsSubmitting(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -126,7 +216,10 @@ export default function Login() {
         {/* Actual Barangay Camunatan photo */}
         <section
           className="relative min-h-[225px] md:min-h-[650px] bg-cover bg-center"
-          style={{ backgroundImage: `url(${barangayPhoto})` }}
+          style={{
+            backgroundImage:
+              `url(${barangayPhoto})`,
+          }}
         >
           {/* Dark brand overlay for readable text */}
           <div className="absolute inset-0 bg-linear-to-br from-resqnow-primary/80 via-resqnow-violet/60 to-resqnow-mint/45" />
@@ -139,7 +232,8 @@ export default function Login() {
                 linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)
               `,
-              backgroundSize: '22px 22px',
+              backgroundSize:
+                '22px 22px',
             }}
           />
 
@@ -148,9 +242,13 @@ export default function Login() {
 
             {/* ResQNow brand */}
             <div className="flex items-center gap-3">
+
               {/* Temporary shield until final logo is decided */}
               <div className="w-11 h-11 rounded-xl bg-white/15 border border-white/30 backdrop-blur-sm flex items-center justify-center">
-                <Shield className="w-6 h-6 text-white" strokeWidth={1.7} />
+                <Shield
+                  className="w-6 h-6 text-white"
+                  strokeWidth={1.7}
+                />
               </div>
 
               <div>
@@ -166,6 +264,7 @@ export default function Login() {
 
             {/* Welcome text */}
             <div className="max-w-[320px]">
+
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/75">
                 Resident Emergency Reporting
               </p>
@@ -186,6 +285,7 @@ export default function Login() {
 
           {/* Login heading */}
           <div className="mb-6">
+
             <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-resqnow-violet">
               Resident Access
             </p>
@@ -200,19 +300,28 @@ export default function Login() {
           </div>
 
           {/* ============ ERROR MESSAGE ============ */}
-          {/* Shows when login details are incorrect */}
+          {/* Shows backend or validation errors */}
           {error && (
             <div className="flex items-start gap-2.5 bg-resqnow-critical/10 border border-resqnow-critical/20 text-resqnow-crimson text-[12px] rounded-xl px-4 py-3 mb-5">
+
               <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-              <span>{error}</span>
+
+              <span>
+                {error}
+              </span>
             </div>
           )}
 
           {/* ============ LOGIN FORM ============ */}
-          <form onSubmit={handleSubmit} noValidate className="space-y-5">
+          <form
+            onSubmit={handleSubmit}
+            noValidate
+            className="space-y-5"
+          >
 
             {/* Email */}
             <div>
+
               <label className="block text-[12px] font-semibold text-resqnow-secondary mb-1.5">
                 Email Address
               </label>
@@ -226,6 +335,7 @@ export default function Login() {
                     : 'ring-1 ring-resqnow-border'
                 }`}
               >
+
                 {/* Email icon */}
                 <Mail
                   className={`absolute left-4 top-1/2 -translate-y-1/2 w-[17px] h-[17px] ${
@@ -242,12 +352,25 @@ export default function Login() {
                   type="email"
                   value={email}
                   onChange={(e) => {
-                    setEmail(e.target.value);
-                    setFieldErrors((prev) => ({ ...prev, email: '' }));
+                    setEmail(
+                      e.target.value
+                    );
+
+                    setFieldErrors(
+                      (prev) => ({
+                        ...prev,
+                        email: '',
+                      })
+                    );
+
                     setError('');
                   }}
-                  onFocus={() => handleFocus('email')}
-                  onBlur={() => handleBlur('email')}
+                  onFocus={() =>
+                    handleFocus('email')
+                  }
+                  onBlur={() =>
+                    handleBlur('email')
+                  }
                   placeholder="you@example.com"
                   className={`w-full pl-[46px] pr-4 py-3.5 rounded-xl text-[14px] text-resqnow-primary outline-none ${
                     fieldErrors.email
@@ -261,52 +384,84 @@ export default function Login() {
               </div>
 
               {/* Email validation */}
-              {fieldErrors.email && fieldErrors.email !== ' ' && (
-                <p className="text-[11px] text-resqnow-critical mt-1.5 ml-1">
-                  {fieldErrors.email}
-                </p>
-              )}
+              {fieldErrors.email &&
+                fieldErrors.email !==
+                  ' ' && (
+                  <p className="text-[11px] text-resqnow-critical mt-1.5 ml-1">
+                    {
+                      fieldErrors.email
+                    }
+                  </p>
+                )}
             </div>
 
             {/* Password */}
             <div>
+
               <label className="block text-[12px] font-semibold text-resqnow-secondary mb-1.5">
                 Password
               </label>
 
               <div
                 className={`relative rounded-xl transition-all ${
-                  fieldErrors.password && touched.password
+                  fieldErrors.password &&
+                  touched.password
                     ? 'ring-2 ring-resqnow-critical/30'
-                    : focusedField === 'password'
+                    : focusedField ===
+                      'password'
                     ? 'ring-2 ring-resqnow-violet/25'
                     : 'ring-1 ring-resqnow-border'
                 }`}
               >
+
                 {/* Password icon */}
                 <Lock
                   className={`absolute left-4 top-1/2 -translate-y-1/2 w-[17px] h-[17px] ${
-                    focusedField === 'password'
+                    focusedField ===
+                    'password'
                       ? 'text-resqnow-violet'
-                      : fieldErrors.password && touched.password
+                      : fieldErrors.password &&
+                        touched.password
                       ? 'text-resqnow-critical'
                       : 'text-resqnow-placeholder'
                   }`}
                 />
 
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={
+                    showPassword
+                      ? 'text'
+                      : 'password'
+                  }
                   value={password}
                   onChange={(e) => {
-                    setPassword(e.target.value);
-                    setFieldErrors((prev) => ({ ...prev, password: '' }));
+                    setPassword(
+                      e.target.value
+                    );
+
+                    setFieldErrors(
+                      (prev) => ({
+                        ...prev,
+                        password: '',
+                      })
+                    );
+
                     setError('');
                   }}
-                  onFocus={() => handleFocus('password')}
-                  onBlur={() => handleBlur('password')}
+                  onFocus={() =>
+                    handleFocus(
+                      'password'
+                    )
+                  }
+                  onBlur={() =>
+                    handleBlur(
+                      'password'
+                    )
+                  }
                   placeholder="••••••••"
                   className={`w-full pl-[46px] pr-12 py-3.5 rounded-xl text-[14px] text-resqnow-primary outline-none ${
-                    fieldErrors.password && touched.password
+                    fieldErrors.password &&
+                    touched.password
                       ? 'bg-resqnow-critical/5'
                       : 'bg-resqnow-canvas'
                   }`}
@@ -316,11 +471,21 @@ export default function Login() {
                 {/* Show or hide password */}
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() =>
+                    setShowPassword(
+                      !showPassword
+                    )
+                  }
+                  onMouseDown={(e) =>
+                    e.preventDefault()
+                  }
                   className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg text-resqnow-placeholder hover:text-resqnow-violet hover:bg-resqnow-violet/5 transition-colors"
                   tabIndex={-1}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={
+                    showPassword
+                      ? 'Hide password'
+                      : 'Show password'
+                  }
                 >
                   {showPassword ? (
                     <EyeOff className="w-[18px] h-[18px]" />
@@ -329,6 +494,17 @@ export default function Login() {
                   )}
                 </button>
               </div>
+
+              {/* Password validation */}
+              {fieldErrors.password &&
+                fieldErrors.password !==
+                  ' ' && (
+                  <p className="text-[11px] text-resqnow-critical mt-1.5 ml-1">
+                    {
+                      fieldErrors.password
+                    }
+                  </p>
+                )}
             </div>
 
             {/* ============ LOGIN OPTIONS ============ */}
@@ -336,10 +512,15 @@ export default function Login() {
 
               {/* Remember Me */}
               <label className="flex items-center gap-2 cursor-pointer select-none">
+
                 <input
                   type="checkbox"
                   checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
+                  onChange={(e) =>
+                    setRememberMe(
+                      e.target.checked
+                    )
+                  }
                   className="w-4 h-4 rounded border-resqnow-border accent-resqnow-violet"
                 />
 
@@ -367,6 +548,7 @@ export default function Login() {
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
+
                   Signing in...
                 </>
               ) : (
@@ -377,6 +559,7 @@ export default function Login() {
 
           {/* ============ CREATE ACCOUNT ============ */}
           <div className="mt-6 text-center">
+
             <p className="text-[12px] text-resqnow-muted">
               Don't have a resident account?{' '}
 
@@ -392,14 +575,17 @@ export default function Login() {
           {/* ============ RESPONDER ACCESS ============ */}
           {/* Secondary access for assigned responders */}
           <div className="mt-7 pt-5 border-t border-resqnow-border-soft">
+
             <div className="flex items-start gap-3">
 
               {/* Responder icon */}
               <div className="w-9 h-9 rounded-xl bg-resqnow-insight/10 flex items-center justify-center shrink-0">
+
                 <Radio className="w-4 h-4 text-resqnow-insight" />
               </div>
 
               <div className="flex-1">
+
                 <p className="text-[11px] font-bold text-resqnow-secondary">
                   Emergency Responder?
                 </p>
@@ -413,6 +599,7 @@ export default function Login() {
                   className="mt-3 text-[11px] font-semibold text-resqnow-violet hover:text-resqnow-primary flex items-center gap-1.5"
                 >
                   Responder Access
+
                   <ExternalLink className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -421,6 +608,7 @@ export default function Login() {
 
           {/* Security note */}
           <div className="mt-6 flex items-center justify-center gap-1.5">
+
             <span className="w-1.5 h-1.5 rounded-full bg-resqnow-safe" />
 
             <p className="text-[9px] text-resqnow-placeholder uppercase tracking-wider">

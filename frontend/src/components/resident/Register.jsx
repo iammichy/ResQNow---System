@@ -1,8 +1,27 @@
 // src/components/resident/Register.jsx
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Shield, Mail, Lock, User, Phone, MapPin, Check, AlertCircle, Loader2, Home, PersonStanding, Baby, Accessibility, HeartPulse, CheckCircle } from 'lucide-react';
+import {
+  Eye,
+  EyeOff,
+  Shield,
+  Mail,
+  Lock,
+  User,
+  Phone,
+  MapPin,
+  Check,
+  AlertCircle,
+  Loader2,
+  Home,
+  PersonStanding,
+  Baby,
+  Accessibility,
+  HeartPulse,
+  CheckCircle,
+} from 'lucide-react';
 
+import { useAuth } from '../../context/AuthContext';
 import { purokOptions } from '../../data/mockData';
 import barangayPhoto from '../../assets/barangay/barangay-camunatan.jpg';
 
@@ -28,6 +47,7 @@ const INITIAL_FORM = {
 // Account creation page for residents
 export default function Register() {
   const navigate = useNavigate();
+  const { register } = useAuth();
   const nameRef = useRef(null);
 
   // Registration form
@@ -55,8 +75,16 @@ export default function Register() {
   // ============ UPDATE FIELD ============
   // Update a form field and clear its error
   const update = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-    setFieldErrors((prev) => ({ ...prev, [field]: '' }));
+    setForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+
+    setFieldErrors((prev) => ({
+      ...prev,
+      [field]: '',
+    }));
+
     setError('');
   };
 
@@ -78,25 +106,54 @@ export default function Register() {
           ? 'Please enter a valid email'
           : '';
 
-      case 'phoneNumber':
-        return value &&
-          !/^(09|\+639)\d{9}$/.test(value.replace(/\s/g, '')) &&
-          value.length > 0
-          ? 'Enter a valid PH mobile number (09XX XXX XXXX)'
-          : '';
+      case 'phoneNumber': {
+        const cleanNumber = value.replace(/\s/g, '');
+
+        if (!cleanNumber) {
+          return 'Contact number is required';
+        }
+
+        if (!/^(09|\+639)\d{9}$/.test(cleanNumber)) {
+          return 'Enter a valid PH mobile number (09XX XXX XXXX)';
+        }
+
+        return '';
+      }
 
       case 'address':
-        return !value.trim() ? 'Address is required' : '';
+        return !value.trim()
+          ? 'Address is required'
+          : '';
 
       case 'purok':
-        return !value ? 'Please select your purok' : '';
+        return !value
+          ? 'Please select your purok'
+          : '';
 
       case 'password': {
-        if (!value) return 'Password is required';
-        if (value.length < 8) return 'At least 8 characters';
-        if (!/[A-Z]/.test(value)) return 'Needs an uppercase letter';
-        if (!/[0-9]/.test(value)) return 'Needs a number';
-        if (!/[!@#$%^&*(),.?\":{}|<>]/.test(value)) return 'Needs a special character';
+        if (!value) {
+          return 'Password is required';
+        }
+
+        if (value.length < 8) {
+          return 'At least 8 characters';
+        }
+
+        if (!/[a-z]/.test(value)) {
+          return 'Needs a lowercase letter';
+        }
+
+        if (!/[A-Z]/.test(value)) {
+          return 'Needs an uppercase letter';
+        }
+
+        if (!/[0-9]/.test(value)) {
+          return 'Needs a number';
+        }
+
+        if (!/[!@#$%^&*(),.?":{}|<>]/.test(value)) {
+          return 'Needs a special character';
+        }
 
         return '';
       }
@@ -107,6 +164,20 @@ export default function Register() {
           : value !== form.password
           ? 'Passwords do not match'
           : '';
+
+      case 'householdCount':
+        if (!value) {
+          return '';
+        }
+
+        if (
+          Number(value) < 1 ||
+          Number(value) > 100
+        ) {
+          return 'Enter a valid household count';
+        }
+
+        return '';
 
       default:
         return '';
@@ -122,7 +193,10 @@ export default function Register() {
 
     setFieldErrors((prev) => ({
       ...prev,
-      [field]: validate(field, form[field]),
+      [field]: validate(
+        field,
+        form[field]
+      ),
     }));
 
     setFocusedField(null);
@@ -134,13 +208,14 @@ export default function Register() {
     let score = 0;
 
     if (form.password.length >= 8) score++;
+    if (/[a-z]/.test(form.password)) score++;
     if (/[A-Z]/.test(form.password)) score++;
     if (/[0-9]/.test(form.password)) score++;
-    if (/[!@#$%^&*(),.?\":{}|<>]/.test(form.password)) score++;
-    if (form.password.length >= 12) score++;
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(form.password)) score++;
 
     return {
       score,
+
       label: [
         'Very Weak',
         'Weak',
@@ -150,7 +225,6 @@ export default function Register() {
         'Very Strong',
       ][score],
 
-      // Password strength uses danger → warning → safe
       color: [
         'bg-resqnow-critical',
         'bg-resqnow-critical',
@@ -165,40 +239,35 @@ export default function Register() {
   }, [form.password]);
 
   // ============ SUBMIT ============
-  // Validate fields before creating account
-  const handleSubmit = (e) => {
+  // Create the resident account through Laravel
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
     setError('');
 
     const fieldsToValidate = [
       'fullName',
+      'phoneNumber',
+      'address',
+      'purok',
       'email',
       'password',
       'confirmPassword',
-      'address',
-      'purok',
+      'householdCount',
     ];
 
     const errors = {};
 
     fieldsToValidate.forEach((field) => {
-      const fieldError = validate(field, form[field]);
+      const fieldError = validate(
+        field,
+        form[field]
+      );
 
       if (fieldError) {
         errors[field] = fieldError;
       }
     });
-
-    // Contact number stays optional but is validated when provided
-    if (
-      form.phoneNumber &&
-      validate('phoneNumber', form.phoneNumber)
-    ) {
-      errors.phoneNumber = validate(
-        'phoneNumber',
-        form.phoneNumber
-      );
-    }
 
     setFieldErrors(errors);
 
@@ -211,7 +280,7 @@ export default function Register() {
       )
     );
 
-    // Stop if form has errors
+    // Stop if form has validation errors
     if (Object.keys(errors).length > 0) {
       setError(
         'Please fix the highlighted fields before continuing.'
@@ -231,11 +300,121 @@ export default function Register() {
 
     setIsSubmitting(true);
 
-    // Temporary mock account creation
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      // Send registration data to Laravel
+      await register({
+        fullName: form.fullName.trim(),
+
+        contactNumber:
+          form.phoneNumber.replace(
+            /\s/g,
+            ''
+          ),
+
+        address: form.address.trim(),
+
+        purok: form.purok,
+
+        email: form.email
+          .trim()
+          .toLowerCase(),
+
+        password: form.password,
+
+        password_confirmation:
+          form.confirmPassword,
+
+        householdCount:
+          form.householdCount
+            ? Number(
+                form.householdCount
+              )
+            : 1,
+
+        householdProfile: {
+          hasSeniorCitizen:
+            form.hasSeniorCitizen,
+
+          hasChild:
+            form.hasChild,
+
+          hasPWD:
+            form.hasPWD,
+
+          hasPregnantPerson:
+            form.hasPregnantPerson,
+        },
+      });
+
+      // Laravel registration succeeded
       setIsSuccess(true);
-    }, 1800);
+    } catch (registerError) {
+      const backendErrors =
+        registerError.errors || {};
+
+      // Map Laravel field names
+      // to our frontend field names
+      const mappedErrors = {
+        fullName:
+          backendErrors.fullName?.[0],
+
+        phoneNumber:
+          backendErrors.contactNumber?.[0],
+
+        address:
+          backendErrors.address?.[0],
+
+        purok:
+          backendErrors.purok?.[0],
+
+        email:
+          backendErrors.email?.[0],
+
+        password:
+          backendErrors.password?.[0],
+
+        confirmPassword:
+          backendErrors
+            .password_confirmation?.[0],
+
+        householdCount:
+          backendErrors
+            .householdCount?.[0],
+      };
+
+      // Remove empty error values
+      const cleanErrors =
+        Object.fromEntries(
+          Object.entries(
+            mappedErrors
+          ).filter(
+            ([, value]) =>
+              Boolean(value)
+          )
+        );
+
+      setFieldErrors(cleanErrors);
+
+      setTouched((prev) => ({
+        ...prev,
+
+        ...Object.fromEntries(
+          Object.keys(
+            cleanErrors
+          ).map((field) => [
+            field,
+            true,
+          ])
+        ),
+      }));
+
+      setError(
+        registerError.message ||
+        'Unable to create your account. Please try again.'
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // ============ SUCCESS SCREEN ============
@@ -244,7 +423,8 @@ export default function Register() {
       <div
         className="relative min-h-screen bg-cover bg-center bg-fixed flex items-center justify-center p-4"
         style={{
-          backgroundImage: `url(${barangayPhoto})`,
+          backgroundImage:
+            `url(${barangayPhoto})`,
         }}
       >
         {/* Background overlay */}
@@ -281,7 +461,9 @@ export default function Register() {
           {/* Go to Login */}
           <button
             type="button"
-            onClick={() => navigate('/login')}
+            onClick={() =>
+              navigate('/login')
+            }
             className="w-full bg-brand-gradient text-white font-semibold py-3.5 rounded-xl transition-all text-[14px] shadow-[0_4px_16px_rgba(131,70,242,0.22)] active:scale-[0.98]"
           >
             Go to Login
@@ -296,7 +478,8 @@ export default function Register() {
     <div
       className="relative min-h-screen bg-cover bg-center bg-fixed flex items-center justify-center p-4 py-8"
       style={{
-        backgroundImage: `url(${barangayPhoto})`,
+        backgroundImage:
+          `url(${barangayPhoto})`,
       }}
     >
       {/* Background overlay */}
@@ -330,6 +513,7 @@ export default function Register() {
           <div className="mt-6 pt-5 border-t border-resqnow-border-soft w-full">
 
             <div className="flex items-center justify-center gap-1.5">
+
               <div className="w-1.5 h-1.5 rounded-full bg-resqnow-safe" />
 
               <span className="text-[9px] text-resqnow-muted font-medium uppercase tracking-wider">
@@ -354,9 +538,12 @@ export default function Register() {
           {/* Global error */}
           {error && (
             <div className="flex items-start gap-2.5 bg-resqnow-critical/10 border border-resqnow-critical/20 text-resqnow-crimson text-[12px] rounded-xl px-4 py-3 mb-5">
+
               <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
 
-              <span>{error}</span>
+              <span>
+                {error}
+              </span>
             </div>
           )}
 
@@ -366,6 +553,7 @@ export default function Register() {
             noValidate
             className="space-y-4"
           >
+
             {/* ============ PERSONAL INFORMATION ============ */}
             <SectionLabel title="Personal Information" />
 
@@ -380,7 +568,8 @@ export default function Register() {
               <FieldIcon
                 icon={User}
                 active={
-                  focusedField === 'fullName'
+                  focusedField ===
+                  'fullName'
                 }
                 error={
                   !!fieldErrors.fullName &&
@@ -399,10 +588,14 @@ export default function Register() {
                   )
                 }
                 onFocus={() =>
-                  setFocusedField('fullName')
+                  setFocusedField(
+                    'fullName'
+                  )
                 }
                 onBlur={() =>
-                  handleBlur('fullName')
+                  handleBlur(
+                    'fullName'
+                  )
                 }
                 placeholder="Enter your complete name"
                 error={
@@ -418,7 +611,7 @@ export default function Register() {
 
               {/* Contact Number */}
               <FieldWrapper
-                label="Contact Number"
+                label="Contact Number *"
                 error={
                   touched.phoneNumber &&
                   fieldErrors.phoneNumber
@@ -481,10 +674,14 @@ export default function Register() {
                     )
                   }
                   onFocus={() =>
-                    setFocusedField('purok')
+                    setFocusedField(
+                      'purok'
+                    )
                   }
                   onBlur={() =>
-                    handleBlur('purok')
+                    handleBlur(
+                      'purok'
+                    )
                   }
                   className={`w-full px-4 py-3 rounded-xl text-[14px] text-resqnow-primary outline-none transition-all appearance-none ${
                     touched.purok &&
@@ -524,7 +721,8 @@ export default function Register() {
               <FieldIcon
                 icon={MapPin}
                 active={
-                  focusedField === 'address'
+                  focusedField ===
+                  'address'
                 }
                 error={
                   !!fieldErrors.address &&
@@ -542,10 +740,14 @@ export default function Register() {
                   )
                 }
                 onFocus={() =>
-                  setFocusedField('address')
+                  setFocusedField(
+                    'address'
+                  )
                 }
                 onBlur={() =>
-                  handleBlur('address')
+                  handleBlur(
+                    'address'
+                  )
                 }
                 placeholder="Street, Barangay, City"
                 error={
@@ -570,7 +772,8 @@ export default function Register() {
               <FieldIcon
                 icon={Mail}
                 active={
-                  focusedField === 'email'
+                  focusedField ===
+                  'email'
                 }
                 error={
                   !!fieldErrors.email &&
@@ -588,10 +791,14 @@ export default function Register() {
                   )
                 }
                 onFocus={() =>
-                  setFocusedField('email')
+                  setFocusedField(
+                    'email'
+                  )
                 }
                 onBlur={() =>
-                  handleBlur('email')
+                  handleBlur(
+                    'email'
+                  )
                 }
                 placeholder="you@example.com"
                 error={
@@ -614,7 +821,8 @@ export default function Register() {
               <FieldIcon
                 icon={Lock}
                 active={
-                  focusedField === 'password'
+                  focusedField ===
+                  'password'
                 }
                 error={
                   !!fieldErrors.password &&
@@ -636,10 +844,14 @@ export default function Register() {
                   )
                 }
                 onFocus={() =>
-                  setFocusedField('password')
+                  setFocusedField(
+                    'password'
+                  )
                 }
                 onBlur={() =>
-                  handleBlur('password')
+                  handleBlur(
+                    'password'
+                  )
                 }
                 placeholder="Create a strong password"
                 error={
@@ -682,6 +894,7 @@ export default function Register() {
 
                 {/* Strength meter */}
                 <div className="flex items-center gap-2 mb-2">
+
                   <div className="flex-1 h-1.5 bg-resqnow-border-soft rounded-full overflow-hidden">
 
                     <div
@@ -711,6 +924,15 @@ export default function Register() {
 
                   <PassIndicator
                     passed={
+                      /[a-z]/.test(
+                        form.password
+                      )
+                    }
+                    label="Lowercase letter"
+                  />
+
+                  <PassIndicator
+                    passed={
                       /[A-Z]/.test(
                         form.password
                       )
@@ -729,7 +951,7 @@ export default function Register() {
 
                   <PassIndicator
                     passed={
-                      /[!@#$%^&*(),.?\":{}|<>]/.test(
+                      /[!@#$%^&*(),.?":{}|<>]/.test(
                         form.password
                       )
                     }
@@ -765,7 +987,9 @@ export default function Register() {
                     ? 'text'
                     : 'password'
                 }
-                value={form.confirmPassword}
+                value={
+                  form.confirmPassword
+                }
                 onChange={(e) =>
                   update(
                     'confirmPassword',
@@ -821,19 +1045,32 @@ export default function Register() {
             <SectionLabel title="Household Information" />
 
             {/* Household Count */}
-            <FieldWrapper label="Household Count">
+            <FieldWrapper
+              label="Household Count"
+              error={
+                touched.householdCount &&
+                fieldErrors.householdCount
+              }
+            >
               <FieldIcon
                 icon={Home}
                 active={
                   focusedField ===
                   'householdCount'
                 }
+                error={
+                  !!fieldErrors.householdCount &&
+                  touched.householdCount
+                }
               />
 
               <InputField
                 type="number"
                 min="1"
-                value={form.householdCount}
+                max="100"
+                value={
+                  form.householdCount
+                }
                 onChange={(e) =>
                   update(
                     'householdCount',
@@ -846,9 +1083,15 @@ export default function Register() {
                   )
                 }
                 onBlur={() =>
-                  setFocusedField(null)
+                  handleBlur(
+                    'householdCount'
+                  )
                 }
                 placeholder="Number of household members"
+                error={
+                  !!fieldErrors.householdCount &&
+                  touched.householdCount
+                }
               />
             </FieldWrapper>
 
@@ -896,6 +1139,7 @@ export default function Register() {
                         : 'border-resqnow-border-soft bg-white hover:border-resqnow-violet/20 hover:bg-resqnow-violet/5'
                     }`}
                   >
+
                     {/* Custom checkbox */}
                     <div
                       className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors shrink-0 ${
@@ -938,6 +1182,7 @@ export default function Register() {
             {/* ============ HOME LOCATION ============ */}
             {/* Temporary location placeholder until map is connected */}
             <div>
+
               <label className="block text-[12px] font-semibold text-resqnow-secondary mb-1.5">
                 Home Location
               </label>
@@ -963,7 +1208,9 @@ export default function Register() {
 
               <input
                 type="checkbox"
-                checked={form.agreedToTerms}
+                checked={
+                  form.agreedToTerms
+                }
                 onChange={(e) =>
                   update(
                     'agreedToTerms',
@@ -997,6 +1244,7 @@ export default function Register() {
 
           {/* ============ LOGIN LINK ============ */}
           <div className="mt-5 text-center">
+
             <p className="text-[12px] text-resqnow-muted">
               Already have an account?{' '}
 
@@ -1038,6 +1286,7 @@ function FieldWrapper({
 }) {
   return (
     <div>
+
       {label && (
         <label className="block text-[12px] font-semibold text-resqnow-secondary mb-1.5">
           {label}

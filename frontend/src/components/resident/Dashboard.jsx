@@ -80,8 +80,8 @@ export default function Dashboard() {
     ).length;
 
   // ============ IMPORTANT UPDATES ============
-  // Already removes expired items
-  // and keeps only 2 items
+  // Removes expired updates and
+  // keeps only the latest important items
   const dashboardUpdates =
     getDashboardUpdates(
       mockAnnouncements,
@@ -93,7 +93,7 @@ export default function Dashboard() {
     mockAllReports[0];
 
   // ============ CRITICAL ALERT ============
-  // Only show a critical alert while active
+  // Only show an active critical alert
   const activeCritical =
     mockAnnouncements.find(
       (announcement) => {
@@ -119,21 +119,11 @@ export default function Dashboard() {
     );
 
   // ============ OPEN UPDATE ============
-  // Report update → Report Detail
-  // Announcement / alert → Specific Update Detail
+  // Every dashboard update opens
+  // its specific Update Detail page
   const handleUpdateClick = (
     update
   ) => {
-    if (
-      update.relatedReportId
-    ) {
-      navigate(
-        `/track/${update.relatedReportId}`
-      );
-
-      return;
-    }
-
     navigate(
       `/updates/${update.id}`
     );
@@ -146,6 +136,7 @@ export default function Dashboard() {
       <div className="flex items-center justify-between">
 
         <div>
+
           <p className="text-[13px] text-resqnow-muted">
             {getGreeting()},
           </p>
@@ -179,7 +170,9 @@ export default function Dashboard() {
           }
           className="w-full flex items-center gap-3 bg-resqnow-critical/10 border border-resqnow-critical/20 rounded-xl px-4 py-3 text-left active:scale-[0.99] transition-all"
         >
+
           <div className="w-9 h-9 rounded-lg bg-resqnow-critical/15 flex items-center justify-center shrink-0">
+
             <Siren className="w-5 h-5 text-resqnow-critical" />
           </div>
 
@@ -240,6 +233,34 @@ export default function Dashboard() {
                   update.updateCategory ===
                   'report';
 
+                // More specific update label
+                let updateLabel =
+                  'Announcement';
+
+                if (isCritical) {
+                  updateLabel =
+                    'Alert';
+                } else if (
+                  isReport &&
+                  update.detailType ===
+                    'assigned_personnel'
+                ) {
+                  updateLabel =
+                    'Assignment Update';
+                } else if (
+                  isReport &&
+                  update.detailType ===
+                    'resolution'
+                ) {
+                  updateLabel =
+                    'Report Resolved';
+                } else if (
+                  isReport
+                ) {
+                  updateLabel =
+                    'Report Update';
+                }
+
                 return (
                   <button
                     key={update.id}
@@ -255,6 +276,7 @@ export default function Dashboard() {
                         : 'hover:bg-resqnow-canvas'
                     }`}
                   >
+
                     {/* Semantic indicator */}
                     <span
                       className={`w-2 h-2 rounded-full shrink-0 ${
@@ -280,11 +302,7 @@ export default function Dashboard() {
                               : 'text-resqnow-info'
                           }`}
                         >
-                          {isCritical
-                            ? 'Alert'
-                            : isReport
-                            ? 'Report Update'
-                            : 'Announcement'}
+                          {updateLabel}
                         </span>
 
                         {!update.isRead && (
@@ -404,6 +422,7 @@ export default function Dashboard() {
               }
               className="w-full text-left active:scale-[0.995] transition-transform"
             >
+
               {/* ID + report type */}
               <div className="flex items-center justify-between mb-2">
 
@@ -447,7 +466,9 @@ export default function Dashboard() {
                   </p>
 
                   <p className="text-[11px] text-resqnow-secondary mt-1 leading-relaxed line-clamp-2">
-                    {latestReport.latestUpdate}
+                    {
+                      latestReport.latestUpdate
+                    }
                   </p>
                 </div>
               )}
@@ -494,7 +515,6 @@ export default function Dashboard() {
       )}
 
       {/* ============ SAFETY INFORMATION ============ */}
-      {/* Generic reminder instead of showing one specific guide */}
       <button
         type="button"
         onClick={() =>
@@ -502,6 +522,7 @@ export default function Dashboard() {
         }
         className="w-full flex items-center gap-3 bg-white border border-resqnow-info/20 rounded-2xl px-4 py-3.5 hover:border-resqnow-info/40 active:scale-[0.99] transition-all"
       >
+
         <div className="w-10 h-10 rounded-xl bg-resqnow-info/10 flex items-center justify-center shrink-0">
 
           <ShieldCheck className="w-5 h-5 text-resqnow-info" />

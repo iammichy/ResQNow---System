@@ -1,49 +1,173 @@
 // src/context/AuthContext.jsx
-import { createContext, useContext, useState, useEffect } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
 
-const AuthContext = createContext(null);
+import {
+  getCurrentUser,
+  loginResident,
+  logoutResident,
+  registerResident,
+} from '../services/authService';
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+const AuthContext =
+  createContext(null);
 
+// ============ AUTH PROVIDER ============
+export function AuthProvider({
+  children,
+}) {
+  const [user, setUser] =
+    useState(null);
+
+  const [isLoading, setIsLoading] =
+    useState(true);
+
+  // ============ RESTORE SESSION ============
+  // Check Laravel when the app first opens
   useEffect(() => {
-    const stored = localStorage.getItem('resqnow_resident');
-    if (stored) {
+    let isMounted = true;
+
+    async function restoreSession() {
+      // Remove old mock authentication
+      localStorage.removeItem(
+        'resqnow_resident'
+      );
+
       try {
-        setUser(JSON.parse(stored));
-      } catch {
-        localStorage.removeItem('resqnow_resident');
+        const currentUser =
+          await getCurrentUser();
+
+        if (isMounted) {
+          setUser(currentUser);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setUser(null);
+        }
+
+        // 401 simply means the resident
+        // is not currently signed in.
+        if (
+          error.status !== 401 &&
+          import.meta.env.DEV
+        ) {
+          console.error(
+            'Session restore failed:',
+            error
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     }
-    setIsLoading(false);
+
+    restoreSession();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const login = (userData) => {
-    setUser(userData);
-    localStorage.setItem('resqnow_resident', JSON.stringify(userData));
+  // ============ LOGIN ============
+  const login = async (
+    credentials
+  ) => {
+    const loggedInUser =
+      await loginResident(
+        credentials
+      );
+
+    setUser(loggedInUser);
+
+    return loggedInUser;
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('resqnow_resident');
+  // ============ REGISTER ============
+  const register = async (
+    residentData
+  ) => {
+    return registerResident(
+      residentData
+    );
   };
 
-  const updateProfile = (updates) => {
-    const updated = { ...user, ...updates };
-    setUser(updated);
-    localStorage.setItem('resqnow_resident', JSON.stringify(updated));
+  // ============ LOGOUT ============
+  const logout = async () => {
+    try {
+      await logoutResident();
+    } finally {
+      // Clear frontend state even when
+      // the server session already expired.
+      setUser(null);
+
+      localStorage.removeItem(
+        'resqnow_resident'
+      );
+    }
+  };
+
+  // ============ REFRESH USER ============
+  const refreshUser = async () => {
+    const currentUser =
+      await getCurrentUser();
+
+    setUser(currentUser);
+
+    return currentUser;
+  };
+
+  // ============ UPDATE LOCAL PROFILE ============
+  // Temporary until the profile update
+  // backend endpoint is added.
+  const updateProfile = (
+    updates
+  ) => {
+    setUser((currentUser) => {
+      if (!currentUser) {
+        return currentUser;
+      }
+
+      return {
+        ...currentUser,
+        ...updates,
+      };
+    });
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, updateProfile, isLoggedIn: !!user }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        login,
+        register,
+        logout,
+        refreshUser,
+        updateProfile,
+        isLoggedIn: !!user,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 }
 
+// ============ AUTH HOOK ============
 export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be inside AuthProvider');
+  const ctx =
+    useContext(AuthContext);
+
+  if (!ctx) {
+    throw new Error(
+      'useAuth must be inside AuthProvider'
+    );
+  }
+
   return ctx;
 }
