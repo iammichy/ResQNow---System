@@ -86,8 +86,33 @@ const availabilityStyles = {
   Unavailable: "border-[#FECACA] bg-[#FEF2F2] text-[#B42318]",
 };
 
-function PersonnelPage() {
+function PersonnelPage({ onOpenReport, reportUpdates }) {
   const [personnel] = useState(initialPersonnel);
+  const updatedPersonnel = useMemo(() => {
+    return personnel.map((person) => {
+      const activeAssignment = Object.values(reportUpdates || {}).find(
+        (report) =>
+          report.assignment?.personnel === person.name &&
+          report.status !== "Resolved",
+      );
+
+      if (activeAssignment) {
+        return {
+          ...person,
+          availability: "Assigned",
+          assignment: activeAssignment.id,
+          location: activeAssignment.location || person.location,
+        };
+      }
+
+      return {
+        ...person,
+        availability:
+          person.status === "Inactive" ? "Unavailable" : "Available",
+        assignment: null,
+      };
+    });
+  }, [personnel, reportUpdates]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [selectedPersonnelId, setSelectedPersonnelId] = useState(
@@ -95,7 +120,7 @@ function PersonnelPage() {
   );
 
   const filteredPersonnel = useMemo(() => {
-    return personnel.filter((person) => {
+    return updatedPersonnel.filter((person) => {
       const search = searchTerm.toLowerCase().trim();
 
       const matchesSearch =
@@ -111,7 +136,7 @@ function PersonnelPage() {
 
       return matchesSearch && matchesStatus;
     });
-  }, [personnel, searchTerm, statusFilter]);
+  }, [updatedPersonnel, searchTerm, statusFilter]);
 
   const selectedPersonnel =
     filteredPersonnel.find((person) => person.id === selectedPersonnelId) ??
@@ -120,16 +145,16 @@ function PersonnelPage() {
 
   const totalPersonnel = personnel.length;
 
-  const activePersonnel = personnel.filter(
+  const activePersonnel = updatedPersonnel.filter(
     (person) => person.status === "Active",
   ).length;
 
-  const availablePersonnel = personnel.filter(
+  const availablePersonnel = updatedPersonnel.filter(
     (person) =>
       person.status === "Active" && person.availability === "Available",
   ).length;
 
-  const assignedPersonnel = personnel.filter(
+  const assignedPersonnel = updatedPersonnel.filter(
     (person) =>
       person.status === "Active" && person.availability === "Assigned",
   ).length;
@@ -551,9 +576,23 @@ function PersonnelPage() {
               <div className="shrink-0 border-t border-[#E4E7EC] p-4">
                 <button
                   type="button"
-                  className="w-full rounded-xl border border-[#8346F2] bg-white px-4 py-2.5 text-xs font-bold text-[#8346F2] transition hover:bg-[#F5F3FF]"
+                  onClick={() => {
+                    if (!selectedPersonnel.assignment) return;
+
+                    onOpenReport?.({
+                      id: selectedPersonnel.assignment,
+                    });
+                  }}
+                  disabled={!selectedPersonnel.assignment}
+                  className={`w-full rounded-xl border px-4 py-2.5 text-xs font-bold transition ${
+                    selectedPersonnel.assignment
+                      ? "border-[#8346F2] bg-white text-[#8346F2] hover:bg-[#F5F3FF]"
+                      : "cursor-not-allowed border-[#E4E7EC] bg-[#F2F4F7] text-[#98A2B3]"
+                  }`}
                 >
-                  View Assignments
+                  {selectedPersonnel.assignment
+                    ? `View Assignment • ${selectedPersonnel.assignment}`
+                    : "No Active Assignment"}
                 </button>
               </div>
             </>

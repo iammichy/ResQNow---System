@@ -1,119 +1,61 @@
 import { useMemo, useState } from "react";
+import { useLanguage } from "../../hooks/useLanguage";
 
 const initialLogs = [
   {
     id: "LOG-2026-001",
-    timestamp: "Sep 5, 2026 • 09:42 PM",
+    dateTime: "2026-09-05T21:42:00",
     user: "Administrator",
     role: "Barangay Personnel",
     action: "Report Verified",
     category: "Report Action",
     target: "RPT-2026-001",
-    details:
-      "Flooding report was verified and marked as valid for further response coordination.",
+    field: "Verification Status",
+    oldValue: "Pending",
+    newValue: "Verified",
+    remarks: "Flooding report was verified and marked as valid.",
     status: "Success",
   },
   {
     id: "LOG-2026-002",
-    timestamp: "Sep 5, 2026 • 09:35 PM",
+    dateTime: "2026-09-05T21:35:00",
     user: "Carlos Mendoza",
     role: "Response Team Leader",
     action: "Personnel Assigned",
     category: "Report Action",
     target: "RPT-2026-003",
-    details:
-      "Emergency Response Team A was assigned to handle the reported medical assistance request.",
+    field: "Assigned Personnel",
+    oldValue: "Unassigned",
+    newValue: "Emergency Response Team A",
+    remarks: "Response team assigned to handle the incident.",
     status: "Success",
   },
   {
     id: "LOG-2026-003",
-    timestamp: "Sep 5, 2026 • 09:18 PM",
+    dateTime: "2026-09-05T21:18:00",
     user: "Administrator",
     role: "Barangay Personnel",
     action: "Priority Confirmed",
     category: "Report Action",
     target: "RPT-2026-002",
-    details:
-      "Road obstruction report was reviewed and confirmed as High Priority.",
+    field: "Priority Status",
+    oldValue: "Pending",
+    newValue: "Confirmed",
+    remarks: "Priority was reviewed and confirmed.",
     status: "Success",
   },
   {
     id: "LOG-2026-004",
-    timestamp: "Sep 5, 2026 • 08:55 PM",
+    dateTime: "2026-09-05T20:55:00",
     user: "Administrator",
     role: "Barangay Personnel",
     action: "Announcement Published",
     category: "System Action",
     target: "ANN-2026-001",
-    details:
-      "Flood Warning Advisory was published and made visible to all residents.",
-    status: "Success",
-  },
-  {
-    id: "LOG-2026-005",
-    timestamp: "Sep 5, 2026 • 08:41 PM",
-    user: "Mark Reyes",
-    role: "Emergency Responder",
-    action: "Report Status Updated",
-    category: "Report Action",
-    target: "RPT-2026-004",
-    details: "Incident status was updated from Assigned to Monitoring.",
-    status: "Success",
-  },
-  {
-    id: "LOG-2026-006",
-    timestamp: "Sep 5, 2026 • 07:32 PM",
-    user: "Administrator",
-    role: "Barangay Personnel",
-    action: "Resident Account Viewed",
-    category: "Account Action",
-    target: "RES-2026-001",
-    details:
-      "Resident profile and account information were accessed for administrative review.",
-    status: "Success",
-  },
-  {
-    id: "LOG-2026-007",
-    timestamp: "Sep 5, 2026 • 06:48 PM",
-    user: "Administrator",
-    role: "Barangay Personnel",
-    action: "Announcement Drafted",
-    category: "System Action",
-    target: "ANN-2026-005",
-    details: "A new community announcement was created and saved as draft.",
-    status: "Success",
-  },
-  {
-    id: "LOG-2026-008",
-    timestamp: "Sep 5, 2026 • 05:26 PM",
-    user: "Ramon Cruz",
-    role: "Barangay Personnel",
-    action: "Account Status Updated",
-    category: "Account Action",
-    target: "PER-2026-006",
-    details: "Personnel account status was changed to Inactive.",
-    status: "Success",
-  },
-  {
-    id: "LOG-2026-009",
-    timestamp: "Sep 5, 2026 • 04:17 PM",
-    user: "Administrator",
-    role: "Barangay Personnel",
-    action: "Manual Report Added",
-    category: "Report Action",
-    target: "RPT-2026-011",
-    details: "A report was manually encoded by authorized barangay personnel.",
-    status: "Success",
-  },
-  {
-    id: "LOG-2026-010",
-    timestamp: "Sep 5, 2026 • 03:52 PM",
-    user: "Administrator",
-    role: "Barangay Personnel",
-    action: "Settings Viewed",
-    category: "System Action",
-    target: "SYS-SETTINGS",
-    details: "System settings and administrative configuration were accessed.",
+    field: "Announcement Status",
+    oldValue: "Draft",
+    newValue: "Published",
+    remarks: "Flood warning advisory was published.",
     status: "Success",
   },
 ];
@@ -130,78 +72,197 @@ const actionStyles = {
     badge: "bg-[#E8F8F4] text-[#008F78]",
     dot: "bg-[#00C9A7]",
   },
-  "Personnel Assigned": {
-    badge: "bg-[#EEF2FF] text-[#4F46E5]",
-    dot: "bg-[#6366F1]",
+
+  "Report Invalidated": {
+    badge: "bg-[#FEF0F0] text-[#C53030]",
+    dot: "bg-[#EF4444]",
   },
+
   "Priority Confirmed": {
     badge: "bg-[#FFF4D6] text-[#A16207]",
     dot: "bg-[#EAB308]",
   },
-  "Announcement Published": {
-    badge: "bg-[#E8F8F4] text-[#008F78]",
-    dot: "bg-[#00C9A7]",
+
+  "Priority Changed": {
+    badge: "bg-[#FFF4D6] text-[#A16207]",
+    dot: "bg-[#EAB308]",
   },
+
+  "Personnel Assigned": {
+    badge: "bg-[#EEF2FF] text-[#4F46E5]",
+    dot: "bg-[#6366F1]",
+  },
+
   "Report Status Updated": {
     badge: "bg-[#EEF2FF] text-[#4F46E5]",
     dot: "bg-[#6366F1]",
   },
-  "Resident Account Viewed": {
+
+  "Announcement Created": {
+    badge: "bg-[#EEF2FF] text-[#4F46E5]",
+    dot: "bg-[#6366F1]",
+  },
+
+  "Announcement Updated": {
+    badge: "bg-[#FFF4D6] text-[#A16207]",
+    dot: "bg-[#EAB308]",
+  },
+
+  "Announcement Published": {
+    badge: "bg-[#E8F8F4] text-[#008F78]",
+    dot: "bg-[#00C9A7]",
+  },
+
+  "Announcement Archived": {
     badge: "bg-[#F2F4F7] text-[#475467]",
     dot: "bg-[#667085]",
   },
-  "Announcement Drafted": {
-    badge: "bg-[#F2F4F7] text-[#475467]",
-    dot: "bg-[#667085]",
-  },
-  "Account Status Updated": {
-    badge: "bg-[#FEF0F0] text-[#C53030]",
-    dot: "bg-[#EF4444]",
-  },
+
   "Manual Report Added": {
     badge: "bg-[#E8F8F4] text-[#008F78]",
     dot: "bg-[#00C9A7]",
   },
-  "Settings Viewed": {
-    badge: "bg-[#F2F4F7] text-[#475467]",
-    dot: "bg-[#667085]",
-  },
 };
 
-function AuditLogs() {
-  const [logs] = useState(initialLogs);
+function AuditLogs({ logs = [] }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All Categories");
-  const [selectedLog, setSelectedLog] = useState(initialLogs[0]);
+  const { t } = useLanguage();
+
+  /*
+    Combine LIVE audit logs from App.jsx
+    with the existing sample logs.
+
+    Live logs are given priority when
+    timestamps are the same.
+  */
+const allLogs = useMemo(() => {
+  /*
+    LIVE LOGS
+
+    App.jsx already adds the newest activity
+    at the beginning of the auditLogs array:
+
+    setAuditLogs((currentLogs) => [newLog, ...currentLogs]);
+
+    Therefore, sourceIndex 0 is always the newest
+    live activity.
+  */
+
+  const liveLogs = logs.map((log, index) => ({
+    ...log,
+    source: "live",
+    sourcePriority: 1,
+    sourceIndex: index,
+  }));
+
+  /*
+    SAMPLE LOGS
+
+    These are only fallback/mock records.
+  */
+
+  const sampleLogs = initialLogs.map((log, index) => ({
+    ...log,
+    source: "sample",
+    sourcePriority: 0,
+    sourceIndex: index,
+  }));
+
+  return [...liveLogs, ...sampleLogs].sort((a, b) => {
+    /*
+      Get valid timestamps.
+
+      Live logs use dateTime.
+      Sample logs may use dateTime as well.
+    */
+
+    const dateA = a.dateTime
+      ? new Date(a.dateTime).getTime()
+      : 0;
+
+    const dateB = b.dateTime
+      ? new Date(b.dateTime).getTime()
+      : 0;
+
+    /*
+      1. NEWEST DATE/TIME FIRST
+    */
+
+    if (dateB !== dateA) {
+      return dateB - dateA;
+    }
+
+    /*
+      2. LIVE SYSTEM ACTIVITIES
+         COME BEFORE SAMPLE LOGS
+    */
+
+    if (b.sourcePriority !== a.sourcePriority) {
+      return b.sourcePriority - a.sourcePriority;
+    }
+
+    /*
+      3. FOR LIVE LOGS WITH THE SAME TIME,
+         KEEP THE ORIGINAL ORDER.
+
+         Since App.jsx inserts:
+
+         [newLog, ...currentLogs]
+
+         index 0 is the newest activity.
+    */
+
+    return a.sourceIndex - b.sourceIndex;
+  });
+}, [logs]);
+
+  /*
+    Automatically select the newest log.
+  */
+  const [selectedLogId, setSelectedLogId] = useState(null);
+
+  const selectedLog =
+    allLogs.find((log) => log.id === selectedLogId) || allLogs[0] || null;
 
   const filteredLogs = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
 
-    return logs.filter((log) => {
+    return allLogs.filter((log) => {
       const matchesCategory =
         categoryFilter === "All Categories" || log.category === categoryFilter;
 
-      const matchesSearch =
-        !query ||
-        log.id.toLowerCase().includes(query) ||
-        log.user.toLowerCase().includes(query) ||
-        log.action.toLowerCase().includes(query) ||
-        log.target.toLowerCase().includes(query) ||
-        log.details.toLowerCase().includes(query);
+      const searchableText = [
+        log.id,
+        log.user,
+        log.role,
+        log.action,
+        log.target,
+        log.field,
+        log.oldValue,
+        log.newValue,
+        log.remarks,
+        log.category,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      const matchesSearch = !query || searchableText.includes(query);
 
       return matchesCategory && matchesSearch;
     });
-  }, [logs, searchTerm, categoryFilter]);
+  }, [allLogs, searchTerm, categoryFilter]);
 
-  const todayCount = logs.filter((log) =>
-    log.timestamp.startsWith("Sep 5, 2026"),
-  ).length;
-
-  const reportActionCount = logs.filter(
+  const reportActionCount = allLogs.filter(
     (log) => log.category === "Report Action",
   ).length;
 
-  const systemActionCount = logs.filter(
+  const accountActionCount = allLogs.filter(
+    (log) => log.category === "Account Action",
+  ).length;
+
+  const systemActionCount = allLogs.filter(
     (log) => log.category === "System Action",
   ).length;
 
@@ -217,20 +278,22 @@ function AuditLogs() {
       <div className="flex shrink-0 items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8346F2]">
-            System
+            System Monitoring
           </p>
 
           <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[#1F1D47]">
-            Audit Logs
+            {t("auditLogs")}
           </h1>
 
           <p className="mt-1 text-sm text-[#667085]">
-            Track administrative activities and system actions.
+            Track all important activities, changes, and updates across the
+            ResQNow Web Admin System.
           </p>
         </div>
 
         <div className="hidden items-center gap-2 rounded-xl border border-[#E4E7EC] bg-white px-3 py-2 shadow-sm sm:flex">
           <span className="h-2 w-2 rounded-full bg-[#2ED47A]" />
+
           <span className="text-xs font-semibold text-[#475467]">
             Audit trail active
           </span>
@@ -240,47 +303,47 @@ function AuditLogs() {
       {/* SUMMARY CARDS */}
       <div className="grid shrink-0 grid-cols-2 gap-3 xl:grid-cols-4">
         <SummaryCard
-          label="Total Logs"
-          value={logs.length}
-          description="Recorded activities"
+          label="Total Activities"
+          value={allLogs.length}
+          description="All recorded system activities"
           icon={<ListIcon />}
-        />
-
-        <SummaryCard
-          label="Today"
-          value={todayCount}
-          description="Activities recorded today"
-          icon={<ClockIcon />}
         />
 
         <SummaryCard
           label="Report Actions"
           value={reportActionCount}
-          description="Actions involving reports"
+          description="Changes involving reports"
           icon={<ReportIcon />}
+        />
+
+        <SummaryCard
+          label="Account Actions"
+          value={accountActionCount}
+          description="User and personnel activities"
+          icon={<UserIcon />}
         />
 
         <SummaryCard
           label="System Actions"
           value={systemActionCount}
-          description="Administrative activities"
+          description="Announcements and system activities"
           icon={<SettingsIcon />}
         />
       </div>
 
       {/* MAIN CONTENT */}
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.8fr)]">
-        {/* LOG LIST */}
+        {/* ACTIVITY HISTORY */}
         <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
           {/* FILTER BAR */}
           <div className="flex shrink-0 flex-col gap-3 border-b border-[#E4E7EC] p-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h2 className="text-sm font-bold text-[#1F1D47]">
-                Activity History
+                 {t("activityHistory")}
               </h2>
 
               <p className="mt-0.5 text-xs text-[#667085]">
-                {filteredLogs.length} of {logs.length} logs displayed
+                {filteredLogs.length} of {allLogs.length} logs displayed
               </p>
             </div>
 
@@ -293,12 +356,12 @@ function AuditLogs() {
                   type="text"
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="Search logs..."
+                  placeholder="Search activities..."
                   className="h-9 w-full rounded-lg border border-[#E4E7EC] bg-[#FCFCFD] pl-9 pr-3 text-xs text-[#1F1D47] outline-none transition focus:border-[#8346F2] focus:ring-2 focus:ring-[#8346F2]/10"
                 />
               </div>
 
-              {/* CATEGORY */}
+              {/* CATEGORY FILTER */}
               <select
                 value={categoryFilter}
                 onChange={(event) => setCategoryFilter(event.target.value)}
@@ -313,7 +376,7 @@ function AuditLogs() {
 
           {/* TABLE */}
           <div className="min-h-0 flex-1 overflow-auto">
-            <table className="w-full min-w-[820px] border-collapse text-left">
+            <table className="w-full min-w-[950px] border-collapse text-left">
               <thead className="sticky top-0 z-10 bg-[#FCFCFD]">
                 <tr className="border-b border-[#E4E7EC]">
                   <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wide text-[#667085]">
@@ -329,11 +392,11 @@ function AuditLogs() {
                   </th>
 
                   <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wide text-[#667085]">
-                    Target
+                    Change
                   </th>
 
                   <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wide text-[#667085]">
-                    Category
+                    Target
                   </th>
                 </tr>
               </thead>
@@ -341,19 +404,21 @@ function AuditLogs() {
               <tbody>
                 {filteredLogs.map((log) => {
                   const style = getActionStyle(log.action);
+
                   const isSelected = selectedLog?.id === log.id;
 
                   return (
                     <tr
                       key={log.id}
-                      onClick={() => setSelectedLog(log)}
+                      onClick={() => setSelectedLogId(log.id)}
                       className={`cursor-pointer border-b border-[#F0F1F3] transition hover:bg-[#F9F7FF] ${
                         isSelected ? "bg-[#F7F3FF]" : "bg-white"
                       }`}
                     >
+                      {/* DATE */}
                       <td className="px-4 py-3">
                         <div className="whitespace-nowrap text-xs font-semibold text-[#344054]">
-                          {log.timestamp}
+                          {formatDateTime(log.dateTime)}
                         </div>
 
                         <div className="mt-0.5 text-[10px] font-medium text-[#98A2B3]">
@@ -361,24 +426,26 @@ function AuditLogs() {
                         </div>
                       </td>
 
+                      {/* USER */}
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2.5">
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#EDE9FE] text-[10px] font-extrabold text-[#6D28D9]">
-                            {getInitials(log.user)}
+                            {getInitials(log.user || "Administrator")}
                           </div>
 
                           <div className="min-w-0">
                             <p className="truncate text-xs font-bold text-[#344054]">
-                              {log.user}
+                              {log.user || "Administrator"}
                             </p>
 
                             <p className="truncate text-[10px] text-[#98A2B3]">
-                              {log.role}
+                              {log.role || "Barangay Administrator"}
                             </p>
                           </div>
                         </div>
                       </td>
 
+                      {/* ACTION */}
                       <td className="px-4 py-3">
                         <span
                           className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold ${style.badge}`}
@@ -386,19 +453,34 @@ function AuditLogs() {
                           <span
                             className={`h-1.5 w-1.5 rounded-full ${style.dot}`}
                           />
+
                           {log.action}
                         </span>
                       </td>
 
+                      {/* CHANGE */}
                       <td className="px-4 py-3">
-                        <span className="rounded-md bg-[#F2F4F7] px-2 py-1 font-mono text-[10px] font-semibold text-[#475467]">
-                          {log.target}
-                        </span>
+                        <div className="min-w-[180px]">
+                          <div className="text-xs font-semibold text-[#475467]">
+                            {log.oldValue || "—"}
+
+                            <span className="mx-1.5 text-[#8346F2]">→</span>
+
+                            <span className="text-[#1F1D47]">
+                              {log.newValue || "—"}
+                            </span>
+                          </div>
+
+                          <p className="mt-1 text-[10px] text-[#98A2B3]">
+                            {log.field || "System Activity"}
+                          </p>
+                        </div>
                       </td>
 
+                      {/* TARGET */}
                       <td className="px-4 py-3">
-                        <span className="text-xs font-medium text-[#667085]">
-                          {log.category}
+                        <span className="rounded-md bg-[#F2F4F7] px-2 py-1 font-mono text-[10px] font-semibold text-[#475467]">
+                          {log.target || "—"}
                         </span>
                       </td>
                     </tr>
@@ -408,11 +490,7 @@ function AuditLogs() {
                 {filteredLogs.length === 0 && (
                   <tr>
                     <td colSpan="5" className="px-6 py-12 text-center">
-                      <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[#F2F4F7]">
-                        <SearchIcon />
-                      </div>
-
-                      <p className="mt-3 text-sm font-bold text-[#344054]">
+                      <p className="text-sm font-bold text-[#344054]">
                         No audit logs found
                       </p>
 
@@ -427,7 +505,7 @@ function AuditLogs() {
           </div>
         </section>
 
-        {/* DETAILS PANEL */}
+        {/* LOG DETAILS */}
         <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
           <div className="shrink-0 border-b border-[#E4E7EC] p-4">
             <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8346F2]">
@@ -435,7 +513,7 @@ function AuditLogs() {
             </p>
 
             <h2 className="mt-1 text-lg font-extrabold text-[#1F1D47]">
-              Activity Information
+               {t("activityInformation")}
             </h2>
           </div>
 
@@ -456,33 +534,87 @@ function AuditLogs() {
 
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E8F8F4] px-2.5 py-1 text-[10px] font-bold text-[#008F78]">
                     <span className="h-1.5 w-1.5 rounded-full bg-[#2ED47A]" />
-                    {selectedLog.status}
+
+                    {selectedLog.status || "Success"}
                   </span>
+                </div>
+              </div>
+
+              {/* CHANGE */}
+              <div className="mt-4 rounded-xl border border-[#E4E7EC] bg-[#FCFCFD] p-4">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#98A2B3]">
+                  Change Made
+                </p>
+
+                <p className="mt-2 text-xs font-bold text-[#344054]">
+                  {selectedLog.field || "System Activity"}
+                </p>
+
+                <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                  <div className="rounded-lg border border-[#FECACA] bg-[#FEF2F2] p-3">
+                    <p className="text-[9px] font-bold uppercase text-[#B42318]">
+                      Old Value
+                    </p>
+
+                    <p className="mt-1 text-xs font-bold text-[#344054]">
+                      {selectedLog.oldValue || "—"}
+                    </p>
+                  </div>
+
+                  <span className="text-sm font-bold text-[#8346F2]">→</span>
+
+                  <div className="rounded-lg border border-[#A7F3D0] bg-[#ECFDF3] p-3">
+                    <p className="text-[9px] font-bold uppercase text-[#027A48]">
+                      New Value
+                    </p>
+
+                    <p className="mt-1 text-xs font-bold text-[#344054]">
+                      {selectedLog.newValue || "—"}
+                    </p>
+                  </div>
                 </div>
               </div>
 
               {/* DETAILS */}
               <div className="mt-4">
                 <DetailRow label="Log ID" value={selectedLog.id} mono />
-                <DetailRow label="Date & Time" value={selectedLog.timestamp} />
-                <DetailRow label="User" value={selectedLog.user} />
-                <DetailRow label="Role" value={selectedLog.role} />
+
+                <DetailRow
+                  label="Date & Time"
+                  value={formatDateTime(selectedLog.dateTime)}
+                />
+
+                <DetailRow
+                  label="User"
+                  value={selectedLog.user || "Administrator"}
+                />
+
+                <DetailRow
+                  label="Role"
+                  value={selectedLog.role || "Barangay Administrator"}
+                />
+
                 <DetailRow label="Category" value={selectedLog.category} />
-                <DetailRow label="Target" value={selectedLog.target} mono />
+
+                <DetailRow
+                  label="Target"
+                  value={selectedLog.target || "—"}
+                  mono
+                />
               </div>
 
-              {/* DESCRIPTION */}
+              {/* REMARKS */}
               <div className="mt-4 rounded-xl border border-[#E4E7EC] bg-white p-4">
                 <p className="text-[10px] font-bold uppercase tracking-wide text-[#98A2B3]">
-                  Activity Description
+                  Reason / Remarks
                 </p>
 
                 <p className="mt-2 text-xs leading-5 text-[#475467]">
-                  {selectedLog.details}
+                  {selectedLog.remarks || "No remarks provided."}
                 </p>
               </div>
 
-              {/* SECURITY NOTE */}
+              {/* SECURITY */}
               <div className="mt-4 rounded-xl border border-[#E4E7EC] bg-[#F9F7FF] p-4">
                 <div className="flex items-start gap-3">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#EDE9FE] text-[#8346F2]">
@@ -495,8 +627,9 @@ function AuditLogs() {
                     </p>
 
                     <p className="mt-1 text-[11px] leading-4 text-[#667085]">
-                      This activity is recorded for administrative
-                      accountability and system monitoring.
+                      This activity is permanently recorded during the current
+                      application session for administrative accountability and
+                      system monitoring.
                     </p>
                   </div>
                 </div>
@@ -514,6 +647,10 @@ function AuditLogs() {
     </div>
   );
 }
+
+/* =========================
+   COMPONENTS
+========================= */
 
 function SummaryCard({ label, value, description, icon }) {
   return (
@@ -557,7 +694,11 @@ function DetailRow({ label, value, mono = false }) {
   );
 }
 
-function getInitials(name) {
+/* =========================
+   HELPERS
+========================= */
+
+function getInitials(name = "Administrator") {
   return name
     .split(" ")
     .map((part) => part[0])
@@ -565,6 +706,29 @@ function getInitials(name) {
     .slice(0, 2)
     .toUpperCase();
 }
+
+function formatDateTime(dateTime) {
+  if (!dateTime) return "—";
+
+  const date = new Date(dateTime);
+
+  if (Number.isNaN(date.getTime())) {
+    return dateTime;
+  }
+
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
+/* =========================
+   ICONS
+========================= */
 
 function SearchIcon() {
   return (
@@ -600,21 +764,6 @@ function ListIcon() {
   );
 }
 
-function ClockIcon() {
-  return (
-    <svg
-      className="h-5 w-5"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-    >
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v5l3 2" />
-    </svg>
-  );
-}
-
 function ReportIcon() {
   return (
     <svg
@@ -628,6 +777,21 @@ function ReportIcon() {
       <path d="M14 3v4h4" />
       <path d="M9 12h6" />
       <path d="M9 16h6" />
+    </svg>
+  );
+}
+
+function UserIcon() {
+  return (
+    <svg
+      className="h-5 w-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21c1.5-4 4-6 8-6s6.5 2 8 6" />
     </svg>
   );
 }

@@ -1,73 +1,48 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { FileText, Users } from "lucide-react";
 
-const initialReports = [
+import {
+  getReportsForVerification,
+  verifyReport,
+} from "../../services/reportsService";
+
+/* =========================
+   RESIDENT MOCK DATA
+========================= */
+
+const initialResidentAccounts = [
   {
-    id: "RPT-2026-002",
-    type: "Road Obstruction",
-    category: "Incident-Related",
-    location: "National Highway",
-    submitted: "Sep 4, 2026 • 09:18 AM",
-    reporter: "Maria Santos",
-    priority: "High",
-    verification: "Pending",
-    description:
-      "A large obstruction is blocking part of the roadway and may affect vehicle access.",
-    affected: "Estimated 15–20 people",
-    vulnerable: "None reported",
-    evidence: "2 photos attached",
-    waterLevel: "Not applicable",
-    roadPassability: "Partially blocked",
+    id: "RES-2026-001",
+    name: "Ryan Santos",
+    email: "ryansantos@gmail.com",
+    mobile: "0917 123 4567",
+    address: "Purok 1, Barangay Camunatan, City of Ilagan",
+    purok: "Purok 1",
+    registeredAt: "Sep 10, 2026 • 08:45 AM",
+    status: "Pending",
+    remarks: "",
   },
   {
-    id: "RPT-2026-005",
-    type: "Fallen Tree",
-    category: "Incident-Related",
-    location: "Camunatan Main Road",
-    submitted: "Sep 4, 2026 • 07:46 AM",
-    reporter: "Carlos Mendoza",
-    priority: "Medium",
-    verification: "Pending",
-    description:
-      "A fallen tree was reported along the main road and may obstruct local traffic.",
-    affected: "Estimated 8–10 people",
-    vulnerable: "None reported",
-    evidence: "1 photo attached",
-    waterLevel: "Not applicable",
-    roadPassability: "Partially blocked",
+    id: "RES-2026-002",
+    name: "Angela Reyes",
+    email: "angela.reyes@gmail.com",
+    mobile: "0918 456 7890",
+    address: "Purok 3, Barangay Camunatan, City of Ilagan",
+    purok: "Purok 3",
+    registeredAt: "Sep 10, 2026 • 09:10 AM",
+    status: "Pending",
+    remarks: "",
   },
   {
-    id: "RPT-2026-009",
-    type: "Rising Water Level",
-    category: "Hazard-Related",
-    location: "Purok 6, Camunatan",
-    submitted: "Sep 4, 2026 • 06:58 AM",
-    reporter: "Daniel Ramos",
-    priority: "High",
-    verification: "Pending",
-    description:
-      "Water level is rising near residential areas following continuous rainfall.",
-    affected: "Estimated 35 people",
-    vulnerable: "Children and senior citizens",
-    evidence: "3 photos attached",
-    waterLevel: "Knee level",
-    roadPassability: "Passable with caution",
-  },
-  {
-    id: "RPT-2026-010",
-    type: "Medical Assistance",
-    category: "Assistance-Related",
-    location: "Purok 2, Camunatan",
-    submitted: "Sep 4, 2026 • 06:34 AM",
-    reporter: "Liza Bautista",
-    priority: "Critical",
-    verification: "Pending",
-    description:
-      "A resident is requesting immediate medical assistance due to an emergency condition.",
-    affected: "1 person",
-    vulnerable: "Senior citizen",
-    evidence: "No photo attached",
-    waterLevel: "Not applicable",
-    roadPassability: "Passable",
+    id: "RES-2026-003",
+    name: "Michael Cruz",
+    email: "michael.cruz@gmail.com",
+    mobile: "0919 234 5678",
+    address: "Purok 5, Barangay Camunatan, City of Ilagan",
+    purok: "Purok 5",
+    registeredAt: "Sep 10, 2026 • 09:35 AM",
+    status: "Pending",
+    remarks: "",
   },
 ];
 
@@ -76,6 +51,7 @@ const priorityStyles = {
   High: "border-[#FEDF89] bg-[#FFF4E5] text-[#B54708]",
   Medium: "border-[#FDE68A] bg-[#FFFAEB] text-[#A15C00]",
   Low: "border-[#E4E7EC] bg-[#F2F4F7] text-[#667085]",
+  "Not Prioritized": "border-[#E4E7EC] bg-[#F9FAFB] text-[#667085]",
 };
 
 function InfoItem({ label, value }) {
@@ -84,17 +60,71 @@ function InfoItem({ label, value }) {
       <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
         {label}
       </p>
-      <p className="mt-1 text-sm font-semibold text-[#344054]">{value}</p>
+
+      <p className="mt-1 text-sm font-semibold text-[#344054]">
+        {value || "Not specified"}
+      </p>
     </div>
   );
 }
 
-function Verification() {
-  const [reports, setReports] = useState(initialReports);
-  const [selectedId, setSelectedId] = useState(initialReports[0]?.id ?? "");
+function Verification({
+  onVerificationUpdate,
+  onAddAuditLog,
+}) {
+  const [activeVerificationTab, setActiveVerificationTab] =
+    useState("reports");
+
+  /* =========================
+     REPORT VERIFICATION
+  ========================= */
+
+  const [reports, setReports] = useState([]);
+  const [loadingReports, setLoadingReports] = useState(true);
+  const [reportsError, setReportsError] = useState("");
+
+  const [selectedId, setSelectedId] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [actionMessage, setActionMessage] = useState("");
+
+  const loadReports = async () => {
+    try {
+      setLoadingReports(true);
+      setReportsError("");
+
+      const data = await getReportsForVerification();
+
+      setReports(data);
+
+      setSelectedId((currentSelectedId) => {
+        const stillExists = data.some(
+          (report) => report.id === currentSelectedId,
+        );
+
+        if (stillExists) {
+          return currentSelectedId;
+        }
+
+        return data[0]?.id ?? "";
+      });
+    } catch (error) {
+      console.error(
+        "Failed to load reports for verification:",
+        error,
+      );
+
+      setReportsError(
+        "Unable to load reports for verification from the server.",
+      );
+    } finally {
+      setLoadingReports(false);
+    }
+  };
+
+  useEffect(() => {
+    loadReports();
+  }, []);
 
   const pendingReports = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -108,476 +138,679 @@ function Verification() {
         report.reporter.toLowerCase().includes(normalizedSearch);
 
       const matchesCategory =
-        categoryFilter === "All" || report.category === categoryFilter;
+        categoryFilter === "All" ||
+        report.category === categoryFilter;
 
-      return (
-        report.verification === "Pending" && matchesSearch && matchesCategory
-      );
+      return matchesSearch && matchesCategory;
     });
   }, [reports, searchTerm, categoryFilter]);
 
   const selectedReport =
     reports.find((report) => report.id === selectedId) ?? null;
 
-  const pendingCount = reports.filter(
-    (report) => report.verification === "Pending",
-  ).length;
+  const pendingCount = reports.length;
 
-  const verifiedCount = reports.filter(
-    (report) => report.verification === "Verified",
-  ).length;
-
-  const returnedCount = reports.filter(
-    (report) => report.verification === "Returned",
-  ).length;
+  // These will later come from a backend statistics endpoint.
+  const verifiedCount = 0;
+  const returnedCount = 0;
 
   const handleSelectReport = (reportId) => {
     setSelectedId(reportId);
     setActionMessage("");
   };
 
-  const handleVerification = (result) => {
-    if (!selectedReport) {
+  const handleVerification = async (result) => {
+    if (!selectedReport) return;
+
+    if (result !== "Verified") {
+      setActionMessage(
+        "Return for Review will be connected to the backend next.",
+      );
       return;
     }
 
-    setReports((currentReports) =>
-      currentReports.map((report) =>
-        report.id === selectedReport.id
-          ? { ...report, verification: result }
-          : report,
+    try {
+      await verifyReport(selectedReport.databaseId);
+
+      const oldVerification = selectedReport.verification;
+      const oldStatus = selectedReport.status;
+
+      onVerificationUpdate?.({
+        ...selectedReport,
+        verification: "Verified",
+        status: "For Prioritization",
+      });
+
+      onAddAuditLog?.({
+        action: "Report Verified",
+        category: "Report Action",
+        target: selectedReport.id,
+        field: "Verification Status",
+        oldValue: oldVerification,
+        newValue: "Verified",
+        remarks: `Report verified and forwarded for prioritization. Status changed from "${oldStatus}" to "For Prioritization".`,
+        status: "Success",
+      });
+
+      setActionMessage(
+        `${selectedReport.id} has been verified and forwarded for prioritization.`,
+      );
+
+      await loadReports();
+    } catch (error) {
+      console.error("Failed to verify report:", error);
+
+      setActionMessage(
+        "Unable to verify the report. Please check the Laravel server.",
+      );
+    }
+  };
+
+  /* =========================
+     RESIDENT ACCOUNT
+     VERIFICATION
+  ========================= */
+
+  const [residentAccounts, setResidentAccounts] = useState(
+    initialResidentAccounts,
+  );
+
+  const [selectedResidentId, setSelectedResidentId] = useState(
+    initialResidentAccounts[0]?.id ?? "",
+  );
+
+  const [residentSearch, setResidentSearch] = useState("");
+  const [residentRemarks, setResidentRemarks] = useState("");
+  const [residentActionMessage, setResidentActionMessage] =
+    useState("");
+
+  const pendingResidentAccounts = useMemo(() => {
+    const query = residentSearch.trim().toLowerCase();
+
+    return residentAccounts.filter((resident) => {
+      const searchableText = [
+        resident.id,
+        resident.name,
+        resident.email,
+        resident.mobile,
+        resident.address,
+        resident.purok,
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return (
+        resident.status === "Pending" &&
+        (query === "" || searchableText.includes(query))
+      );
+    });
+  }, [residentAccounts, residentSearch]);
+
+  const selectedResident =
+    residentAccounts.find(
+      (resident) => resident.id === selectedResidentId,
+    ) ??
+    pendingResidentAccounts[0] ??
+    null;
+
+  const handleSelectResident = (resident) => {
+    setSelectedResidentId(resident.id);
+    setResidentRemarks(resident.remarks || "");
+    setResidentActionMessage("");
+  };
+
+  const handleResidentVerification = (decision) => {
+    if (!selectedResident) return;
+
+    if (
+      decision === "Rejected" &&
+      residentRemarks.trim() === ""
+    ) {
+      setResidentActionMessage(
+        "Please provide verification remarks before rejecting this account.",
+      );
+
+      return;
+    }
+
+    const oldStatus = selectedResident.status;
+
+    const newStatus =
+      decision === "Approved" ? "Verified" : "Rejected";
+
+    const remarks =
+      residentRemarks.trim() ||
+      "Resident account was verified as a Barangay Camunatan resident.";
+
+    setResidentAccounts((currentResidents) =>
+      currentResidents.map((resident) =>
+        resident.id === selectedResident.id
+          ? {
+              ...resident,
+              status: newStatus,
+              remarks,
+              verifiedAt: new Date().toISOString(),
+            }
+          : resident,
       ),
     );
 
-    setActionMessage(
-      result === "Verified"
-        ? `${selectedReport.id} has been verified.`
-        : `${selectedReport.id} has been returned for review.`,
+    onAddAuditLog?.({
+      action:
+        decision === "Approved"
+          ? "Resident Account Approved"
+          : "Resident Account Rejected",
+
+      category: "Account Action",
+
+      target: `${selectedResident.name} (${selectedResident.id})`,
+
+      field: "Account Verification Status",
+
+      oldValue: oldStatus,
+
+      newValue: newStatus,
+
+      remarks,
+
+      status: "Success",
+    });
+
+    const remainingResidents = residentAccounts.filter(
+      (resident) =>
+        resident.id !== selectedResident.id &&
+        resident.status === "Pending",
     );
 
-    const nextReport = pendingReports.find(
-      (report) => report.id !== selectedReport.id,
+    setSelectedResidentId(
+      remainingResidents[0]?.id ?? "",
     );
 
-    setSelectedId(nextReport?.id ?? "");
+    setResidentRemarks("");
+
+    setResidentActionMessage(
+      decision === "Approved"
+        ? `${selectedResident.name}'s account has been approved.`
+        : `${selectedResident.name}'s account has been rejected.`,
+    );
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4">
-      {/* PAGE HEADER */}
-      <div className="flex shrink-0 items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#8346F2]">
-            Operations
-          </p>
+    <div className="space-y-6">
 
-          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[#1F1D47]">
-            Verification
-          </h1>
+      {/* =========================
+          PAGE HEADER
+      ========================= */}
 
-          <p className="mt-1 text-sm text-[#667085]">
-            Review submitted reports before they enter the response workflow.
-          </p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-extrabold text-[#1F1D47]">
+          Verification Center
+        </h1>
 
-        <div className="hidden items-center gap-2 rounded-xl border border-[#E4E7EC] bg-white px-3 py-2 sm:flex">
-          <span className="h-2.5 w-2.5 rounded-full bg-[#2ED47A]" />
-          <span className="text-xs font-semibold text-[#475467]">
-            Verification Queue Active
-          </span>
-        </div>
+        <p className="mt-1 text-sm text-[#667085]">
+          Review emergency reports and resident account registrations.
+        </p>
       </div>
 
-      {/* SUMMARY CARDS */}
-      <div className="grid shrink-0 grid-cols-2 gap-3 xl:grid-cols-4">
-        <div className="rounded-2xl border border-[#FEDF89] bg-white px-5 py-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#98A2B3]">
-            Pending Review
-          </p>
-          <p className="mt-2 text-2xl font-extrabold text-[#B54708]">
-            {pendingCount}
-          </p>
-          <p className="mt-1 text-xs font-medium text-[#667085]">
-            Requires action
-          </p>
-        </div>
+      {/* =========================
+          TABS
+      ========================= */}
 
-        <div className="rounded-2xl border border-[#ABEFC6] bg-white px-5 py-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#98A2B3]">
-            Verified
-          </p>
-          <p className="mt-2 text-2xl font-extrabold text-[#027A48]">
-            {verifiedCount}
-          </p>
-          <p className="mt-1 text-xs font-medium text-[#667085]">
-            Cleared reports
-          </p>
-        </div>
+      <div className="flex gap-3 border-b border-[#E4E7EC]">
+        <button
+          type="button"
+          onClick={() =>
+            setActiveVerificationTab("reports")
+          }
+          className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-bold ${
+            activeVerificationTab === "reports"
+              ? "border-[#8346F2] text-[#8346F2]"
+              : "border-transparent text-[#667085]"
+          }`}
+        >
+          <FileText size={18} />
+          Report Verification
+        </button>
 
-        <div className="rounded-2xl border border-[#E4E7EC] bg-white px-5 py-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#98A2B3]">
-            Returned
-          </p>
-          <p className="mt-2 text-2xl font-extrabold text-[#667085]">
-            {returnedCount}
-          </p>
-          <p className="mt-1 text-xs font-medium text-[#667085]">
-            Needs correction
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-[#FECDCA] bg-white px-5 py-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#98A2B3]">
-            Critical Queue
-          </p>
-          <p className="mt-2 text-2xl font-extrabold text-[#D92D20]">
-            {
-              reports.filter(
-                (report) =>
-                  report.verification === "Pending" &&
-                  report.priority === "Critical",
-              ).length
-            }
-          </p>
-          <p className="mt-1 text-xs font-medium text-[#667085]">
-            Review immediately
-          </p>
-        </div>
+        <button
+          type="button"
+          onClick={() =>
+            setActiveVerificationTab("residents")
+          }
+          className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-bold ${
+            activeVerificationTab === "residents"
+              ? "border-[#8346F2] text-[#8346F2]"
+              : "border-transparent text-[#667085]"
+          }`}
+        >
+          <Users size={18} />
+          Resident Account Verification
+        </button>
       </div>
 
-      {/* VERIFICATION WORKSPACE */}
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 xl:grid-cols-[minmax(300px,0.85fr)_minmax(0,1.6fr)]">
-        {/* QUEUE */}
-        <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
-          <div className="shrink-0 border-b border-[#E4E7EC] p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-sm font-bold text-[#1F1D47]">
-                  Verification Queue
+      {/* =========================
+          REPORT VERIFICATION TAB
+      ========================= */}
+
+      {activeVerificationTab === "reports" && (
+        <>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="rounded-2xl border border-[#E4E7EC] bg-white p-5">
+              <p className="text-sm font-semibold text-[#667085]">
+                Pending Reports
+              </p>
+
+              <p className="mt-2 text-3xl font-extrabold text-[#1F1D47]">
+                {pendingCount}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-[#E4E7EC] bg-white p-5">
+              <p className="text-sm font-semibold text-[#667085]">
+                Verified Today
+              </p>
+
+              <p className="mt-2 text-3xl font-extrabold text-[#00C9A7]">
+                {verifiedCount}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-[#E4E7EC] bg-white p-5">
+              <p className="text-sm font-semibold text-[#667085]">
+                Returned
+              </p>
+
+              <p className="mt-2 text-3xl font-extrabold text-[#D92D20]">
+                {returnedCount}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
+
+            {/* REPORT LIST */}
+
+            <div className="rounded-2xl border border-[#E4E7EC] bg-white p-5">
+              <div className="mb-4">
+                <h2 className="text-lg font-extrabold text-[#1F1D47]">
+                  Pending Reports
                 </h2>
-                <p className="mt-0.5 text-xs text-[#667085]">
-                  Reports awaiting review
+
+                <p className="text-sm text-[#667085]">
+                  Select a report to review.
                 </p>
               </div>
 
-              <span className="rounded-full bg-[#FFF4E5] px-2.5 py-1 text-[11px] font-bold text-[#B54708]">
-                {pendingCount} pending
-              </span>
-            </div>
-
-            <div className="mt-3 flex gap-2">
-              <div className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-lg border border-[#E4E7EC] bg-[#F8FAFC] px-3 focus-within:border-[#8346F2] focus-within:bg-white">
-                <span className="text-sm text-[#667085]">⌕</span>
-
+              <div className="space-y-3">
                 <input
                   type="text"
                   value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="Search queue..."
-                  className="min-w-0 flex-1 bg-transparent text-xs text-[#1F1D47] outline-none placeholder:text-[#98A2B3]"
+                  onChange={(event) =>
+                    setSearchTerm(event.target.value)
+                  }
+                  placeholder="Search reports..."
+                  className="w-full rounded-xl border border-[#D0D5DD] px-4 py-3 text-sm outline-none focus:border-[#8346F2]"
                 />
+
+                <select
+                  value={categoryFilter}
+                  onChange={(event) =>
+                    setCategoryFilter(event.target.value)
+                  }
+                  className="w-full rounded-xl border border-[#D0D5DD] px-4 py-3 text-sm outline-none focus:border-[#8346F2]"
+                >
+                  <option value="All">All Categories</option>
+
+                  <option value="Flooding">Flooding</option>
+
+                  <option value="Rescue">Rescue</option>
+
+                  <option value="Medical Emergency">
+                    Medical Emergency
+                  </option>
+                </select>
               </div>
 
-              <select
-                value={categoryFilter}
-                onChange={(event) => setCategoryFilter(event.target.value)}
-                className="h-9 rounded-lg border border-[#E4E7EC] bg-white px-2 text-xs font-medium text-[#475467] outline-none focus:border-[#8346F2]"
-                aria-label="Filter verification category"
-              >
-                <option value="All">All</option>
-                <option value="Hazard-Related">Hazard</option>
-                <option value="Incident-Related">Incident</option>
-                <option value="Assistance-Related">Assistance</option>
-              </select>
-            </div>
-          </div>
+              {loadingReports && (
+                <p className="py-10 text-center text-sm text-[#667085]">
+                  Loading reports...
+                </p>
+              )}
 
-          <div className="min-h-0 flex-1 overflow-auto">
-            {pendingReports.length > 0 ? (
-              <div className="divide-y divide-[#E4E7EC]">
-                {pendingReports.map((report) => {
-                  const isSelected = selectedId === report.id;
+              {reportsError && (
+                <p className="py-10 text-center text-sm text-[#D92D20]">
+                  {reportsError}
+                </p>
+              )}
 
-                  return (
-                    <button
-                      key={report.id}
-                      type="button"
-                      onClick={() => handleSelectReport(report.id)}
-                      className={`w-full px-4 py-3 text-left transition ${
-                        isSelected ? "bg-[#F5F3FF]" : "hover:bg-[#FAF9FF]"
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div
-                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold ${
-                            report.priority === "Critical"
-                              ? "bg-[#FEF3F2] text-[#D92D20]"
-                              : report.priority === "High"
-                                ? "bg-[#FFF4E5] text-[#B54708]"
-                                : "bg-[#FFFAEB] text-[#A15C00]"
-                          }`}
-                        >
-                          {report.type.charAt(0)}
-                        </div>
+              {!loadingReports &&
+                !reportsError &&
+                pendingReports.length === 0 && (
+                  <p className="py-10 text-center text-sm text-[#667085]">
+                    No pending reports for verification.
+                  </p>
+                )}
 
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="truncate text-xs font-bold text-[#1F1D47]">
-                              {report.id}
-                            </p>
+              <div className="mt-4 space-y-3">
+                {pendingReports.map((report) => (
+                  <button
+                    key={report.id}
+                    type="button"
+                    onClick={() =>
+                      handleSelectReport(report.id)
+                    }
+                    className={`w-full rounded-xl border p-4 text-left transition ${
+                      selectedId === report.id
+                        ? "border-[#8346F2] bg-[#F5F3FF]"
+                        : "border-[#E4E7EC] bg-white hover:border-[#C7B9FF]"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-extrabold text-[#1F1D47]">
+                          {report.id}
+                        </p>
 
-                            <span
-                              className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold ${
-                                priorityStyles[report.priority]
-                              }`}
-                            >
-                              {report.priority}
-                            </span>
-                          </div>
-
-                          <p className="mt-1 truncate text-sm font-semibold text-[#344054]">
-                            {report.type}
-                          </p>
-
-                          <p className="mt-0.5 truncate text-xs text-[#667085]">
-                            {report.location}
-                          </p>
-
-                          <p className="mt-1.5 text-[10px] font-medium text-[#98A2B3]">
-                            {report.submitted}
-                          </p>
-                        </div>
+                        <p className="mt-1 text-sm font-semibold text-[#344054]">
+                          {report.type}
+                        </p>
                       </div>
-                    </button>
-                  );
-                })}
+
+                      <span
+                        className={`rounded-full border px-2 py-1 text-xs font-bold ${
+                          priorityStyles[
+                            report.priority || "Not Prioritized"
+                          ]
+                        }`}
+                      >
+                        {report.priority || "Not Prioritized"}
+                      </span>
+                    </div>
+
+                    <p className="mt-2 text-xs text-[#667085]">
+                      {report.location}
+                    </p>
+                  </button>
+                ))}
               </div>
-            ) : (
-              <div className="flex h-full items-center justify-center px-6 text-center">
-                <div>
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#ECFDF3] text-xl text-[#027A48]">
-                    ✓
+            </div>
+
+            {/* REPORT DETAILS */}
+
+            <div className="rounded-2xl border border-[#E4E7EC] bg-white p-6">
+
+              {selectedReport ? (
+                <>
+                  <div className="flex flex-col gap-4 border-b border-[#E4E7EC] pb-5 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-sm font-bold text-[#8346F2]">
+                        {selectedReport.id}
+                      </p>
+
+                      <h2 className="mt-1 text-2xl font-extrabold text-[#1F1D47]">
+                        {selectedReport.type}
+                      </h2>
+
+                      <p className="mt-2 text-sm text-[#667085]">
+                        {selectedReport.category}
+                      </p>
+                    </div>
+
+                    <span className="rounded-full bg-[#FFF4E5] px-3 py-1 text-sm font-bold text-[#B54708]">
+                      Pending Verification
+                    </span>
                   </div>
 
-                  <p className="mt-3 text-sm font-bold text-[#1F1D47]">
-                    Queue is clear
+                  {actionMessage && (
+                    <div className="mt-5 rounded-xl bg-[#F5F3FF] p-4 text-sm font-semibold text-[#5B21B6]">
+                      {actionMessage}
+                    </div>
+                  )}
+
+                  <div className="mt-6 grid gap-5 sm:grid-cols-2">
+                    <InfoItem
+                      label="Reporter"
+                      value={selectedReport.reporter}
+                    />
+
+                    <InfoItem
+                      label="Location"
+                      value={selectedReport.location}
+                    />
+
+                    <InfoItem
+                      label="Submitted"
+                      value={selectedReport.submitted}
+                    />
+
+                    <InfoItem
+                      label="Priority"
+                      value={
+                        selectedReport.priority ||
+                        "Not Prioritized"
+                      }
+                    />
+
+                    <InfoItem
+                      label="Affected People"
+                      value={selectedReport.affected}
+                    />
+
+                    <InfoItem
+                      label="Vulnerable Persons"
+                      value={selectedReport.vulnerable}
+                    />
+
+                    <InfoItem
+                      label="Water Level"
+                      value={selectedReport.waterLevel}
+                    />
+
+                    <InfoItem
+                      label="Road Passability"
+                      value={selectedReport.roadPassability}
+                    />
+                  </div>
+
+                  <div className="mt-6">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
+                      Description
+                    </p>
+
+                    <p className="mt-2 rounded-xl bg-[#F9FAFB] p-4 text-sm leading-6 text-[#475467]">
+                      {selectedReport.description ||
+                        "No description provided."}
+                    </p>
+                  </div>
+
+                  <div className="mt-6 flex flex-col-reverse gap-3 border-t border-[#E4E7EC] pt-5 sm:flex-row sm:justify-end">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleVerification("Returned")
+                      }
+                      className="rounded-xl border border-[#FECDCA] px-5 py-3 text-sm font-bold text-[#D92D20] hover:bg-[#FEF3F2]"
+                    >
+                      Return for Review
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleVerification("Verified")
+                      }
+                      className="rounded-xl bg-[#8346F2] px-5 py-3 text-sm font-bold text-white hover:bg-[#7035DB]"
+                    >
+                      Verify Report
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="flex min-h-[500px] items-center justify-center text-center">
+                  <p className="text-sm text-[#667085]">
+                    Select a pending report to review.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* =========================
+          RESIDENT ACCOUNT TAB
+      ========================= */}
+
+      {activeVerificationTab === "residents" && (
+        <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
+
+          {/* RESIDENT LIST */}
+
+          <div className="rounded-2xl border border-[#E4E7EC] bg-white p-5">
+            <h2 className="text-lg font-extrabold text-[#1F1D47]">
+              Pending Resident Accounts
+            </h2>
+
+            <input
+              type="text"
+              value={residentSearch}
+              onChange={(event) =>
+                setResidentSearch(event.target.value)
+              }
+              placeholder="Search residents..."
+              className="mt-4 w-full rounded-xl border border-[#D0D5DD] px-4 py-3 text-sm outline-none focus:border-[#8346F2]"
+            />
+
+            <div className="mt-4 space-y-3">
+              {pendingResidentAccounts.map((resident) => (
+                <button
+                  key={resident.id}
+                  type="button"
+                  onClick={() =>
+                    handleSelectResident(resident)
+                  }
+                  className={`w-full rounded-xl border p-4 text-left ${
+                    selectedResidentId === resident.id
+                      ? "border-[#8346F2] bg-[#F5F3FF]"
+                      : "border-[#E4E7EC]"
+                  }`}
+                >
+                  <p className="font-bold text-[#1F1D47]">
+                    {resident.name}
                   </p>
 
                   <p className="mt-1 text-xs text-[#667085]">
-                    No pending reports match the current filters.
+                    {resident.id}
                   </p>
-                </div>
-              </div>
-            )}
+                </button>
+              ))}
+
+              {pendingResidentAccounts.length === 0 && (
+                <p className="py-10 text-center text-sm text-[#667085]">
+                  No pending resident accounts.
+                </p>
+              )}
+            </div>
           </div>
-        </section>
 
-        {/* SELECTED REPORT */}
-        <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
-          {selectedReport ? (
-            <>
-              <div className="shrink-0 border-b border-[#E4E7EC] px-5 py-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-xs font-bold text-[#8346F2]">
-                        {selectedReport.id}
-                      </span>
+          {/* RESIDENT DETAILS */}
 
-                      <span
-                        className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${
-                          priorityStyles[selectedReport.priority]
-                        }`}
-                      >
-                        {selectedReport.priority} Priority
-                      </span>
-                    </div>
+          <div className="rounded-2xl border border-[#E4E7EC] bg-white p-6">
+            {selectedResident ? (
+              <>
+                <h2 className="text-2xl font-extrabold text-[#1F1D47]">
+                  {selectedResident.name}
+                </h2>
 
-                    <h2 className="mt-2 text-xl font-extrabold text-[#1F1D47]">
-                      {selectedReport.type}
-                    </h2>
+                <p className="mt-1 text-sm text-[#667085]">
+                  {selectedResident.id}
+                </p>
 
-                    <p className="mt-1 text-xs text-[#667085]">
-                      Submitted {selectedReport.submitted}
-                    </p>
-                  </div>
+                <div className="mt-6 grid gap-5 sm:grid-cols-2">
+                  <InfoItem
+                    label="Email"
+                    value={selectedResident.email}
+                  />
 
-                  <span className="shrink-0 rounded-full border border-[#FEDF89] bg-[#FFFAEB] px-3 py-1.5 text-[11px] font-bold text-[#B54708]">
-                    Pending Verification
-                  </span>
+                  <InfoItem
+                    label="Mobile"
+                    value={selectedResident.mobile}
+                  />
+
+                  <InfoItem
+                    label="Address"
+                    value={selectedResident.address}
+                  />
+
+                  <InfoItem
+                    label="Purok"
+                    value={selectedResident.purok}
+                  />
+
+                  <InfoItem
+                    label="Registered"
+                    value={selectedResident.registeredAt}
+                  />
+
+                  <InfoItem
+                    label="Status"
+                    value={selectedResident.status}
+                  />
                 </div>
-              </div>
 
-              <div className="min-h-0 flex-1 overflow-auto">
-                <div className="space-y-5 p-5">
-                  {/* REPORT DETAILS */}
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#8346F2]">
-                      Report Information
-                    </p>
+                <div className="mt-6">
+                  <label className="text-sm font-bold text-[#344054]">
+                    Verification Remarks
+                  </label>
 
-                    <div className="mt-3 grid grid-cols-2 gap-x-5 gap-y-4 lg:grid-cols-3">
-                      <InfoItem
-                        label="Reporter"
-                        value={selectedReport.reporter}
-                      />
-
-                      <InfoItem
-                        label="Category"
-                        value={selectedReport.category}
-                      />
-
-                      <InfoItem
-                        label="Location"
-                        value={selectedReport.location}
-                      />
-
-                      <InfoItem
-                        label="People Affected"
-                        value={selectedReport.affected}
-                      />
-
-                      <InfoItem
-                        label="Vulnerable Persons"
-                        value={selectedReport.vulnerable}
-                      />
-
-                      <InfoItem
-                        label="Evidence"
-                        value={selectedReport.evidence}
-                      />
-                    </div>
-                  </div>
-
-                  {/* DESCRIPTION */}
-                  <div className="rounded-xl border border-[#E4E7EC] bg-[#F8FAFC] p-4">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
-                      Report Description
-                    </p>
-
-                    <p className="mt-2 text-sm leading-6 text-[#475467]">
-                      {selectedReport.description}
-                    </p>
-                  </div>
-
-                  {/* RISK CHECK */}
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#8346F2]">
-                      Triage Indicators
-                    </p>
-
-                    <div className="mt-3 grid grid-cols-2 gap-3">
-                      <div className="rounded-xl border border-[#E4E7EC] p-3">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.06em] text-[#98A2B3]">
-                          Water Level
-                        </p>
-                        <p className="mt-1 text-sm font-semibold text-[#344054]">
-                          {selectedReport.waterLevel}
-                        </p>
-                      </div>
-
-                      <div className="rounded-xl border border-[#E4E7EC] p-3">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.06em] text-[#98A2B3]">
-                          Road Passability
-                        </p>
-                        <p className="mt-1 text-sm font-semibold text-[#344054]">
-                          {selectedReport.roadPassability}
-                        </p>
-                      </div>
-
-                      <div className="rounded-xl border border-[#E4E7EC] p-3">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.06em] text-[#98A2B3]">
-                          Assistance Need
-                        </p>
-                        <p className="mt-1 text-sm font-semibold text-[#344054]">
-                          {selectedReport.priority === "Critical"
-                            ? "Immediate"
-                            : "Standard"}
-                        </p>
-                      </div>
-
-                      <div className="rounded-xl border border-[#E4E7EC] p-3">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.06em] text-[#98A2B3]">
-                          Evidence
-                        </p>
-                        <p className="mt-1 text-sm font-semibold text-[#344054]">
-                          {selectedReport.evidence}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* EVIDENCE PLACEHOLDER */}
-                  <div>
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#8346F2]">
-                        Submitted Evidence
-                      </p>
-
-                      <span className="text-[10px] font-semibold text-[#98A2B3]">
-                        Preview
-                      </span>
-                    </div>
-
-                    <div className="mt-3 flex h-24 items-center justify-center rounded-xl border border-dashed border-[#D0D5DD] bg-[#F8FAFC]">
-                      <div className="text-center">
-                        <div className="text-xl text-[#98A2B3]">▧</div>
-                        <p className="mt-1 text-xs font-semibold text-[#667085]">
-                          {selectedReport.evidence}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                  <textarea
+                    value={residentRemarks}
+                    onChange={(event) =>
+                      setResidentRemarks(event.target.value)
+                    }
+                    placeholder="Add remarks if necessary..."
+                    className="mt-2 min-h-[120px] w-full rounded-xl border border-[#D0D5DD] p-4 text-sm outline-none focus:border-[#8346F2]"
+                  />
                 </div>
-              </div>
 
-              {/* ACTION BAR */}
-              <div className="shrink-0 border-t border-[#E4E7EC] bg-[#FCFCFD] p-4">
-                {actionMessage && (
-                  <div className="mb-3 rounded-lg border border-[#ABEFC6] bg-[#ECFDF3] px-3 py-2 text-xs font-semibold text-[#027A48]">
-                    {actionMessage}
+                {residentActionMessage && (
+                  <div className="mt-4 rounded-xl bg-[#F5F3FF] p-4 text-sm font-semibold text-[#5B21B6]">
+                    {residentActionMessage}
                   </div>
                 )}
 
-                <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                <div className="mt-6 flex flex-col-reverse gap-3 border-t border-[#E4E7EC] pt-5 sm:flex-row sm:justify-end">
                   <button
                     type="button"
-                    onClick={() => handleVerification("Returned")}
-                    className="rounded-xl border border-[#E4E7EC] bg-white px-4 py-2.5 text-sm font-semibold text-[#667085] transition hover:border-[#D92D20] hover:bg-[#FEF3F2] hover:text-[#D92D20]"
+                    onClick={() =>
+                      handleResidentVerification("Rejected")
+                    }
+                    className="rounded-xl border border-[#FECDCA] px-5 py-3 text-sm font-bold text-[#D92D20]"
                   >
-                    Return for Review
+                    Reject Account
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => handleVerification("Verified")}
-                    className="rounded-xl bg-[#2ED47A] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#24BE69] active:scale-[0.98]"
+                    onClick={() =>
+                      handleResidentVerification("Approved")
+                    }
+                    className="rounded-xl bg-[#8346F2] px-5 py-3 text-sm font-bold text-white"
                   >
-                    ✓ Verify Report
+                    Approve Account
                   </button>
                 </div>
-              </div>
-            </>
-          ) : (
-            <div className="flex h-full items-center justify-center px-6 text-center">
-              <div>
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#F4F3FF] text-2xl text-[#8346F2]">
-                  ✓
-                </div>
-
-                <h2 className="mt-4 text-lg font-bold text-[#1F1D47]">
-                  No report selected
-                </h2>
-
-                <p className="mt-1 max-w-sm text-sm text-[#667085]">
-                  Select a pending report from the verification queue to review
-                  its information.
+              </>
+            ) : (
+              <div className="flex min-h-[500px] items-center justify-center">
+                <p className="text-sm text-[#667085]">
+                  Select a resident account to review.
                 </p>
               </div>
-            </div>
-          )}
-        </section>
-      </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

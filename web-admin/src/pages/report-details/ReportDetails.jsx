@@ -230,9 +230,17 @@ const priorityStyles = {
 
 const statusStyles = {
   "For Verification": "bg-[#FFF7ED] text-[#B54708]",
+
+  "Pending Prioritization": "bg-[#FFF4E5] text-[#B54708]",
+
+  "Ready for Response": "bg-[#F4F3FF] text-[#6941C6]",
+
   Assigned: "bg-[#F4F3FF] text-[#6941C6]",
+
   Responding: "bg-[#EEF4FF] text-[#3538CD]",
+
   Monitoring: "bg-[#ECFDF3] text-[#027A48]",
+
   Resolved: "bg-[#F2F4F7] text-[#475467]",
 };
 
@@ -266,27 +274,58 @@ function TriageItem({ label, value, critical = false }) {
   );
 }
 
-function ReportDetails({ report: selectedReport, onBack }) {
-  const report = reportDetails[selectedReport?.id] ?? defaultReportDetails;
+function ReportDetails({
+  report: selectedReport,
+  onBack,
+  onReportUpdate,
+  onAddAuditLog,
+}) {
+  const reportDetailsData =
+    reportDetails[selectedReport?.id] ?? defaultReportDetails;
 
-  const [status, setStatus] = useState(() => report.status);
+  const report = {
+    ...reportDetailsData,
+    ...selectedReport,
+
+    triage: {
+      ...reportDetailsData.triage,
+      ...(selectedReport?.triage || {}),
+    },
+
+    assignment: {
+      ...reportDetailsData.assignment,
+      ...(selectedReport?.assignment || {}),
+    },
+
+    evidence: Array.isArray(selectedReport?.evidence)
+      ? selectedReport.evidence
+      : reportDetailsData.evidence || [],
+
+    history: Array.isArray(selectedReport?.history)
+      ? selectedReport.history
+      : reportDetailsData.history || [],
+  };
+
+  const [status, setStatus] = useState(
+    () => report.status || "For Verification",
+  );
 
   const [assignment, setAssignment] = useState(() => ({
-    ...report.assignment,
+    ...(report.assignment || {}),
   }));
 
-  const [history, setHistory] = useState(() => [...report.history]);
+  const [history, setHistory] = useState(() => [...(report.history || [])]);
 
   const [showMoreHistory, setShowMoreHistory] = useState(false);
 
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
 
   const [selectedTeam, setSelectedTeam] = useState(
-    () => report.assignment.team,
+    () => report.assignment?.team || "",
   );
 
   const [selectedPersonnel, setSelectedPersonnel] = useState(
-    () => report.assignment.personnel,
+    () => report.assignment?.personnel || "",
   );
 
   const getCurrentTime = () => {
@@ -296,28 +335,31 @@ function ReportDetails({ report: selectedReport, onBack }) {
     });
   };
 
-  const addHistory = (newStatus, detail) => {
-    setHistory((currentHistory) => [
-      ...currentHistory,
-      {
-        status: newStatus,
-        detail,
-        time: getCurrentTime(),
-      },
-    ]);
+  const updateSharedReport = (updates) => {
+    onReportUpdate?.({
+      id: report.id,
+      ...updates,
+    });
   };
-
   const handleStatusChange = (newStatus) => {
     if (newStatus === status) return;
 
+    const newHistoryItem = {
+      status: newStatus,
+      detail: `Report status updated to ${newStatus} by Barangay Personnel`,
+      time: getCurrentTime(),
+    };
+
+    const updatedHistory = [...history, newHistoryItem];
+
     setStatus(newStatus);
+    setHistory(updatedHistory);
 
-    addHistory(
-      newStatus,
-      `Report status updated to ${newStatus} by Barangay Personnel`,
-    );
+    updateSharedReport({
+      status: newStatus,
+      history: updatedHistory,
+    });
   };
-
   const handleSaveAssignment = () => {
     if (selectedTeam === "Unassigned" || selectedPersonnel === "Unassigned") {
       return;
@@ -337,21 +379,37 @@ function ReportDetails({ report: selectedReport, onBack }) {
       assignedAt,
     };
 
-    setAssignment(newAssignment);
+    const assignmentHistoryItem = {
+      status: "Team Assigned",
+      detail: `${selectedTeam} assigned with ${selectedPersonnel}`,
+      time: getCurrentTime(),
+    };
+
+    let updatedStatus = status;
+
+    const updatedHistory = [...history];
 
     if (status === "For Verification") {
-      setStatus("Assigned");
+      updatedStatus = "Assigned";
 
-      addHistory(
-        "Assigned",
-        "Report moved to Assigned status after team assignment",
-      );
+      updatedHistory.push({
+        status: "Assigned",
+        detail: "Report moved to Assigned status after team assignment",
+        time: getCurrentTime(),
+      });
     }
 
-    addHistory(
-      "Team Assigned",
-      `${selectedTeam} assigned with ${selectedPersonnel}`,
-    );
+    updatedHistory.push(assignmentHistoryItem);
+
+    setAssignment(newAssignment);
+    setStatus(updatedStatus);
+    setHistory(updatedHistory);
+
+    updateSharedReport({
+      status: updatedStatus,
+      assignment: newAssignment,
+      history: updatedHistory,
+    });
 
     setShowAssignmentModal(false);
   };
@@ -359,11 +417,36 @@ function ReportDetails({ report: selectedReport, onBack }) {
   const handleMarkResolved = () => {
     if (status === "Resolved") return;
 
-    setStatus("Resolved");
+    const oldStatus = status;
+    const newStatus = "Resolved";
 
-    addHistory("Resolved", "Incident marked as resolved by Barangay Personnel");
+    const resolvedHistoryItem = {
+      status: "Resolved",
+      detail: "Incident marked as resolved by Barangay Personnel",
+      time: getCurrentTime(),
+    };
+
+    const updatedHistory = [...history, resolvedHistoryItem];
+
+    setStatus(newStatus);
+    setHistory(updatedHistory);
+
+    updateSharedReport({
+      status: newStatus,
+      history: updatedHistory,
+    });
+
+    onAddAuditLog?.({
+      action: "Report Status Updated",
+      category: "Report Action",
+      target: report.id,
+      field: "Status",
+      oldValue: oldStatus,
+      newValue: newStatus,
+      remarks: "Incident was marked as resolved by Barangay Personnel.",
+      status: "Success",
+    });
   };
-
   const handleExportPDF = () => {
     const doc = new jsPDF();
 
@@ -568,15 +651,19 @@ function ReportDetails({ report: selectedReport, onBack }) {
   const statusDescription =
     status === "For Verification"
       ? "This report is awaiting verification before entering the response workflow."
-      : status === "Assigned"
-        ? "A response team has been assigned and is preparing to handle the incident."
-        : status === "Monitoring"
-          ? "The incident is currently being monitored by barangay personnel."
-          : status === "Responding"
-            ? "Response personnel are currently handling this incident."
-            : status === "Resolved"
-              ? "This incident has been resolved."
-              : "The current response status is being reviewed.";
+      : status === "Pending Prioritization"
+        ? "This verified report is awaiting priority assessment."
+        : status === "Ready for Response"
+          ? "Priority has been confirmed and this report is ready for response assignment."
+          : status === "Assigned"
+            ? "A response team has been assigned and is preparing to handle the incident."
+            : status === "Monitoring"
+              ? "The incident is currently being monitored by barangay personnel."
+              : status === "Responding"
+                ? "Response personnel are currently handling this incident."
+                : status === "Resolved"
+                  ? "This incident has been resolved."
+                  : "The current response status is being reviewed.";
 
   const verificationDescription =
     report.verification === "Pending"
@@ -615,7 +702,7 @@ function ReportDetails({ report: selectedReport, onBack }) {
 
             <span
               className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${
-                priorityStyles[report.priority]
+                priorityStyles[report.priority] || priorityStyles.Low
               }`}
             >
               {report.priority} Priority
@@ -623,7 +710,7 @@ function ReportDetails({ report: selectedReport, onBack }) {
 
             <span
               className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
-                statusStyles[status]
+                statusStyles[status] || statusStyles["For Verification"]
               }`}
             >
               {status}
@@ -780,14 +867,13 @@ function ReportDetails({ report: selectedReport, onBack }) {
                 </h2>
 
                 <p className="mt-0.5 text-xs text-[#667085]">
-                  {report.evidence.length} attachments submitted with this
-                  report.
+                  {(report.evidence || []).length} attachments submitted report.
                 </p>
               </div>
 
-              {report.evidence.length > 0 ? (
+              {(report.evidence || []).length > 0 ? (
                 <div className="grid grid-cols-1 gap-3 p-5 sm:grid-cols-2 lg:grid-cols-3">
-                  {report.evidence.map((item) => (
+                  {(report.evidence || []).map((item) => (
                     <button
                       key={item.id}
                       type="button"
@@ -859,9 +945,21 @@ function ReportDetails({ report: selectedReport, onBack }) {
                     className="mt-2 h-10 w-full rounded-xl border border-[#E4E7EC] bg-white px-3 text-sm font-medium text-[#344054] outline-none transition focus:border-[#8346F2]"
                   >
                     <option value="For Verification">For Verification</option>
+
+                    <option value="Pending Prioritization">
+                      Pending Prioritization
+                    </option>
+
+                    <option value="Ready for Response">
+                      Ready for Response
+                    </option>
+
                     <option value="Assigned">Assigned</option>
+
                     <option value="Responding">Responding</option>
+
                     <option value="Monitoring">Monitoring</option>
+
                     <option value="Resolved">Resolved</option>
                   </select>
                 </div>

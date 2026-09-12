@@ -55,6 +55,18 @@ const initialSettings = {
   autoRefresh: true,
 };
 
+const settingLabels = {
+  systemName: "System Name",
+  barangayName: "Barangay Name",
+  cityName: "City / Municipality",
+  language: "System Language",
+  notifications: "Notifications",
+  criticalAlerts: "Critical Incident Alerts",
+  assignmentAlerts: "Personnel Assignment Alerts",
+  announcementAlerts: "Announcement Alerts",
+  autoRefresh: "Automatic Data Refresh",
+};
+
 const tabs = [
   {
     id: "general",
@@ -76,19 +88,63 @@ const tabs = [
   },
 ];
 
-function SettingsRoles() {
+function SettingsRoles({
+  systemSettings,
+  onSettingsUpdate,
+  onAddAuditLog,
+}) {
   const [activeTab, setActiveTab] = useState("general");
-  const [settings, setSettings] = useState(initialSettings);
+
   const [personnel] = useState(initialPersonnel);
+
   const [selectedPersonnel, setSelectedPersonnel] = useState(
     initialPersonnel[0],
   );
 
+  const savedSettings = systemSettings || initialSettings;
+
+  const [settings, setSettings] = useState(savedSettings);
+
   const updateSetting = (key, value) => {
-    setSettings((current) => ({
-      ...current,
+    setSettings((currentSettings) => ({
+      ...currentSettings,
       [key]: value,
     }));
+  };
+
+  const hasUnsavedChanges =
+    JSON.stringify(settings) !== JSON.stringify(savedSettings);
+
+  const handleSaveChanges = () => {
+    const changedSettings = Object.keys(settings).filter(
+      (key) => settings[key] !== savedSettings[key],
+    );
+
+    if (changedSettings.length === 0) return;
+
+    // Update central state
+    onSettingsUpdate?.(settings);
+
+    // Create audit logs only for changed settings
+    changedSettings.forEach((key) => {
+      const oldValue = savedSettings[key];
+      const newValue = settings[key];
+
+      onAddAuditLog?.({
+        action: "System Setting Updated",
+        category: "System Action",
+        target: "SYS-SETTINGS",
+        field: settingLabels[key] || key,
+        oldValue: String(oldValue),
+        newValue: String(newValue),
+        remarks: `${settingLabels[key] || key} was changed from "${oldValue}" to "${newValue}".`,
+        status: "Success",
+      });
+    });
+  };
+
+  const handleCancelChanges = () => {
+    setSettings(savedSettings);
   };
 
   return (
@@ -111,6 +167,7 @@ function SettingsRoles() {
 
         <div className="hidden items-center gap-2 rounded-xl border border-[#E4E7EC] bg-white px-3 py-2 shadow-sm sm:flex">
           <span className="h-2 w-2 rounded-full bg-[#2ED47A]" />
+
           <span className="text-xs font-semibold text-[#475467]">
             System configuration
           </span>
@@ -213,6 +270,47 @@ function SettingsRoles() {
               setSelectedPersonnel={setSelectedPersonnel}
             />
           )}
+
+          {/* SAVE AREA - NOT NEEDED FOR ROLES YET */}
+          {activeTab !== "roles" && (
+            <div className="flex shrink-0 items-center justify-between gap-4 border-t border-[#E4E7EC] bg-white px-5 py-4">
+              <div>
+                {hasUnsavedChanges && (
+                  <p className="text-xs font-medium text-[#D97706]">
+                    You have unsaved changes.
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleCancelChanges}
+                  disabled={!hasUnsavedChanges}
+                  className={`rounded-xl border px-5 py-2.5 text-sm font-semibold transition ${
+                    hasUnsavedChanges
+                      ? "border-[#D0D5DD] bg-white text-[#344054] hover:bg-[#F9FAFB]"
+                      : "cursor-not-allowed border-[#EAECF0] bg-[#F9FAFB] text-[#98A2B3]"
+                  }`}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSaveChanges}
+                  disabled={!hasUnsavedChanges}
+                  className={`rounded-xl px-5 py-2.5 text-sm font-bold text-white shadow-md transition ${
+                    hasUnsavedChanges
+                      ? "bg-gradient-to-r from-[#8346F2] to-[#818CF8] hover:shadow-lg active:scale-[0.98]"
+                      : "cursor-not-allowed bg-[#C4B5FD] shadow-none"
+                  }`}
+                >
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          )}
         </section>
       </div>
     </div>
@@ -229,7 +327,6 @@ function GeneralSettings({ settings, updateSetting }) {
       />
 
       <div className="min-h-0 flex-1 overflow-auto p-5">
-        {/* SYSTEM INFORMATION */}
         <SettingsSection
           title="System Information"
           description="Identify the emergency management system and its operating barangay."
@@ -272,22 +369,22 @@ function GeneralSettings({ settings, updateSetting }) {
           </div>
         </SettingsSection>
 
-        {/* SYSTEM STATUS */}
-        <SettingsSection
-          title="System Behavior"
-          description="Control default behavior of the administrative dashboard."
-        >
-          <div className="space-y-3">
-            <ToggleRow
-              label="Automatic Data Refresh"
-              description="Keep dashboard information refreshed while personnel are monitoring operations."
-              enabled={settings.autoRefresh}
-              onChange={(value) => updateSetting("autoRefresh", value)}
-            />
-          </div>
-        </SettingsSection>
+        <div className="mt-4">
+          <SettingsSection
+            title="System Behavior"
+            description="Control default behavior of the administrative dashboard."
+          >
+            <div className="space-y-3">
+              <ToggleRow
+                label="Automatic Data Refresh"
+                description="Keep dashboard information refreshed while personnel are monitoring operations."
+                enabled={settings.autoRefresh}
+                onChange={(value) => updateSetting("autoRefresh", value)}
+              />
+            </div>
+          </SettingsSection>
+        </div>
 
-        {/* INFORMATION NOTE */}
         <div className="mt-4 rounded-xl border border-[#E4E7EC] bg-[#F9F7FF] p-4">
           <div className="flex items-start gap-3">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#EDE9FE] text-[#8346F2]">
@@ -300,9 +397,9 @@ function GeneralSettings({ settings, updateSetting }) {
               </p>
 
               <p className="mt-1 text-[11px] leading-5 text-[#667085]">
-                These controls currently represent the administrative
-                configuration interface. Persistent system settings will be
-                connected to the backend during API integration.
+                Changes will only be applied after clicking Save Changes.
+                Persistent system settings will be connected to the backend
+                during API integration.
               </p>
             </div>
           </div>
@@ -385,7 +482,6 @@ function RolesSettings({ personnel, selectedPersonnel, setSelectedPersonnel }) {
       />
 
       <div className="grid min-h-0 flex-1 grid-cols-1 xl:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.7fr)]">
-        {/* PERSONNEL LIST */}
         <div className="min-h-0 overflow-auto border-b border-[#E4E7EC] xl:border-b-0 xl:border-r">
           <div className="sticky top-0 z-10 border-b border-[#E4E7EC] bg-white px-4 py-3">
             <div className="flex items-center justify-between">
@@ -445,7 +541,6 @@ function RolesSettings({ personnel, selectedPersonnel, setSelectedPersonnel }) {
           </div>
         </div>
 
-        {/* PERSONNEL DETAILS */}
         <div className="min-h-0 overflow-auto p-4">
           {selectedPersonnel && (
             <>
@@ -534,7 +629,9 @@ function SectionHeader({ eyebrow, title, description }) {
         {eyebrow}
       </p>
 
-      <h2 className="mt-1 text-lg font-extrabold text-[#1F1D47]">{title}</h2>
+      <h2 className="mt-1 text-lg font-extrabold text-[#1F1D47]">
+        {title}
+      </h2>
 
       <p className="mt-1 text-xs text-[#667085]">{description}</p>
     </div>
@@ -547,7 +644,9 @@ function SettingsSection({ title, description, children }) {
       <div className="mb-4">
         <h3 className="text-sm font-bold text-[#344054]">{title}</h3>
 
-        <p className="mt-0.5 text-[11px] text-[#98A2B3]">{description}</p>
+        <p className="mt-0.5 text-[11px] text-[#98A2B3]">
+          {description}
+        </p>
       </div>
 
       {children}
@@ -579,7 +678,8 @@ function ToggleRow({
   onChange,
   accent = "default",
 }) {
-  const activeColor = accent === "critical" ? "bg-[#EF4444]" : "bg-[#8346F2]";
+  const activeColor =
+    accent === "critical" ? "bg-[#EF4444]" : "bg-[#8346F2]";
 
   return (
     <div className="flex items-center justify-between gap-4 rounded-xl border border-[#E4E7EC] bg-[#FCFCFD] p-3.5">
