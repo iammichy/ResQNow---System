@@ -1,5 +1,15 @@
 // src/components/resident/ReportDetail.jsx
-import { useNavigate, useParams } from 'react-router-dom';
+
+import {
+  useEffect,
+  useState,
+} from 'react';
+
+import {
+  useNavigate,
+  useParams,
+} from 'react-router-dom';
+
 import {
   ChevronLeft,
   Siren,
@@ -14,117 +24,238 @@ import {
   CheckCircle2,
   Users,
   HandHeart,
+  Loader2,
+  RefreshCw,
 } from 'lucide-react';
 
-import { mockAllReports } from '../../data/mockData';
-import { getStatusStyle, getPriorityStyle } from '../../utils/statusUtils';
+import {
+  getReport,
+} from '../../services/reportService';
+
+import {
+  getStatusStyle,
+  getPriorityStyle,
+} from '../../utils/statusUtils';
 
 // ============ TIMELINE STYLE ============
-// Returns semantic colors for completed timeline steps
 function getTimelineStyle(status) {
   switch (status) {
     case 'Submitted':
       return {
-        circle: 'bg-resqnow-info text-white',
-        line: 'bg-resqnow-info/30',
+        circle:
+          'bg-resqnow-info text-white',
+        line:
+          'bg-resqnow-info/30',
       };
 
     case 'Pending Verification':
       return {
-        circle: 'bg-resqnow-pending text-white',
-        line: 'bg-resqnow-pending/30',
+        circle:
+          'bg-resqnow-pending text-white',
+        line:
+          'bg-resqnow-pending/30',
       };
 
     case 'Verified':
       return {
-        circle: 'bg-resqnow-mint text-white',
-        line: 'bg-resqnow-mint/30',
+        circle:
+          'bg-resqnow-mint text-white',
+        line:
+          'bg-resqnow-mint/30',
       };
 
     case 'Assigned':
     case 'In Progress':
       return {
-        circle: 'bg-resqnow-insight text-white',
-        line: 'bg-resqnow-insight/30',
+        circle:
+          'bg-resqnow-insight text-white',
+        line:
+          'bg-resqnow-insight/30',
       };
 
     case 'Responders En Route':
       return {
-        circle: 'bg-resqnow-violet text-white',
-        line: 'bg-resqnow-violet/30',
+        circle:
+          'bg-resqnow-violet text-white',
+        line:
+          'bg-resqnow-violet/30',
       };
 
     case 'Responded':
       return {
-        circle: 'bg-resqnow-mint text-white',
-        line: 'bg-resqnow-mint/30',
+        circle:
+          'bg-resqnow-mint text-white',
+        line:
+          'bg-resqnow-mint/30',
       };
 
     case 'Resolved':
       return {
-        circle: 'bg-resqnow-safe text-white',
-        line: 'bg-resqnow-safe/30',
+        circle:
+          'bg-resqnow-safe text-white',
+        line:
+          'bg-resqnow-safe/30',
       };
 
     case 'Invalid':
       return {
-        circle: 'bg-resqnow-crimson text-white',
-        line: 'bg-resqnow-crimson/30',
+        circle:
+          'bg-resqnow-crimson text-white',
+        line:
+          'bg-resqnow-crimson/30',
       };
 
     default:
       return {
-        circle: 'bg-resqnow-violet text-white',
-        line: 'bg-resqnow-violet/30',
+        circle:
+          'bg-resqnow-violet text-white',
+        line:
+          'bg-resqnow-violet/30',
       };
   }
 }
 
 // ============ REPORT DETAIL ============
-// Full detail view of a single report
 export default function ReportDetail() {
-  const navigate = useNavigate();
-  const { reportId } = useParams();
+  const navigate =
+    useNavigate();
 
-  // Find the report using the ID from the URL
-  const report = mockAllReports.find(
-    (item) => item.id === reportId
-  );
+  const {
+    reportId,
+  } = useParams();
 
-  // ============ REPORT NOT FOUND ============
+  const [
+    report,
+    setReport,
+  ] = useState(null);
+
+  const [
+    isLoading,
+    setIsLoading,
+  ] = useState(true);
+
+  const [
+    loadError,
+    setLoadError,
+  ] = useState('');
+
+  // ============ LOAD REPORT ============
+  const loadReport =
+    async () => {
+      setIsLoading(true);
+      setLoadError('');
+
+      try {
+        const result =
+          await getReport(
+            reportId
+          );
+
+        setReport(result);
+      } catch (error) {
+        setReport(null);
+
+        if (
+          error.status === 404
+        ) {
+          setLoadError(
+            'The report you are looking for does not exist.'
+          );
+        } else {
+          setLoadError(
+            error.message ||
+              'Unable to load this report.'
+          );
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+  useEffect(() => {
+    loadReport();
+  }, [reportId]);
+
+  // ============ LOADING ============
+  if (isLoading) {
+    return (
+      <div className="px-4 pt-5 pb-28 min-h-screen">
+
+        <button
+          type="button"
+          onClick={() =>
+            navigate('/track')
+          }
+          className="flex items-center gap-1.5 text-[12px] font-medium text-resqnow-muted hover:text-resqnow-violet mb-6"
+        >
+          <ChevronLeft className="w-4 h-4" />
+
+          Back to Track
+        </button>
+
+        <div className="bg-white border border-resqnow-border-soft rounded-2xl py-14 px-6 text-center">
+
+          <Loader2 className="w-7 h-7 text-resqnow-violet animate-spin mx-auto" />
+
+          <p className="text-[12px] text-resqnow-muted mt-3">
+            Loading report...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ============ ERROR / NOT FOUND ============
   if (!report) {
     return (
       <div className="px-4 pt-5 pb-28 min-h-screen">
 
-        {/* Back */}
         <button
           type="button"
-          onClick={() => navigate('/track')}
+          onClick={() =>
+            navigate('/track')
+          }
           className="flex items-center gap-1.5 text-[12px] font-medium text-resqnow-muted hover:text-resqnow-violet active:scale-95 transition-all mb-6"
         >
           <ChevronLeft className="w-4 h-4" />
+
           Back to Track
         </button>
 
-        {/* Empty state */}
         <div className="bg-white border border-resqnow-border-soft rounded-2xl py-12 px-6 text-center">
 
           <div className="w-12 h-12 rounded-full bg-resqnow-canvas flex items-center justify-center mx-auto mb-3">
+
             <FileText className="w-6 h-6 text-resqnow-placeholder" />
           </div>
 
           <p className="text-sm font-semibold text-resqnow-primary">
-            Report not found
+            Report unavailable
           </p>
 
           <p className="text-[11px] text-resqnow-muted mt-1">
-            The report you are looking for does not exist.
+            {loadError ||
+              'The report could not be loaded.'}
           </p>
 
           <button
             type="button"
-            onClick={() => navigate('/track')}
-            className="mt-5 px-4 py-2.5 rounded-xl bg-brand-gradient text-white text-[12px] font-semibold active:scale-[0.98] transition-all"
+            onClick={
+              loadReport
+            }
+            className="mt-4 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-resqnow-violet/20 bg-resqnow-violet/5 text-resqnow-violet text-[11px] font-bold"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+
+            Try Again
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              navigate('/track')
+            }
+            className="mt-2 w-full px-4 py-2.5 rounded-xl bg-brand-gradient text-white text-[12px] font-semibold"
           >
             View My Reports
           </button>
@@ -133,28 +264,45 @@ export default function ReportDetail() {
     );
   }
 
-  // Report state helpers
-  const isEmergency = report.reportType === 'Emergency';
-  const isResolved = report.status === 'Resolved';
-  const isInvalid = report.status === 'Invalid';
+  // ============ REPORT STATE ============
+  const isEmergency =
+    report.reportType ===
+    'Emergency';
+
+  const isResolved =
+    report.status ===
+    'Resolved';
+
+  const isInvalid =
+    report.status ===
+    'Invalid';
+
+  const timeline =
+    Array.isArray(
+      report.timeline
+    )
+      ? report.timeline
+      : [];
 
   return (
     <div className="px-4 pt-5 pb-28 min-h-screen">
 
-      {/* ============ BACK BUTTON ============ */}
+      {/* ============ BACK ============ */}
       <button
         type="button"
-        onClick={() => navigate('/track')}
+        onClick={() =>
+          navigate('/track')
+        }
         className="flex items-center gap-1.5 text-[12px] font-medium text-resqnow-muted hover:text-resqnow-violet active:scale-95 transition-all mb-4"
       >
         <ChevronLeft className="w-4 h-4" />
+
         Back to Track
       </button>
 
       {/* ============ REPORT HEADER ============ */}
       <section className="bg-white border border-resqnow-border-soft rounded-2xl overflow-hidden mb-4">
 
-        {/* Emergency uses Red, non-emergency uses Brand */}
         <div
           className={`h-1 ${
             isEmergency
@@ -167,7 +315,6 @@ export default function ReportDetail() {
 
           <div className="flex items-start gap-3">
 
-            {/* Report icon */}
             <div
               className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
                 isEmergency
@@ -184,14 +331,12 @@ export default function ReportDetail() {
 
             <div className="flex-1 min-w-0">
 
-              {/* Report ID + type + priority */}
               <div className="flex items-center gap-2 flex-wrap">
 
                 <span className="text-[10px] font-bold text-resqnow-muted">
                   {report.id}
                 </span>
 
-                {/* Report type */}
                 <span
                   className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
                     isEmergency
@@ -202,25 +347,27 @@ export default function ReportDetail() {
                   {report.reportType}
                 </span>
 
-                {/* Priority */}
                 <span
                   className={`text-[9px] font-semibold px-2 py-0.5 rounded-full border ${getPriorityStyle(
                     report.priority
                   )}`}
                 >
-                  {report.priority} Priority
+                  {report.priority}{' '}
+                  Priority
                 </span>
               </div>
 
-              {/* Concern */}
               <h1 className="text-lg font-bold text-resqnow-primary mt-1">
-                {report.concernType}
+                {
+                  report.concernType
+                }
               </h1>
 
-              {/* Subcategory */}
               {report.subcategory && (
                 <p className="text-[11px] text-resqnow-muted mt-0.5">
-                  {report.subcategory}
+                  {
+                    report.subcategory
+                  }
                 </p>
               )}
             </div>
@@ -238,7 +385,6 @@ export default function ReportDetail() {
             : 'bg-white border-resqnow-border-soft'
         }`}
       >
-        {/* Status heading */}
         <p
           className={`text-[10px] font-bold uppercase tracking-wider ${
             isResolved
@@ -251,10 +397,8 @@ export default function ReportDetail() {
           Current Status
         </p>
 
-        {/* Status + update time */}
         <div className="flex items-center justify-between gap-3 mt-2">
 
-          {/* Shared status badge */}
           <span
             className={`text-[10px] font-bold px-3 py-1.5 rounded-full ${getStatusStyle(
               report.status
@@ -274,55 +418,52 @@ export default function ReportDetail() {
           >
             <Clock className="w-3.5 h-3.5" />
 
-            Updated {report.updatedAt}
+            Updated{' '}
+            {report.updatedAt}
           </div>
         </div>
 
-        {/* Latest update */}
         {report.latestUpdate && (
           <div
             className={`mt-4 rounded-xl p-3 ${
-              isResolved || isInvalid
+              isResolved ||
+              isInvalid
                 ? 'bg-white/70'
                 : 'bg-resqnow-canvas'
             }`}
           >
-            <p
-              className={`text-[9px] font-bold uppercase tracking-wide ${
-                isResolved
-                  ? 'text-resqnow-safe'
-                  : isInvalid
-                  ? 'text-resqnow-crimson'
-                  : 'text-resqnow-muted'
-              }`}
-            >
+            <p className="text-[9px] font-bold uppercase tracking-wide text-resqnow-muted">
               Latest Update
             </p>
 
             <p className="text-[12px] text-resqnow-secondary mt-1 leading-relaxed">
-              {report.latestUpdate}
+              {
+                report.latestUpdate
+              }
             </p>
           </div>
         )}
 
-        {/* Resolved remarks */}
-        {isResolved && report.resolvedRemarks && (
-          <div className="mt-3 pt-3 border-t border-resqnow-safe/20">
+        {isResolved &&
+          report.resolvedRemarks && (
+            <div className="mt-3 pt-3 border-t border-resqnow-safe/20">
 
-            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
 
-              <CheckCircle2 className="w-4 h-4 text-resqnow-safe" />
+                <CheckCircle2 className="w-4 h-4 text-resqnow-safe" />
 
-              <p className="text-[9px] font-bold uppercase tracking-wide text-resqnow-safe">
-                Resolution Remarks
+                <p className="text-[9px] font-bold uppercase tracking-wide text-resqnow-safe">
+                  Resolution Remarks
+                </p>
+              </div>
+
+              <p className="text-[12px] text-resqnow-secondary mt-1.5 leading-relaxed">
+                {
+                  report.resolvedRemarks
+                }
               </p>
             </div>
-
-            <p className="text-[12px] text-resqnow-secondary mt-1.5 leading-relaxed">
-              {report.resolvedRemarks}
-            </p>
-          </div>
-        )}
+          )}
       </section>
 
       {/* ============ REPORT PROGRESS ============ */}
@@ -332,77 +473,96 @@ export default function ReportDetail() {
           Report Progress
         </h2>
 
-        <div>
-          {report.timeline.map((step, index) => {
-            const isLast =
-              index === report.timeline.length - 1;
+        {timeline.length > 0 ? (
+          <div>
 
-            // Get correct status color
-            const timelineStyle =
-              getTimelineStyle(step.status);
+            {timeline.map(
+              (
+                step,
+                index
+              ) => {
+                const isLast =
+                  index ===
+                  timeline.length -
+                    1;
 
-            return (
-              <div
-                key={step.status}
-                className="flex gap-3"
-              >
-                {/* Timeline line + circle */}
-                <div className="flex flex-col items-center">
+                const timelineStyle =
+                  getTimelineStyle(
+                    step.status
+                  );
 
-                  {/* Status circle */}
+                return (
                   <div
-                    className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
-                      step.done
-                        ? timelineStyle.circle
-                        : 'bg-resqnow-canvas text-resqnow-placeholder border border-resqnow-border-soft'
-                    }`}
+                    key={`${step.status}-${index}`}
+                    className="flex gap-3"
                   >
-                    {step.done ? (
-                      <Check
-                        className="w-4 h-4"
-                        strokeWidth={3}
-                      />
-                    ) : (
-                      <Circle className="w-3 h-3" />
-                    )}
-                  </div>
 
-                  {/* Connecting line */}
-                  {!isLast && (
+                    <div className="flex flex-col items-center">
+
+                      <div
+                        className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
+                          step.done
+                            ? timelineStyle.circle
+                            : 'bg-resqnow-canvas text-resqnow-placeholder border border-resqnow-border-soft'
+                        }`}
+                      >
+                        {step.done ? (
+                          <Check
+                            className="w-4 h-4"
+                            strokeWidth={
+                              3
+                            }
+                          />
+                        ) : (
+                          <Circle className="w-3 h-3" />
+                        )}
+                      </div>
+
+                      {!isLast && (
+                        <div
+                          className={`w-0.5 min-h-[46px] flex-1 ${
+                            step.done
+                              ? timelineStyle.line
+                              : 'bg-resqnow-border-soft'
+                          }`}
+                        />
+                      )}
+                    </div>
+
                     <div
-                      className={`w-0.5 min-h-[46px] flex-1 ${
-                        step.done
-                          ? timelineStyle.line
-                          : 'bg-resqnow-border-soft'
+                      className={`flex-1 ${
+                        isLast
+                          ? ''
+                          : 'pb-5'
                       }`}
-                    />
-                  )}
-                </div>
+                    >
+                      <p
+                        className={`text-[12px] font-semibold ${
+                          step.done
+                            ? 'text-resqnow-primary'
+                            : 'text-resqnow-muted'
+                        }`}
+                      >
+                        {
+                          step.status
+                        }
+                      </p>
 
-                {/* Status information */}
-                <div
-                  className={`flex-1 ${
-                    isLast ? '' : 'pb-5'
-                  }`}
-                >
-                  <p
-                    className={`text-[12px] font-semibold ${
-                      step.done
-                        ? 'text-resqnow-primary'
-                        : 'text-resqnow-muted'
-                    }`}
-                  >
-                    {step.status}
-                  </p>
-
-                  <p className="text-[10px] text-resqnow-muted mt-0.5">
-                    {step.date || 'Waiting for update'}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                      <p className="text-[10px] text-resqnow-muted mt-0.5">
+                        {step.date ||
+                          'Waiting for update'}
+                      </p>
+                    </div>
+                  </div>
+                );
+              }
+            )}
+          </div>
+        ) : (
+          <p className="text-[11px] text-resqnow-muted">
+            No status updates are available yet.
+          </p>
+        )}
       </section>
 
       {/* ============ ASSIGNED PERSONNEL ============ */}
@@ -420,14 +580,17 @@ export default function ReportDetail() {
         {report.assignedPersonnel ? (
           <div className="flex items-center gap-3 bg-resqnow-insight/5 border border-resqnow-insight/10 rounded-xl p-3">
 
-            {/* Personnel icon */}
             <div className="w-9 h-9 rounded-full bg-resqnow-insight/15 text-resqnow-insight flex items-center justify-center">
+
               <UserRound className="w-4 h-4" />
             </div>
 
             <div>
+
               <p className="text-[12px] font-semibold text-resqnow-primary">
-                {report.assignedPersonnel}
+                {
+                  report.assignedPersonnel
+                }
               </p>
 
               <p className="text-[10px] text-resqnow-muted mt-0.5">
@@ -465,7 +628,15 @@ export default function ReportDetail() {
 
           {report.landmark && (
             <p className="text-[11px] text-resqnow-muted mt-1">
-              Landmark: {report.landmark}
+              Landmark:{' '}
+              {report.landmark}
+            </p>
+          )}
+
+          {report.purok && (
+            <p className="text-[11px] text-resqnow-muted mt-1">
+              Purok:{' '}
+              {report.purok}
             </p>
           )}
         </div>
@@ -483,33 +654,42 @@ export default function ReportDetail() {
           </h2>
         </div>
 
-        {/* Main report information */}
         <InfoRow
           label="Submitted"
-          value={report.submittedAt}
+          value={
+            report.submittedAt
+          }
         />
 
         <InfoRow
           label="Report Type"
-          value={report.reportType}
+          value={
+            report.reportType
+          }
         />
 
         <InfoRow
           label="Concern"
-          value={report.concernType}
+          value={
+            report.concernType
+          }
         />
 
         {report.subcategory && (
           <InfoRow
             label="Subcategory"
-            value={report.subcategory}
+            value={
+              report.subcategory
+            }
           />
         )}
 
         {report.reportingFor && (
           <InfoRow
             label="Reporting For"
-            value={report.reportingFor}
+            value={
+              report.reportingFor
+            }
           />
         )}
 
@@ -526,7 +706,7 @@ export default function ReportDetail() {
           </p>
         </div>
 
-        {/* Assistance needed */}
+        {/* Assistance */}
         {report.requiredAssistance && (
           <div className="mt-4 pt-4 border-t border-resqnow-border-soft">
 
@@ -540,13 +720,16 @@ export default function ReportDetail() {
             </div>
 
             <p className="text-[12px] text-resqnow-secondary mt-1.5 leading-relaxed">
-              {report.requiredAssistance}
+              {
+                report.requiredAssistance
+              }
             </p>
           </div>
         )}
 
         {/* Affected individuals */}
-        {report.affectedIndividuals?.length > 0 && (
+        {report.affectedIndividuals
+          ?.length > 0 && (
           <div className="mt-4 pt-4 border-t border-resqnow-border-soft">
 
             <div className="flex items-center gap-2 mb-2">
@@ -574,34 +757,64 @@ export default function ReportDetail() {
           </div>
         )}
 
-        {/* Victim information */}
-        {(report.victimName ||
-          report.victimContact) && (
+        {/* Person / victim */}
+        {(report.subjectName ||
+          report.subjectContact) && (
           <div className="mt-4 pt-4 border-t border-resqnow-border-soft">
 
             <p className="text-[10px] font-bold text-resqnow-muted uppercase tracking-wide mb-2">
-              Victim Information
+              Person Information
             </p>
 
-            {report.victimName && (
+            {report.subjectName && (
               <InfoRow
                 label="Name"
-                value={report.victimName}
+                value={
+                  report.subjectName
+                }
               />
             )}
 
-            {report.victimContact && (
+            {report.subjectContact && (
               <InfoRow
                 label="Contact"
-                value={report.victimContact}
+                value={
+                  report.subjectContact
+                }
               />
             )}
+
+            {report.relationshipNote && (
+              <InfoRow
+                label="Relationship / Note"
+                value={
+                  report.relationshipNote
+                }
+              />
+            )}
+          </div>
+        )}
+
+        {/* Photo */}
+        {report.photoUrl && (
+          <div className="mt-4 pt-4 border-t border-resqnow-border-soft">
+
+            <p className="text-[10px] font-bold text-resqnow-muted uppercase tracking-wide mb-2">
+              Photo Evidence
+            </p>
+
+            <img
+              src={
+                report.photoUrl
+              }
+              alt="Report evidence"
+              className="w-full max-h-64 object-cover rounded-xl border border-resqnow-border-soft"
+            />
           </div>
         )}
       </section>
 
       {/* ============ BARANGAY REMARKS ============ */}
-      {/* Remarks are informational, so use Info Blue */}
       <section className="bg-white border border-resqnow-border-soft rounded-2xl p-4 mb-4">
 
         <div className="flex items-center gap-2 mb-3">
@@ -617,7 +830,9 @@ export default function ReportDetail() {
           <div className="bg-resqnow-info/5 border border-resqnow-info/10 rounded-xl p-3">
 
             <p className="text-[12px] text-resqnow-secondary leading-relaxed">
-              {report.barangayRemarks}
+              {
+                report.barangayRemarks
+              }
             </p>
           </div>
         ) : (
@@ -630,7 +845,7 @@ export default function ReportDetail() {
         )}
       </section>
 
-      {/* ============ INVALID REPORT ============ */}
+      {/* ============ INVALID ============ */}
       {report.invalidReason && (
         <section className="bg-resqnow-crimson/10 border border-resqnow-crimson/20 rounded-2xl p-4">
 
@@ -648,7 +863,9 @@ export default function ReportDetail() {
           </p>
 
           <p className="text-[12px] text-resqnow-secondary mt-1 leading-relaxed">
-            {report.invalidReason}
+            {
+              report.invalidReason
+            }
           </p>
         </section>
       )}
@@ -657,8 +874,10 @@ export default function ReportDetail() {
 }
 
 // ============ INFO ROW ============
-// Small row for report information
-function InfoRow({ label, value }) {
+function InfoRow({
+  label,
+  value,
+}) {
   return (
     <div className="flex items-start justify-between gap-4 py-2 border-b border-resqnow-border-soft last:border-0">
 
@@ -667,7 +886,8 @@ function InfoRow({ label, value }) {
       </span>
 
       <span className="text-[11px] font-medium text-resqnow-primary text-right">
-        {value || 'Not provided'}
+        {value ||
+          'Not provided'}
       </span>
     </div>
   );
