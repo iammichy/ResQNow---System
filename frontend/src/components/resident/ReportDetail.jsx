@@ -1,6 +1,7 @@
 // src/components/resident/ReportDetail.jsx
 
 import {
+  useCallback,
   useEffect,
   useState,
 } from 'react';
@@ -26,6 +27,7 @@ import {
   HandHeart,
   Loader2,
   RefreshCw,
+  AlertCircle,
 } from 'lucide-react';
 
 import {
@@ -38,6 +40,7 @@ import {
 } from '../../utils/statusUtils';
 
 // ============ TIMELINE STYLE ============
+
 function getTimelineStyle(status) {
   switch (status) {
     case 'Submitted':
@@ -116,6 +119,7 @@ function getTimelineStyle(status) {
 }
 
 // ============ REPORT DETAIL ============
+
 export default function ReportDetail() {
   const navigate =
     useNavigate();
@@ -123,6 +127,8 @@ export default function ReportDetail() {
   const {
     reportId,
   } = useParams();
+
+  // ============ REPORT STATE ============
 
   const [
     report,
@@ -135,49 +141,118 @@ export default function ReportDetail() {
   ] = useState(true);
 
   const [
+    isRefreshing,
+    setIsRefreshing,
+  ] = useState(false);
+
+  const [
     loadError,
     setLoadError,
   ] = useState('');
 
+  const [
+    lastChecked,
+    setLastChecked,
+  ] = useState(null);
+
   // ============ LOAD REPORT ============
+
   const loadReport =
-    async () => {
-      setIsLoading(true);
-      setLoadError('');
-
-      try {
-        const result =
-          await getReport(
-            reportId
-          );
-
-        setReport(result);
-      } catch (error) {
-        setReport(null);
-
-        if (
-          error.status === 404
-        ) {
-          setLoadError(
-            'The report you are looking for does not exist.'
-          );
+    useCallback(
+      async ({
+        refresh = false,
+      } = {}) => {
+        if (refresh) {
+          setIsRefreshing(true);
         } else {
-          setLoadError(
-            error.message ||
-              'Unable to load this report.'
-          );
+          setIsLoading(true);
         }
-      } finally {
-        setIsLoading(false);
-      }
-    };
+
+        setLoadError('');
+
+        try {
+          const result =
+            await getReport(
+              reportId
+            );
+
+          setReport(result);
+
+          setLastChecked(
+            new Date()
+          );
+        } catch (error) {
+          /**
+           * 404 means the report really
+           * could not be found for this resident.
+           *
+           * In that case we should stop showing
+           * an old/stale report.
+           */
+          if (
+            error?.status === 404
+          ) {
+            setReport(null);
+
+            setLoadError(
+              'The report you are looking for does not exist or is no longer available.'
+            );
+          } else {
+            /**
+             * For temporary network/server
+             * failures, keep the last successful
+             * report on screen.
+             */
+            setLoadError(
+              error?.message ||
+                'Unable to load this report.'
+            );
+          }
+        } finally {
+          setIsLoading(false);
+          setIsRefreshing(false);
+        }
+      },
+      [reportId]
+    );
+
+  // ============ INITIAL LOAD ============
 
   useEffect(() => {
-    loadReport();
-  }, [reportId]);
+    /**
+     * Clear the previous report when
+     * navigating to a different report ID.
+     */
+    setReport(null);
+    setLastChecked(null);
+    setLoadError('');
 
-  // ============ LOADING ============
-  if (isLoading) {
+    loadReport();
+  }, [
+    reportId,
+    loadReport,
+  ]);
+
+  // ============ LAST CHECKED ============
+
+  const lastCheckedText =
+    lastChecked
+      ? lastChecked.toLocaleTimeString(
+          'en-PH',
+          {
+            hour: 'numeric',
+            minute: '2-digit',
+            second: '2-digit',
+          }
+        )
+      : '';
+
+  // ============ INITIAL LOADING ============
+
+  if (
+    isLoading &&
+    !report
+  ) {
     return (
       <div className="px-4 pt-5 pb-28 min-h-screen">
 
@@ -205,7 +280,8 @@ export default function ReportDetail() {
     );
   }
 
-  // ============ ERROR / NOT FOUND ============
+  // ============ REPORT UNAVAILABLE ============
+
   if (!report) {
     return (
       <div className="px-4 pt-5 pb-28 min-h-screen">
@@ -229,23 +305,30 @@ export default function ReportDetail() {
             <FileText className="w-6 h-6 text-resqnow-placeholder" />
           </div>
 
-          <p className="text-sm font-semibold text-resqnow-primary">
+          <p className="text-[15px] font-semibold text-resqnow-primary">
             Report unavailable
           </p>
 
-          <p className="text-[11px] text-resqnow-muted mt-1">
+          <p className="text-[12px] text-resqnow-muted mt-1 leading-relaxed">
             {loadError ||
               'The report could not be loaded.'}
           </p>
 
           <button
             type="button"
-            onClick={
-              loadReport
+            onClick={() =>
+              loadReport()
             }
-            className="mt-4 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-resqnow-violet/20 bg-resqnow-violet/5 text-resqnow-violet text-[11px] font-bold"
+            disabled={
+              isLoading
+            }
+            className="mt-4 min-h-[44px] inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-resqnow-violet/20 bg-resqnow-violet/5 text-resqnow-violet text-[12px] font-bold disabled:opacity-50"
           >
-            <RefreshCw className="w-3.5 h-3.5" />
+            {isLoading ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <RefreshCw className="w-3.5 h-3.5" />
+            )}
 
             Try Again
           </button>
@@ -255,7 +338,7 @@ export default function ReportDetail() {
             onClick={() =>
               navigate('/track')
             }
-            className="mt-2 w-full px-4 py-2.5 rounded-xl bg-brand-gradient text-white text-[12px] font-semibold"
+            className="mt-2 w-full min-h-[44px] px-4 py-2.5 rounded-xl bg-brand-gradient text-white text-[13px] font-semibold"
           >
             View My Reports
           </button>
@@ -265,6 +348,7 @@ export default function ReportDetail() {
   }
 
   // ============ REPORT STATE ============
+
   const isEmergency =
     report.reportType ===
     'Emergency';
@@ -287,18 +371,103 @@ export default function ReportDetail() {
   return (
     <div className="px-4 pt-5 pb-28 min-h-screen">
 
-      {/* ============ BACK ============ */}
-      <button
-        type="button"
-        onClick={() =>
-          navigate('/track')
-        }
-        className="flex items-center gap-1.5 text-[12px] font-medium text-resqnow-muted hover:text-resqnow-violet active:scale-95 transition-all mb-4"
-      >
-        <ChevronLeft className="w-4 h-4" />
+      {/* ============ TOP BAR ============ */}
+      <div className="flex items-start justify-between gap-3 mb-4">
 
-        Back to Track
-      </button>
+        <div>
+
+          <button
+            type="button"
+            onClick={() =>
+              navigate('/track')
+            }
+            className="flex items-center gap-1.5 text-[12px] font-medium text-resqnow-muted hover:text-resqnow-violet active:scale-95 transition-all"
+          >
+            <ChevronLeft className="w-4 h-4" />
+
+            Back to Track
+          </button>
+
+          <p className="text-[11px] text-resqnow-muted mt-1.5 ml-1">
+
+            {isRefreshing
+              ? 'Refreshing report...'
+              : lastCheckedText
+              ? `Last checked ${lastCheckedText}`
+              : 'Checking report...'}
+          </p>
+        </div>
+
+        {/* Normal refresh control */}
+        <button
+          type="button"
+          onClick={() =>
+            loadReport({
+              refresh: true,
+            })
+          }
+          disabled={
+            isRefreshing
+          }
+          aria-label="Refresh report"
+          className="w-10 h-10 rounded-xl border border-resqnow-violet/15 bg-resqnow-violet/5 text-resqnow-violet flex items-center justify-center shrink-0 hover:bg-resqnow-violet/10 disabled:opacity-50 active:scale-95 transition-all"
+        >
+          {isRefreshing ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <RefreshCw className="w-4 h-4" />
+          )}
+        </button>
+      </div>
+
+      {/* ============ REFRESH ERROR ============ */}
+      {loadError && (
+        <div
+          role="alert"
+          className="mb-4 bg-resqnow-critical/10 border border-resqnow-critical/20 rounded-xl p-3"
+        >
+          <div className="flex items-start gap-2.5">
+
+            <AlertCircle className="w-4 h-4 text-resqnow-critical mt-0.5 shrink-0" />
+
+            <div className="flex-1">
+
+              <p className="text-[12px] font-semibold text-resqnow-crimson">
+                Could not refresh this report
+              </p>
+
+              <p className="text-[12px] text-resqnow-secondary mt-1 leading-relaxed">
+                {loadError}
+              </p>
+
+              <p className="text-[11px] text-resqnow-muted mt-1">
+                Showing the last successfully loaded information.
+              </p>
+
+              <button
+                type="button"
+                onClick={() =>
+                  loadReport({
+                    refresh: true,
+                  })
+                }
+                disabled={
+                  isRefreshing
+                }
+                className="mt-3 min-h-[40px] px-3 py-2 rounded-lg border border-resqnow-critical/20 bg-white text-resqnow-crimson text-[12px] font-semibold flex items-center gap-2 disabled:opacity-60"
+              >
+                {isRefreshing ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-3.5 h-3.5" />
+                )}
+
+                Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ============ REPORT HEADER ============ */}
       <section className="bg-white border border-resqnow-border-soft rounded-2xl overflow-hidden mb-4">
@@ -333,12 +502,12 @@ export default function ReportDetail() {
 
               <div className="flex items-center gap-2 flex-wrap">
 
-                <span className="text-[10px] font-bold text-resqnow-muted">
+                <span className="text-[11px] font-bold text-resqnow-muted">
                   {report.id}
                 </span>
 
                 <span
-                  className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                     isEmergency
                       ? 'bg-resqnow-critical/15 text-resqnow-critical'
                       : 'bg-resqnow-violet/15 text-resqnow-violet'
@@ -347,14 +516,16 @@ export default function ReportDetail() {
                   {report.reportType}
                 </span>
 
-                <span
-                  className={`text-[9px] font-semibold px-2 py-0.5 rounded-full border ${getPriorityStyle(
-                    report.priority
-                  )}`}
-                >
-                  {report.priority}{' '}
-                  Priority
-                </span>
+                {report.priority && (
+                  <span
+                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${getPriorityStyle(
+                      report.priority
+                    )}`}
+                  >
+                    {report.priority}{' '}
+                    Priority
+                  </span>
+                )}
               </div>
 
               <h1 className="text-lg font-bold text-resqnow-primary mt-1">
@@ -364,7 +535,7 @@ export default function ReportDetail() {
               </h1>
 
               {report.subcategory && (
-                <p className="text-[11px] text-resqnow-muted mt-0.5">
+                <p className="text-[12px] text-resqnow-muted mt-0.5">
                   {
                     report.subcategory
                   }
@@ -385,8 +556,9 @@ export default function ReportDetail() {
             : 'bg-white border-resqnow-border-soft'
         }`}
       >
+
         <p
-          className={`text-[10px] font-bold uppercase tracking-wider ${
+          className={`text-[11px] font-bold uppercase tracking-wider ${
             isResolved
               ? 'text-resqnow-safe'
               : isInvalid
@@ -407,20 +579,22 @@ export default function ReportDetail() {
             {report.status}
           </span>
 
-          <div
-            className={`flex items-center gap-1 text-[10px] ${
-              isResolved
-                ? 'text-resqnow-safe'
-                : isInvalid
-                ? 'text-resqnow-crimson'
-                : 'text-resqnow-muted'
-            }`}
-          >
-            <Clock className="w-3.5 h-3.5" />
+          {report.updatedAt && (
+            <div
+              className={`flex items-center gap-1 text-[10px] ${
+                isResolved
+                  ? 'text-resqnow-safe'
+                  : isInvalid
+                  ? 'text-resqnow-crimson'
+                  : 'text-resqnow-muted'
+              }`}
+            >
+              <Clock className="w-3.5 h-3.5" />
 
-            Updated{' '}
-            {report.updatedAt}
-          </div>
+              Updated{' '}
+              {report.updatedAt}
+            </div>
+          )}
         </div>
 
         {report.latestUpdate && (
@@ -432,7 +606,7 @@ export default function ReportDetail() {
                 : 'bg-resqnow-canvas'
             }`}
           >
-            <p className="text-[9px] font-bold uppercase tracking-wide text-resqnow-muted">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-resqnow-muted">
               Latest Update
             </p>
 
@@ -452,7 +626,7 @@ export default function ReportDetail() {
 
                 <CheckCircle2 className="w-4 h-4 text-resqnow-safe" />
 
-                <p className="text-[9px] font-bold uppercase tracking-wide text-resqnow-safe">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-resqnow-safe">
                   Resolution Remarks
                 </p>
               </div>
@@ -469,7 +643,7 @@ export default function ReportDetail() {
       {/* ============ REPORT PROGRESS ============ */}
       <section className="bg-white border border-resqnow-border-soft rounded-2xl p-4 mb-4">
 
-        <h2 className="text-sm font-bold text-resqnow-primary mb-4">
+        <h2 className="text-[15px] font-bold text-resqnow-primary mb-4">
           Report Progress
         </h2>
 
@@ -536,6 +710,7 @@ export default function ReportDetail() {
                           : 'pb-5'
                       }`}
                     >
+
                       <p
                         className={`text-[12px] font-semibold ${
                           step.done
@@ -548,7 +723,7 @@ export default function ReportDetail() {
                         }
                       </p>
 
-                      <p className="text-[10px] text-resqnow-muted mt-0.5">
+                      <p className="text-[11px] text-resqnow-muted mt-0.5">
                         {step.date ||
                           'Waiting for update'}
                       </p>
@@ -559,7 +734,7 @@ export default function ReportDetail() {
             )}
           </div>
         ) : (
-          <p className="text-[11px] text-resqnow-muted">
+          <p className="text-[12px] text-resqnow-muted">
             No status updates are available yet.
           </p>
         )}
@@ -572,7 +747,7 @@ export default function ReportDetail() {
 
           <UserRound className="w-4 h-4 text-resqnow-insight" />
 
-          <h2 className="text-sm font-bold text-resqnow-primary">
+          <h2 className="text-[15px] font-bold text-resqnow-primary">
             Assigned Personnel
           </h2>
         </div>
@@ -593,7 +768,7 @@ export default function ReportDetail() {
                 }
               </p>
 
-              <p className="text-[10px] text-resqnow-muted mt-0.5">
+              <p className="text-[11px] text-resqnow-muted mt-0.5">
                 Assigned to this report
               </p>
             </div>
@@ -601,7 +776,7 @@ export default function ReportDetail() {
         ) : (
           <div className="bg-resqnow-canvas rounded-xl p-3">
 
-            <p className="text-[11px] text-resqnow-muted">
+            <p className="text-[12px] text-resqnow-muted">
               No personnel has been assigned yet.
             </p>
           </div>
@@ -615,15 +790,16 @@ export default function ReportDetail() {
 
           <MapPin className="w-4 h-4 text-resqnow-violet" />
 
-          <h2 className="text-sm font-bold text-resqnow-primary">
+          <h2 className="text-[15px] font-bold text-resqnow-primary">
             Incident Location
           </h2>
         </div>
 
         <div className="bg-resqnow-canvas rounded-xl p-3">
 
-          <p className="text-[12px] font-semibold text-resqnow-primary">
-            {report.location}
+          <p className="text-[12px] font-semibold text-resqnow-primary leading-relaxed">
+            {report.location ||
+              'No location provided.'}
           </p>
 
           {report.landmark && (
@@ -649,7 +825,7 @@ export default function ReportDetail() {
 
           <FileText className="w-4 h-4 text-resqnow-violet" />
 
-          <h2 className="text-sm font-bold text-resqnow-primary">
+          <h2 className="text-[15px] font-bold text-resqnow-primary">
             Report Information
           </h2>
         </div>
@@ -693,20 +869,20 @@ export default function ReportDetail() {
           />
         )}
 
-        {/* Description */}
+        {/* DESCRIPTION */}
         <div className="mt-4 pt-4 border-t border-resqnow-border-soft">
 
-          <p className="text-[10px] font-bold text-resqnow-muted uppercase tracking-wide">
+          <p className="text-[11px] font-bold text-resqnow-muted uppercase tracking-wide">
             Description
           </p>
 
-          <p className="text-[12px] text-resqnow-secondary mt-1.5 leading-relaxed">
+          <p className="text-[12px] text-resqnow-secondary mt-1.5 leading-relaxed break-words">
             {report.description ||
               'No description provided.'}
           </p>
         </div>
 
-        {/* Assistance */}
+        {/* ASSISTANCE */}
         {report.requiredAssistance && (
           <div className="mt-4 pt-4 border-t border-resqnow-border-soft">
 
@@ -714,12 +890,12 @@ export default function ReportDetail() {
 
               <HandHeart className="w-4 h-4 text-resqnow-violet" />
 
-              <p className="text-[10px] font-bold text-resqnow-muted uppercase tracking-wide">
+              <p className="text-[11px] font-bold text-resqnow-muted uppercase tracking-wide">
                 Assistance Needed
               </p>
             </div>
 
-            <p className="text-[12px] text-resqnow-secondary mt-1.5 leading-relaxed">
+            <p className="text-[12px] text-resqnow-secondary mt-1.5 leading-relaxed break-words">
               {
                 report.requiredAssistance
               }
@@ -727,7 +903,7 @@ export default function ReportDetail() {
           </div>
         )}
 
-        {/* Affected individuals */}
+        {/* AFFECTED INDIVIDUALS */}
         {report.affectedIndividuals
           ?.length > 0 && (
           <div className="mt-4 pt-4 border-t border-resqnow-border-soft">
@@ -736,7 +912,7 @@ export default function ReportDetail() {
 
               <Users className="w-4 h-4 text-resqnow-violet" />
 
-              <p className="text-[10px] font-bold text-resqnow-muted uppercase tracking-wide">
+              <p className="text-[11px] font-bold text-resqnow-muted uppercase tracking-wide">
                 Affected Individuals
               </p>
             </div>
@@ -747,7 +923,7 @@ export default function ReportDetail() {
                 (person) => (
                   <span
                     key={person}
-                    className="text-[10px] font-medium px-2.5 py-1 bg-resqnow-violet/10 text-resqnow-violet rounded-full"
+                    className="text-[11px] font-medium px-2.5 py-1 bg-resqnow-violet/10 text-resqnow-violet rounded-full"
                   >
                     {person}
                   </span>
@@ -757,12 +933,12 @@ export default function ReportDetail() {
           </div>
         )}
 
-        {/* Person / victim */}
+        {/* PERSON / VICTIM */}
         {(report.subjectName ||
           report.subjectContact) && (
           <div className="mt-4 pt-4 border-t border-resqnow-border-soft">
 
-            <p className="text-[10px] font-bold text-resqnow-muted uppercase tracking-wide mb-2">
+            <p className="text-[11px] font-bold text-resqnow-muted uppercase tracking-wide mb-2">
               Person Information
             </p>
 
@@ -795,11 +971,11 @@ export default function ReportDetail() {
           </div>
         )}
 
-        {/* Photo */}
+        {/* PHOTO */}
         {report.photoUrl && (
           <div className="mt-4 pt-4 border-t border-resqnow-border-soft">
 
-            <p className="text-[10px] font-bold text-resqnow-muted uppercase tracking-wide mb-2">
+            <p className="text-[11px] font-bold text-resqnow-muted uppercase tracking-wide mb-2">
               Photo Evidence
             </p>
 
@@ -821,7 +997,7 @@ export default function ReportDetail() {
 
           <MessageSquareText className="w-4 h-4 text-resqnow-info" />
 
-          <h2 className="text-sm font-bold text-resqnow-primary">
+          <h2 className="text-[15px] font-bold text-resqnow-primary">
             Barangay Remarks
           </h2>
         </div>
@@ -838,14 +1014,14 @@ export default function ReportDetail() {
         ) : (
           <div className="bg-resqnow-canvas rounded-xl p-3">
 
-            <p className="text-[11px] text-resqnow-muted">
+            <p className="text-[12px] text-resqnow-muted">
               No barangay remarks available yet.
             </p>
           </div>
         )}
       </section>
 
-      {/* ============ INVALID ============ */}
+      {/* ============ INVALID REPORT ============ */}
       {report.invalidReason && (
         <section className="bg-resqnow-crimson/10 border border-resqnow-crimson/20 rounded-2xl p-4">
 
@@ -853,12 +1029,12 @@ export default function ReportDetail() {
 
             <AlertTriangle className="w-5 h-5 text-resqnow-crimson" />
 
-            <h2 className="text-sm font-bold text-resqnow-crimson">
+            <h2 className="text-[15px] font-bold text-resqnow-crimson">
               Report Marked Invalid
             </h2>
           </div>
 
-          <p className="text-[10px] font-bold text-resqnow-crimson uppercase tracking-wide">
+          <p className="text-[11px] font-bold text-resqnow-crimson uppercase tracking-wide">
             Reason
           </p>
 
@@ -874,18 +1050,19 @@ export default function ReportDetail() {
 }
 
 // ============ INFO ROW ============
+
 function InfoRow({
   label,
   value,
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 py-2 border-b border-resqnow-border-soft last:border-0">
+    <div className="flex items-start justify-between gap-4 py-2.5 border-b border-resqnow-border-soft last:border-0">
 
-      <span className="text-[11px] text-resqnow-muted">
+      <span className="text-[12px] text-resqnow-muted shrink-0">
         {label}
       </span>
 
-      <span className="text-[11px] font-medium text-resqnow-primary text-right">
+      <span className="text-[12px] font-medium text-resqnow-primary text-right break-words">
         {value ||
           'Not provided'}
       </span>

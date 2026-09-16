@@ -1,6 +1,9 @@
 <?php
 
+namespace App\Http\Controllers\Api;
+
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ReportController;
 use Illuminate\Support\Facades\Route;
 
@@ -18,6 +21,19 @@ Route::post(
     [AuthController::class, 'login']
 )->middleware('throttle:10,1');
 
+// Request password reset instructions
+Route::post(
+    '/forgot-password',
+    [AuthController::class, 'forgotPassword']
+)->middleware('throttle:5,1');
+
+// Reset password using a valid reset token
+Route::post(
+    '/reset-password',
+    [AuthController::class, 'resetPassword']
+)->middleware('throttle:5,1');
+
+
 // ============ AUTHENTICATED ROUTES ============
 Route::middleware('auth:sanctum')->group(function () {
 
@@ -29,11 +45,27 @@ Route::middleware('auth:sanctum')->group(function () {
         [AuthController::class, 'user']
     );
 
+    // Change authenticated resident password
+    Route::post(
+        '/change-password',
+        [AuthController::class, 'changePassword']
+    )->middleware('throttle:5,1');
+
     // Logout resident
     Route::post(
         '/logout',
         [AuthController::class, 'logout']
     );
+
+
+    // ============ RESIDENT PROFILE ============
+
+    // Update the logged-in resident profile
+    Route::put(
+        '/profile',
+        [ProfileController::class, 'update']
+    )->middleware('throttle:10,1');
+
 
     // ============ RESIDENT REPORTS ============
 
@@ -65,5 +97,7 @@ Route::middleware('auth:sanctum')->group(function () {
     );
 });
 
-// Contact directory routes
+
+// ============ CONTACT DIRECTORY ROUTES ============
+
 require __DIR__.'/contacts.php';

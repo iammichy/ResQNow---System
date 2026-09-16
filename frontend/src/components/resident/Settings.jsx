@@ -1,4 +1,5 @@
 // src/components/resident/Settings.jsx
+import { apiRequest, getCsrfCookie } from '../../services/api';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -26,6 +27,7 @@ import {
   Minus,
   Plus,
   LogOut,
+  Loader2,
 } from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext';
@@ -88,6 +90,7 @@ export default function Settings() {
   // Profile feedback
   const [profileError, setProfileError] = useState('');
   const [profileSaved, setProfileSaved] = useState(false);
+  const [isProfileSaving, setIsProfileSaving] = useState(false);
 
   // Password state
   const [currentPassword, setCurrentPassword] = useState('');
@@ -96,6 +99,7 @@ export default function Settings() {
   const [showPasswords, setShowPasswords] = useState(false);
   const [passwordError, setPasswordError] = useState('');
   const [passwordSaved, setPasswordSaved] = useState(false);
+  const [isPasswordSaving, setIsPasswordSaving] = useState(false);
 
   // Notification preferences
   const [notifications, setNotifications] = useState({
@@ -143,77 +147,231 @@ export default function Settings() {
 
   // ============ PROFILE ============
   // Validate and save resident profile
-  const handleProfileSave = () => {
-    setProfileError('');
-    setProfileSaved(false);
+  const handleProfileSave = async () => {
+  if (isProfileSaving) {
+    return;
+  }
 
-    if (!fullName.trim()) {
-      setProfileError(
-        t(
-          'settings.fullNameRequired'
-        )
-      );
+  setProfileError('');
+  setProfileSaved(false);
 
-      return;
-    }
+  const normalizedFullName =
+    fullName.trim();
 
-    if (
-      !/^09\d{9}$/.test(
-        contactNumber
+  let normalizedContactNumber =
+    contactNumber.replace(
+      /\s/g,
+      ''
+    );
+
+  // Standardize +639XXXXXXXXX to 09XXXXXXXXX.
+  if (
+    normalizedContactNumber.startsWith(
+      '+639'
+    )
+  ) {
+    normalizedContactNumber =
+      `09${normalizedContactNumber.slice(4)}`;
+  }
+
+  const normalizedEmail =
+    email
+      .trim()
+      .toLowerCase();
+
+  const normalizedAddress =
+    address.trim();
+
+  // ============ FRONTEND VALIDATION ============
+
+  if (!normalizedFullName) {
+    setProfileError(
+      t(
+        'settings.fullNameRequired'
       )
-    ) {
-      setProfileError(
-        t(
-          'settings.invalidMobile'
-        )
-      );
+    );
 
-      return;
-    }
+    return;
+  }
 
-    if (
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-        email
+  if (
+    !/^09\d{9}$/.test(
+      normalizedContactNumber
+    )
+  ) {
+    setProfileError(
+      t(
+        'settings.invalidMobile'
       )
-    ) {
-      setProfileError(
-        t(
-          'settings.invalidEmail'
-        )
-      );
+    );
 
-      return;
-    }
+    return;
+  }
 
-    if (!address.trim()) {
-      setProfileError(
-        t(
-          'settings.addressRequired'
-        )
-      );
+  if (
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+      normalizedEmail
+    )
+  ) {
+    setProfileError(
+      t(
+        'settings.invalidEmail'
+      )
+    );
 
-      return;
-    }
+    return;
+  }
 
-    updateProfile({
-      fullName,
-      contactNumber,
-      email,
-      address,
-      purok,
-      householdCount,
-      householdProfile,
+  if (!normalizedAddress) {
+    setProfileError(
+      t(
+        'settings.addressRequired'
+      )
+    );
+
+    return;
+  }
+
+  setIsProfileSaving(true);
+
+  try {
+    // This now calls PUT /api/profile
+    // through AuthContext -> authService.
+    const updatedUser =
+      await updateProfile({
+        fullName:
+          normalizedFullName,
+
+        contactNumber:
+          normalizedContactNumber,
+
+        email:
+          normalizedEmail,
+
+        address:
+          normalizedAddress,
+
+        purok,
+
+        householdCount:
+          Number(
+            householdCount
+          ),
+
+        householdProfile: {
+          ...householdProfile,
+        },
+      });
+
+    // Use the fresh values returned by Laravel/MySQL.
+    setFullName(
+      updatedUser?.fullName ??
+        normalizedFullName
+    );
+
+    setContactNumber(
+      updatedUser?.contactNumber ??
+        normalizedContactNumber
+    );
+
+    setEmail(
+      updatedUser?.email ??
+        normalizedEmail
+    );
+
+    setAddress(
+      updatedUser?.address ??
+        normalizedAddress
+    );
+
+    setPurok(
+      updatedUser?.purok ??
+        purok
+    );
+
+    setHouseholdCount(
+      updatedUser?.householdCount ??
+        householdCount
+    );
+
+    const freshHousehold =
+      updatedUser?.householdProfile ??
+      householdProfile;
+
+    setHouseholdProfile({
+      hasSeniorCitizen:
+        Boolean(
+          freshHousehold
+            ?.hasSeniorCitizen
+        ),
+
+      hasChild:
+        Boolean(
+          freshHousehold
+            ?.hasChild
+        ),
+
+      hasPWD:
+        Boolean(
+          freshHousehold
+            ?.hasPWD
+        ),
+
+      hasPregnantPerson:
+        Boolean(
+          freshHousehold
+            ?.hasPregnantPerson
+        ),
     });
 
+    // Only show success after Laravel succeeds.
     setIsEditing(false);
     setProfileSaved(true);
 
-    setTimeout(() => {
-      setProfileSaved(false);
-    }, 2500);
-  };
+    window.setTimeout(
+      () => {
+        setProfileSaved(false);
+      },
+      2500
+    );
+  } catch (error) {
+    const backendErrors =
+      error?.errors || {};
 
-  // Cancel profile editing
+    const firstBackendError = [
+      backendErrors
+        ?.fullName?.[0],
+
+      backendErrors
+        ?.contactNumber?.[0],
+
+      backendErrors
+        ?.email?.[0],
+
+      backendErrors
+        ?.address?.[0],
+
+      backendErrors
+        ?.purok?.[0],
+
+      backendErrors
+        ?.householdCount?.[0],
+    ].find(Boolean);
+
+    setProfileError(
+      firstBackendError ||
+        error?.message ||
+        'Unable to update your profile. Please try again.'
+    );
+
+    // Keep Edit mode open when save fails.
+  } finally {
+    setIsProfileSaving(false);
+  }
+};
+
+  // Cancel profile editing and restore
+  // the latest values from the authenticated user.
   const handleCancelEdit = () => {
     setFullName(
       user?.fullName || ''
@@ -236,24 +394,29 @@ export default function Settings() {
     );
 
     setHouseholdCount(
-      user?.householdCount || 1
+      user?.householdCount ?? 1
     );
 
     setHouseholdProfile({
       hasSeniorCitizen:
-        user?.householdProfile?.hasSeniorCitizen || false,
+        user?.householdProfile
+          ?.hasSeniorCitizen ?? false,
 
       hasChild:
-        user?.householdProfile?.hasChild || false,
+        user?.householdProfile
+          ?.hasChild ?? false,
 
       hasPWD:
-        user?.householdProfile?.hasPWD || false,
+        user?.householdProfile
+          ?.hasPWD ?? false,
 
       hasPregnantPerson:
-        user?.householdProfile?.hasPregnantPerson || false,
+        user?.householdProfile
+          ?.hasPregnantPerson ?? false,
     });
 
     setProfileError('');
+    setProfileSaved(false);
     setIsEditing(false);
   };
 
@@ -262,6 +425,7 @@ export default function Settings() {
   const validPassword = (password) => {
     return (
       password.length >= 8 &&
+      /[a-z]/.test(password) &&
       /[A-Z]/.test(password) &&
       /\d/.test(password) &&
       /[^A-Za-z0-9]/.test(password)
@@ -269,10 +433,15 @@ export default function Settings() {
   };
 
   // Validate and save password
-  const handlePasswordSave = () => {
+  const handlePasswordSave = async () => {
+    if (isPasswordSaving) {
+      return;
+    }
+
     setPasswordError('');
     setPasswordSaved(false);
 
+    // Current password required
     if (!currentPassword) {
       setPasswordError(
         t(
@@ -283,6 +452,7 @@ export default function Settings() {
       return;
     }
 
+    // New password must meet Laravel policy
     if (
       !validPassword(
         newPassword
@@ -297,6 +467,7 @@ export default function Settings() {
       return;
     }
 
+    // Confirmation must match
     if (
       newPassword !==
       confirmPassword
@@ -310,15 +481,71 @@ export default function Settings() {
       return;
     }
 
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
+    // Do not allow obvious same-password attempt
+    if (
+      currentPassword ===
+      newPassword
+    ) {
+      setPasswordError(
+        'Your new password must be different from your current password.'
+      );
 
-    setPasswordSaved(true);
+      return;
+    }
 
-    setTimeout(() => {
-      setPasswordSaved(false);
-    }, 2500);
+    setIsPasswordSaving(true);
+
+    try {
+      await getCsrfCookie();
+
+      await apiRequest(
+        '/api/change-password',
+        {
+          method: 'POST',
+
+          body:
+            JSON.stringify({
+              currentPassword,
+
+              password:
+                newPassword,
+
+              password_confirmation:
+                confirmPassword,
+            }),
+        }
+      );
+
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+
+      setPasswordSaved(true);
+
+      window.setTimeout(
+        () => {
+          setPasswordSaved(false);
+        },
+        2500
+      );
+    } catch (error) {
+      const currentPasswordError =
+        error?.errors
+          ?.currentPassword?.[0];
+
+      const newPasswordError =
+        error?.errors
+          ?.password?.[0];
+
+      setPasswordError(
+        currentPasswordError ||
+          newPasswordError ||
+          error?.message ||
+          'Unable to change your password. Please try again.'
+      );
+    } finally {
+      setIsPasswordSaving(false);
+    }
   };
 
   // ============ NOTIFICATIONS ============
@@ -844,27 +1071,45 @@ export default function Settings() {
                   type="button"
                   onClick={
                     handleCancelEdit
-                  }
-                  className="min-h-[44px] py-2.5 rounded-xl border border-resqnow-border bg-white text-resqnow-muted text-[11px] font-semibold hover:bg-resqnow-canvas active:scale-[0.98] transition-all"
-                >
-                  {t(
-                    'settings.cancel'
-                  )}
-                </button>
+              }
+              disabled={
+              isProfileSaving
+              }
+              className="min-h-[44px] py-2.5 rounded-xl border border-resqnow-border bg-white text-resqnow-muted text-[11px] font-semibold hover:bg-resqnow-canvas disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98] transition-all"
+            >
+              {t(
+                'settings.cancel'
+          )}
+        </button>
 
-                <button
-                  type="button"
-                  onClick={
-                    handleProfileSave
-                  }
-                  className="min-h-[44px] py-2.5 rounded-xl bg-brand-gradient text-white text-[11px] font-bold flex items-center justify-center gap-1.5 shadow-[0_4px_14px_rgba(131,70,242,0.16)] active:scale-[0.98] transition-all"
-                >
-                  <Save className="w-3.5 h-3.5" />
+        <button
+          type="button"
+          onClick={
+            handleProfileSave
+        }
+        disabled={
+          isProfileSaving
+        }
+        className="min-h-[44px] py-2.5 rounded-xl bg-brand-gradient text-white text-[11px] font-bold flex items-center justify-center gap-1.5 shadow-[0_4px_14px_rgba(131,70,242,0.16)] disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98] transition-all"
+      >
+        {isProfileSaving ? (
+          <>
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
 
-                  {t(
-                    'settings.saveChanges'
-                  )}
-                </button>
+            {t(
+              'common.loading'
+          )}
+        </>
+      ) : (
+        <>
+          <Save className="w-3.5 h-3.5" />
+
+          {t(
+            'settings.saveChanges'
+        )}
+      </>
+    )}
+  </button>
               </div>
             )}
           </div>
@@ -1035,12 +1280,23 @@ export default function Settings() {
                 onClick={
                   handlePasswordSave
                 }
-                className="w-full min-h-[44px] py-2.5 rounded-xl bg-brand-gradient text-white text-[11px] font-bold shadow-[0_4px_14px_rgba(131,70,242,0.16)] active:scale-[0.98] transition-all"
-              >
-                {t(
-                  'settings.changePassword'
-                )}
-              </button>
+                disabled={
+                  isPasswordSaving
+                }
+                className="w-full min-h-[44px] py-2.5 rounded-xl bg-brand-gradient text-white text-[11px] font-bold shadow-[0_4px_14px_rgba(131,70,242,0.16)] disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+            >
+                {isPasswordSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+
+                    Changing Password...
+                  </>
+                ) : (
+                  t(
+                    'settings.changePassword'
+                  )
+              )}
+            </button>
             </div>
           </div>
         )}

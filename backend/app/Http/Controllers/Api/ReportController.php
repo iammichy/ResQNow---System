@@ -7,8 +7,8 @@ use App\Http\Requests\Api\StoreEmergencyReportRequest;
 use App\Http\Requests\Api\StoreNonEmergencyReportRequest;
 use App\Http\Resources\ReportResource;
 use App\Models\Report;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -18,7 +18,7 @@ class ReportController extends Controller
 {
     /**
      * Emergency concern codes and their
-     * canonical report labels.
+     * canonical resident-facing labels.
      */
     private const EMERGENCY_CONCERNS = [
         'life-death' => 'Life and Death Emergency',
@@ -31,7 +31,8 @@ class ReportController extends Controller
     ];
 
     /**
-     * Non-emergency concern codes and labels.
+     * Non-emergency concern codes and their
+     * canonical resident-facing labels.
      */
     private const NON_EMERGENCY_CONCERNS = [
         'evac-assistance' => 'Evacuation Preparation',
@@ -44,7 +45,27 @@ class ReportController extends Controller
     ];
 
     /**
-     * Get all reports submitted by
+     * Default priority rules for Non-Emergency reports.
+     *
+     * These are only the initial priorities assigned
+     * by the system. Barangay/Admin personnel may
+     * override them later after reviewing the report.
+     *
+     * Assignment remains a separate action.
+     */
+    private const NON_EMERGENCY_PRIORITIES = [
+        'evac-assistance' => 'Medium',
+        'bhw-assistance' => 'Medium',
+        'road-obstruction' => 'Medium',
+
+        'damaged-facility' => 'Low',
+        'cleanup' => 'Low',
+        'community-concern' => 'Low',
+        'other-assistance' => 'Low',
+    ];
+
+    /**
+     * Get all reports belonging to
      * the currently authenticated resident.
      */
     public function index(
@@ -69,7 +90,7 @@ class ReportController extends Controller
 
     /**
      * Get one report belonging to
-     * the authenticated resident.
+     * the currently authenticated resident.
      */
     public function show(
         Request $request,
@@ -96,7 +117,7 @@ class ReportController extends Controller
     }
 
     /**
-     * Submit an emergency report.
+     * Submit an Emergency report.
      */
     public function storeEmergency(
         StoreEmergencyReportRequest $request
@@ -108,8 +129,13 @@ class ReportController extends Controller
                 $request,
                 $data
             ) {
-                // Create report first so we can
-                // use the database ID in report_code.
+                /**
+                 * Create the database record first.
+                 *
+                 * report_code starts as null because
+                 * we need the auto-generated database
+                 * ID before we can create EM-000001.
+                 */
                 $report = Report::create([
                     'user_id' =>
                         $request->user()->id,
@@ -131,16 +157,25 @@ class ReportController extends Controller
                     'subcategory' =>
                         null,
 
-                    // Emergency reports immediately
-                    // enter the response workflow.
+                    /**
+                     * Emergency reports are saved
+                     * immediately as Submitted.
+                     */
                     'status' =>
                         'Submitted',
 
+                    /**
+                     * All currently supported Emergency
+                     * categories begin as High priority.
+                     *
+                     * Priority does NOT automatically
+                     * assign a responder.
+                     */
                     'priority' =>
                         'High',
 
                     'reporting_for' =>
-                        !empty(
+                        ! empty(
                             $data[
                                 'reportingForOther'
                             ]
@@ -172,6 +207,12 @@ class ReportController extends Controller
                             'landmark'
                         ] ?? null,
 
+                    /**
+                     * Optional incident coordinates.
+                     *
+                     * These can remain null when the
+                     * resident submits an address only.
+                     */
                     'latitude' =>
                         $data[
                             'latitude'
@@ -206,7 +247,13 @@ class ReportController extends Controller
                         null,
                 ]);
 
-                // Public resident-facing report ID
+                /**
+                 * Generate the resident-facing
+                 * Emergency report code.
+                 *
+                 * Example:
+                 * database ID 1 → EM-000001
+                 */
                 $report->update([
                     'report_code' =>
                         sprintf(
@@ -215,7 +262,9 @@ class ReportController extends Controller
                         ),
                 ]);
 
-                // First timeline entry
+                /**
+                 * Store the first timeline event.
+                 */
                 $report
                     ->statusLogs()
                     ->create([
@@ -233,6 +282,10 @@ class ReportController extends Controller
             }
         );
 
+        /**
+         * Load the relationships required by
+         * ReportResource before returning data.
+         */
         $report->load([
             'statusLogs',
             'activeAssignments.assignedUser',
@@ -250,7 +303,7 @@ class ReportController extends Controller
     }
 
     /**
-     * Submit a non-emergency report.
+     * Submit a Non-Emergency report.
      */
     public function storeNonEmergency(
         StoreNonEmergencyReportRequest $request
@@ -261,7 +314,12 @@ class ReportController extends Controller
         $photoPath = null;
 
         try {
-            // Store optional photo evidence
+            /**
+             * Save optional resident photo evidence.
+             *
+             * Validation of type and size happens
+             * inside StoreNonEmergencyReportRequest.
+             */
             if (
                 $request->hasFile('photo')
             ) {
@@ -280,6 +338,15 @@ class ReportController extends Controller
                     $data,
                     $photoPath
                 ) {
+                    /**
+                     * Priority is calculated by Laravel,
+                     * not by the React frontend.
+                     */
+                    $priority =
+                        self::NON_EMERGENCY_PRIORITIES[
+                            $data['concernCode']
+                        ];
+
                     $report =
                         Report::create([
                             'user_id' =>
@@ -310,13 +377,29 @@ class ReportController extends Controller
                                     'subcategory'
                                 ] ?? null,
 
-                            // Non-emergency reports
-                            // require barangay verification.
+                            /**
+                             * Non-Emergency reports
+                             * must be reviewed first.
+                             */
                             'status' =>
                                 'Pending Verification',
 
+                            /**
+                             * Category-based priority:
+                             *
+                             * Medium:
+                             * - Evacuation Assistance
+                             * - BHW Assistance
+                             * - Road Obstruction
+                             *
+                             * Low:
+                             * - Damaged Facility
+                             * - Cleanup
+                             * - Community Concern
+                             * - Other Assistance
+                             */
                             'priority' =>
-                                'Medium',
+                                $priority,
 
                             'reporting_for' =>
                                 $data[
@@ -353,6 +436,9 @@ class ReportController extends Controller
                                     'landmark'
                                 ] ?? null,
 
+                            /**
+                             * Coordinates remain optional.
+                             */
                             'latitude' =>
                                 $data[
                                     'latitude'
@@ -391,7 +477,13 @@ class ReportController extends Controller
                                 null,
                         ]);
 
-                    // Public resident-facing ID
+                    /**
+                     * Generate the resident-facing
+                     * Non-Emergency code.
+                     *
+                     * Example:
+                     * database ID 2 → NE-000002
+                     */
                     $report->update([
                         'report_code' =>
                             sprintf(
@@ -400,7 +492,9 @@ class ReportController extends Controller
                             ),
                     ]);
 
-                    // Timeline begins with Submitted
+                    /**
+                     * Resident submitted the report.
+                     */
                     $report
                         ->statusLogs()
                         ->create([
@@ -416,7 +510,10 @@ class ReportController extends Controller
                                     ->id,
                         ]);
 
-                    // Then enters verification queue
+                    /**
+                     * The report then enters the
+                     * barangay verification queue.
+                     */
                     $report
                         ->statusLogs()
                         ->create([
@@ -434,8 +531,11 @@ class ReportController extends Controller
                 }
             );
         } catch (Throwable $exception) {
-            // Prevent abandoned files if
-            // database creation fails.
+            /**
+             * If the photo was stored successfully
+             * but the DB transaction later fails,
+             * remove the abandoned file.
+             */
             if ($photoPath) {
                 Storage::disk(
                     'public'
@@ -447,6 +547,10 @@ class ReportController extends Controller
             throw $exception;
         }
 
+        /**
+         * Load relationships needed by
+         * ReportResource.
+         */
         $report->load([
             'statusLogs',
             'activeAssignments.assignedUser',

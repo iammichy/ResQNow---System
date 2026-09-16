@@ -1092,6 +1092,9 @@ const tl = {
     passwordUppercase:
       'Kailangan ng malaking titik',
 
+    passwordLowercase:
+      'Kailangan ng maliit na titik',
+
     passwordNumber:
       'Kailangan ng numero',
 
@@ -1127,6 +1130,9 @@ const tl = {
 
     uppercaseLetter:
       'Malaking titik',
+
+    lowercaseLetter:
+      'Maliit na titik',
 
     oneNumber:
       'Isang numero',
@@ -1285,13 +1291,13 @@ const tl = {
       'Mga kinakailangan sa password',
 
     passwordRequirementsText:
-      'Hindi bababa sa 8 character na may malaking titik, numero, at espesyal na character.',
+  'Hindi bababa sa 8 character na may malaking titik, numero, at espesyal na character.',
 
-    currentPasswordRequired:
-      'Ilagay ang iyong kasalukuyang password.',
+currentPasswordRequired:
+  'Ilagay ang iyong kasalukuyang password.',
 
-    newPasswordInvalid:
-      'Ang bagong password ay dapat may 8 character, malaking titik, numero, at espesyal na character.',
+newPasswordInvalid:
+  'Ang bagong password ay dapat may 8 character, malaking titik, numero, at espesyal na character.',
 
     passwordMismatch:
       'Hindi magkatugma ang mga bagong password.',

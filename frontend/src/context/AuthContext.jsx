@@ -1,4 +1,5 @@
 // src/context/AuthContext.jsx
+
 import {
   createContext,
   useContext,
@@ -11,28 +12,35 @@ import {
   loginResident,
   logoutResident,
   registerResident,
+  updateResidentProfile,
 } from '../services/authService';
 
 const AuthContext =
   createContext(null);
 
 // ============ AUTH PROVIDER ============
+
 export function AuthProvider({
   children,
 }) {
-  const [user, setUser] =
-    useState(null);
+  const [
+    user,
+    setUser,
+  ] = useState(null);
 
-  const [isLoading, setIsLoading] =
-    useState(true);
+  const [
+    isLoading,
+    setIsLoading,
+  ] = useState(true);
 
   // ============ RESTORE SESSION ============
-  // Check Laravel when the app first opens
+  // Check Laravel when the app first opens.
+
   useEffect(() => {
     let isMounted = true;
 
     async function restoreSession() {
-      // Remove old mock authentication
+      // Remove old mock authentication.
       localStorage.removeItem(
         'resqnow_resident'
       );
@@ -42,7 +50,9 @@ export function AuthProvider({
           await getCurrentUser();
 
         if (isMounted) {
-          setUser(currentUser);
+          setUser(
+            currentUser
+          );
         }
       } catch (error) {
         if (isMounted) {
@@ -62,7 +72,9 @@ export function AuthProvider({
         }
       } finally {
         if (isMounted) {
-          setIsLoading(false);
+          setIsLoading(
+            false
+          );
         }
       }
     }
@@ -75,6 +87,7 @@ export function AuthProvider({
   }, []);
 
   // ============ LOGIN ============
+
   const login = async (
     credentials
   ) => {
@@ -83,12 +96,15 @@ export function AuthProvider({
         credentials
       );
 
-    setUser(loggedInUser);
+    setUser(
+      loggedInUser
+    );
 
     return loggedInUser;
   };
 
   // ============ REGISTER ============
+
   const register = async (
     residentData
   ) => {
@@ -98,6 +114,7 @@ export function AuthProvider({
   };
 
   // ============ LOGOUT ============
+
   const logout = async () => {
     try {
       await logoutResident();
@@ -113,31 +130,36 @@ export function AuthProvider({
   };
 
   // ============ REFRESH USER ============
+
   const refreshUser = async () => {
     const currentUser =
       await getCurrentUser();
 
-    setUser(currentUser);
+    setUser(
+      currentUser
+    );
 
     return currentUser;
   };
 
-  // ============ UPDATE LOCAL PROFILE ============
-  // Temporary until the profile update
-  // backend endpoint is added.
-  const updateProfile = (
+  // ============ UPDATE PROFILE ============
+  // Persist profile changes to Laravel/MySQL,
+  // then replace the current user with the
+  // fresh user returned by the backend.
+
+  const updateProfile = async (
     updates
   ) => {
-    setUser((currentUser) => {
-      if (!currentUser) {
-        return currentUser;
-      }
+    const updatedUser =
+      await updateResidentProfile(
+        updates
+      );
 
-      return {
-        ...currentUser,
-        ...updates,
-      };
-    });
+    setUser(
+      updatedUser
+    );
+
+    return updatedUser;
   };
 
   return (
@@ -150,7 +172,8 @@ export function AuthProvider({
         logout,
         refreshUser,
         updateProfile,
-        isLoggedIn: !!user,
+        isLoggedIn:
+          !!user,
       }}
     >
       {children}
@@ -159,9 +182,12 @@ export function AuthProvider({
 }
 
 // ============ AUTH HOOK ============
+
 export function useAuth() {
   const ctx =
-    useContext(AuthContext);
+    useContext(
+      AuthContext
+    );
 
   if (!ctx) {
     throw new Error(

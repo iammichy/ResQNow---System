@@ -1,4 +1,5 @@
 // src/services/authService.js
+
 import {
   apiRequest,
   getCsrfCookie,
@@ -18,6 +19,7 @@ function getUserFromResponse(data) {
 }
 
 // ============ REGISTER ============
+
 export async function registerResident(
   residentData
 ) {
@@ -27,14 +29,17 @@ export async function registerResident(
     '/api/register',
     {
       method: 'POST',
-      body: JSON.stringify(
-        residentData
-      ),
+
+      body:
+        JSON.stringify(
+          residentData
+        ),
     }
   );
 }
 
 // ============ LOGIN ============
+
 export async function loginResident(
   credentials
 ) {
@@ -45,9 +50,11 @@ export async function loginResident(
       '/api/login',
       {
         method: 'POST',
-        body: JSON.stringify(
-          credentials
-        ),
+
+        body:
+          JSON.stringify(
+            credentials
+          ),
       }
     );
 
@@ -57,6 +64,7 @@ export async function loginResident(
 }
 
 // ============ CURRENT USER ============
+
 export async function getCurrentUser() {
   const data =
     await apiRequest(
@@ -68,10 +76,34 @@ export async function getCurrentUser() {
   );
 }
 
+// ============ UPDATE PROFILE ============
+
+export async function updateResidentProfile(
+  profileData
+) {
+  await getCsrfCookie();
+
+  const data =
+    await apiRequest(
+      '/api/profile',
+      {
+        method: 'PUT',
+
+        body:
+          JSON.stringify(
+            profileData
+          ),
+      }
+    );
+
+  return getUserFromResponse(
+    data
+  );
+}
+
 // ============ LOGOUT ============
+
 export async function logoutResident() {
-  // Refresh CSRF token before destroying
-  // the authenticated session.
   await getCsrfCookie();
 
   return apiRequest(

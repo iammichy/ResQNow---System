@@ -56,6 +56,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Frontend URL
+    |--------------------------------------------------------------------------
+    |
+    | This is the URL of the React frontend. Laravel uses this value when
+    | generating links that should open inside the resident application,
+    | such as password reset links.
+    |
+    */
+
+    'frontend_url' => env(
+        'FRONTEND_URL',
+        'http://localhost:5173'
+    ),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |
@@ -74,15 +90,21 @@ return [
     |
     | The application locale determines the default locale that will be used
     | by Laravel's translation / localization methods. This option can be
-    | set to any locale for which you plan to have translation strings.
+    | set to any locale for which you plan to use translation strings.
     |
     */
 
     'locale' => env('APP_LOCALE', 'en'),
 
-    'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
+    'fallback_locale' => env(
+        'APP_FALLBACK_LOCALE',
+        'en'
+    ),
 
-    'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),
+    'faker_locale' => env(
+        'APP_FAKER_LOCALE',
+        'en_US'
+    ),
 
     /*
     |--------------------------------------------------------------------------
@@ -101,7 +123,13 @@ return [
 
     'previous_keys' => [
         ...array_filter(
-            explode(',', (string) env('APP_PREVIOUS_KEYS', ''))
+            explode(
+                ',',
+                (string) env(
+                    'APP_PREVIOUS_KEYS',
+                    ''
+                )
+            )
         ),
     ],
 
@@ -119,8 +147,17 @@ return [
     */
 
     'maintenance' => [
-        'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),
-        'store' => env('APP_MAINTENANCE_STORE', 'database'),
+        'driver' =>
+            env(
+                'APP_MAINTENANCE_DRIVER',
+                'file'
+            ),
+
+        'store' =>
+            env(
+                'APP_MAINTENANCE_STORE',
+                'database'
+            ),
     ],
 
 ];

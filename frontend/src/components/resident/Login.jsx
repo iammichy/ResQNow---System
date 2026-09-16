@@ -529,13 +529,13 @@ export default function Login() {
                 </span>
               </label>
 
-              {/* Forgot Password */}
-              <button
-                type="button"
-                className="text-[11px] font-semibold text-resqnow-violet hover:text-resqnow-primary transition-colors"
-              >
-                Forgot password?
-              </button>
+             {/* Forgot Password */}
+            <Link
+              to="/forgot-password"
+              className="text-[11px] font-semibold text-resqnow-violet hover:text-resqnow-primary hover:underline transition-colors"
+            >
+              Forgot password?
+            </Link>
             </div>
 
             {/* ============ SIGN IN BUTTON ============ */}

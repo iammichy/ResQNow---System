@@ -1092,6 +1092,9 @@ const en = {
     passwordUppercase:
       'Needs an uppercase letter',
 
+    passwordLowercase:
+    'Needs a lowercase letter',
+
     passwordNumber:
       'Needs a number',
 
@@ -1127,6 +1130,9 @@ const en = {
 
     uppercaseLetter:
       'Uppercase letter',
+
+    lowercaseLetter:
+    'Lowercase letter',  
 
     oneNumber:
       'One number',
@@ -1285,13 +1291,13 @@ const en = {
       'Password requirements',
 
     passwordRequirementsText:
-      'At least 8 characters with an uppercase letter, number, and special character.',
+  'At least 8 characters with uppercase and lowercase letters, a number, and a special character.',
 
-    currentPasswordRequired:
-      'Enter your current password.',
+currentPasswordRequired:
+  'Enter your current password.',
 
-    newPasswordInvalid:
-      'New password must have 8 characters, an uppercase letter, number, and special character.',
+newPasswordInvalid:
+  'New password must be at least 8 characters and include uppercase and lowercase letters, a number, and a special character.',
 
     passwordMismatch:
       'New passwords do not match.',

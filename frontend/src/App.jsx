@@ -1,4 +1,5 @@
 // src/App.jsx
+
 import {
   BrowserRouter,
   Routes,
@@ -15,6 +16,8 @@ import LoadingSpinner from './components/common/LoadingSpinner';
 
 import Login from './components/resident/Login';
 import Register from './components/resident/Register';
+import ResetPassword from './components/resident/ResetPassword';
+
 import ResidentLayout from './components/resident/ResidentLayout';
 import Dashboard from './components/resident/Dashboard';
 import SubmitReportChoice from './components/resident/SubmitReportChoice';
@@ -28,9 +31,10 @@ import Settings from './components/resident/Settings';
 import SafetyTips from './components/resident/SafetyTips';
 import Updates from './components/resident/Updates';
 import UpdateDetail from './components/resident/UpdateDetail';
+import ForgotPassword from './components/resident/ForgotPassword';
 
 // ============ PROTECTED ROUTE ============
-// Resident must be logged in
+// Resident must be logged in.
 function ProtectedRoute({
   children,
 }) {
@@ -58,7 +62,8 @@ function ProtectedRoute({
 }
 
 // ============ PUBLIC ROUTE ============
-// Logged-in resident should not return to Login/Register
+// Logged-in resident should not return to
+// normal guest-only pages such as Login/Register.
 function PublicRoute({
   children,
 }) {
@@ -86,6 +91,7 @@ function PublicRoute({
 }
 
 // ============ APP ROUTES ============
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -94,7 +100,8 @@ export default function App() {
 
         <Routes>
 
-          {/* Public routes */}
+          {/* ============ PUBLIC AUTH ROUTES ============ */}
+
           <Route
             path="/login"
             element={
@@ -112,8 +119,34 @@ export default function App() {
               </PublicRoute>
             }
           />
+          <Route
+            path="/forgot-password"
+            element={
+            <PublicRoute>
+              <ForgotPassword />
+            </PublicRoute>
+            }
+          />
+          {/*
+            Password reset links must remain directly accessible.
 
-          {/* Resident protected routes */}
+            We intentionally do NOT wrap this route in:
+            - ProtectedRoute
+            - PublicRoute
+            - ResidentLayout
+
+            A resident must be able to open the reset link
+            from their email even when they are logged out.
+          */}
+          <Route
+            path="/reset-password"
+            element={
+              <ResetPassword />
+            }
+          />
+
+          {/* ============ RESIDENT PROTECTED ROUTES ============ */}
+
           <Route
             element={
               <ProtectedRoute>
@@ -121,6 +154,7 @@ export default function App() {
               </ProtectedRoute>
             }
           >
+
             <Route
               path="/dashboard"
               element={
@@ -216,7 +250,8 @@ export default function App() {
             />
           </Route>
 
-          {/* Unknown route */}
+          {/* ============ UNKNOWN ROUTE ============ */}
+
           <Route
             path="*"
             element={
@@ -226,8 +261,11 @@ export default function App() {
               />
             }
           />
+
         </Routes>
+
       </AuthProvider>
+
     </BrowserRouter>
   );
 }

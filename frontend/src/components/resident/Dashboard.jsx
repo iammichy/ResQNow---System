@@ -1,30 +1,45 @@
 // src/components/resident/Dashboard.jsx
-import { useNavigate } from 'react-router-dom';
+
 import {
-  Siren,
-  ChevronRight,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+
+import {
+  useNavigate,
+} from 'react-router-dom';
+
+import {
+  AlertCircle,
   Bell,
-  MapPin,
-  Clock,
-  Phone,
-  Activity,
   CheckCircle2,
+  ChevronRight,
+  Clock,
+  Activity,
+  Loader2,
+  MapPin,
+  Phone,
+  RefreshCw,
   ShieldCheck,
 } from 'lucide-react';
 
-import { useAuth } from '../../context/AuthContext';
 import {
-  mockAllReports,
-  mockAnnouncements,
-  mockNotifications,
-} from '../../data/mockData';
+  useAuth,
+} from '../../context/AuthContext';
 
-import { getDashboardUpdates } from '../../utils/updateUtils';
-import { getStatusStyle } from '../../utils/statusUtils';
-import { formatDate } from '../../utils/dateUtils';
+import {
+  getReports,
+} from '../../services/reportService';
+
+import {
+  getStatusStyle,
+} from '../../utils/statusUtils';
 
 // ============ HELPERS ============
-// Returns a time-based greeting
+
+// Time-based greeting
 function getGreeting() {
   const hour =
     new Date().getHours();
@@ -41,93 +56,186 @@ function getGreeting() {
 }
 
 // ============ DASHBOARD ============
-// Greeting, updates, reports, and safety reminder
+//
+// IMPORTANT:
+//
+// Reports on this page come from the same
+// Laravel API used by Track Reports.
+//
+// No report IDs, counts, statuses, or latest
+// report information are generated locally.
 export default function Dashboard() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
+  const navigate =
+    useNavigate();
 
-  // Resident first name
+  const {
+    user,
+  } = useAuth();
+
+  // ============ REPORT STATE ============
+
+  const [
+    reports,
+    setReports,
+  ] = useState([]);
+
+  const [
+    isLoading,
+    setIsLoading,
+  ] = useState(true);
+
+  const [
+    isRefreshing,
+    setIsRefreshing,
+  ] = useState(false);
+
+  const [
+    reportError,
+    setReportError,
+  ] = useState('');
+
+  const [
+    lastChecked,
+    setLastChecked,
+  ] = useState(null);
+
+  // ============ RESIDENT NAME ============
+
   const firstName = (
     user?.fullName ||
+    user?.name ||
     'Resident'
-  ).split(' ')[0];
+  )
+    .trim()
+    .split(/\s+/)[0];
+
+  // ============ LOAD REPORTS ============
+
+  const loadReports =
+    useCallback(
+      async ({
+        refresh = false,
+      } = {}) => {
+        if (refresh) {
+          setIsRefreshing(true);
+        } else {
+          setIsLoading(true);
+        }
+
+        setReportError('');
+
+        try {
+          const result =
+            await getReports();
+
+          setReports(
+            Array.isArray(result)
+              ? result
+              : []
+          );
+
+          setLastChecked(
+            new Date()
+          );
+        } catch (error) {
+          /**
+           * Keep previously loaded reports
+           * when a refresh fails.
+           *
+           * A temporary connection problem
+           * should not erase information the
+           * resident was already viewing.
+           */
+          setReportError(
+            error?.message ||
+              'Unable to load your reports.'
+          );
+        } finally {
+          setIsLoading(false);
+          setIsRefreshing(false);
+        }
+      },
+      []
+    );
+
+  useEffect(() => {
+    loadReports();
+  }, [loadReports]);
 
   // ============ REPORT COUNTS ============
+
+  /**
+   * OPEN REPORT
+   *
+   * Any report that has not reached a terminal
+   * status is considered open.
+   *
+   * Pending Verification is therefore included
+   * in Open, while the Pending card shows the
+   * subset still awaiting barangay verification.
+   */
+  const openCount =
+    useMemo(
+      () =>
+        reports.filter(
+          (report) =>
+            ![
+              'Resolved',
+              'Invalid',
+            ].includes(
+              report.status
+            )
+        ).length,
+      [reports]
+    );
+
   const pendingCount =
-    mockAllReports.filter(
-      (report) =>
-        report.status ===
-        'Pending Verification'
-    ).length;
+    useMemo(
+      () =>
+        reports.filter(
+          (report) =>
+            report.status ===
+            'Pending Verification'
+        ).length,
+      [reports]
+    );
 
   const resolvedCount =
-    mockAllReports.filter(
-      (report) =>
-        report.status ===
-        'Resolved'
-    ).length;
-
-  const activeCount =
-    mockAllReports.filter(
-      (report) =>
-        ![
-          'Pending Verification',
-          'Resolved',
-          'Invalid',
-        ].includes(
-          report.status
-        )
-    ).length;
-
-  // ============ IMPORTANT UPDATES ============
-  // Removes expired updates and
-  // keeps only the latest important items
-  const dashboardUpdates =
-    getDashboardUpdates(
-      mockAnnouncements,
-      mockNotifications
+    useMemo(
+      () =>
+        reports.filter(
+          (report) =>
+            report.status ===
+            'Resolved'
+        ).length,
+      [reports]
     );
 
   // ============ LATEST REPORT ============
+
+  /**
+   * Laravel's /api/reports endpoint already
+   * returns the resident's reports newest first.
+   *
+   * Therefore the first record is the real
+   * latest report.
+   */
   const latestReport =
-    mockAllReports[0];
+    reports[0] || null;
 
-  // ============ CRITICAL ALERT ============
-  // Only show an active critical alert
-  const activeCritical =
-    mockAnnouncements.find(
-      (announcement) => {
-        if (
-          announcement.priority !==
-          'critical'
-        ) {
-          return false;
+  // ============ LAST CHECKED TEXT ============
+
+  const lastCheckedText =
+  lastChecked
+    ? lastChecked.toLocaleTimeString(
+        'en-PH',
+        {
+          hour: 'numeric',
+          minute: '2-digit',
+          second: '2-digit',
         }
-
-        if (
-          !announcement.expiresAt
-        ) {
-          return true;
-        }
-
-        return (
-          new Date(
-            announcement.expiresAt
-          ) > new Date()
-        );
-      }
-    );
-
-  // ============ OPEN UPDATE ============
-  // Every dashboard update opens
-  // its specific Update Detail page
-  const handleUpdateClick = (
-    update
-  ) => {
-    navigate(
-      `/updates/${update.id}`
-    );
-  };
+      )
+    : '';
 
   return (
     <div className="px-4 pt-4 pb-6 space-y-4">
@@ -149,7 +257,7 @@ export default function Dashboard() {
         {/* Emergency contacts shortcut */}
         <button
           type="button"
-          aria-label="Emergency Contacts"
+          aria-label="Open emergency contacts"
           onClick={() =>
             navigate('/contacts')
           }
@@ -159,235 +267,215 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* ============ CRITICAL ALERT ============ */}
-      {activeCritical && (
-        <button
-          type="button"
-          onClick={() =>
-            navigate(
-              `/updates/${activeCritical.id}`
-            )
-          }
-          className="w-full flex items-center gap-3 bg-resqnow-critical/10 border border-resqnow-critical/20 rounded-xl px-4 py-3 text-left active:scale-[0.99] transition-all"
-        >
-
-          <div className="w-9 h-9 rounded-lg bg-resqnow-critical/15 flex items-center justify-center shrink-0">
-
-            <Siren className="w-5 h-5 text-resqnow-critical" />
-          </div>
-
-          <div className="flex-1 min-w-0">
-
-            <p className="text-[10px] font-bold text-resqnow-critical uppercase tracking-wide">
-              Critical Alert
-            </p>
-
-            <p className="text-[12px] font-semibold text-resqnow-crimson mt-0.5 truncate">
-              {activeCritical.title}
-            </p>
-          </div>
-
-          <ChevronRight className="w-4 h-4 text-resqnow-critical/50 shrink-0" />
-        </button>
-      )}
-
       {/* ============ IMPORTANT UPDATES ============ */}
-      {dashboardUpdates.length > 0 && (
-        <section className="bg-white rounded-2xl border border-resqnow-border-soft overflow-hidden">
+      {/*
+        Real announcement/notification publishing
+        is not connected yet.
 
-          {/* Section header */}
-          <div className="px-4 py-3 flex items-center justify-between border-b border-resqnow-border-soft">
+        Do not show mock flood alerts or fake unread
+        report notifications as operational data.
+      */}
+      <section className="bg-white rounded-2xl border border-resqnow-border-soft overflow-hidden">
 
-            <div className="flex items-center gap-2">
+        <div className="px-4 py-3 flex items-center gap-2 border-b border-resqnow-border-soft">
 
-              <Bell className="w-4 h-4 text-resqnow-violet" />
+          <Bell className="w-4 h-4 text-resqnow-violet" />
 
-              <h2 className="text-[13px] font-bold text-resqnow-primary">
-                Important Updates
-              </h2>
+          <h2 className="text-[14px] font-bold text-resqnow-primary">
+            Important Updates
+          </h2>
+        </div>
+
+        <div className="px-4 py-4 flex items-start gap-3">
+
+          <div className="w-9 h-9 rounded-xl bg-resqnow-violet/10 flex items-center justify-center shrink-0">
+
+            <Bell className="w-4 h-4 text-resqnow-violet" />
+          </div>
+
+          <div>
+
+            <p className="text-[13px] font-semibold text-resqnow-primary">
+              No current barangay advisories
+            </p>
+
+            <p className="text-[12px] text-resqnow-muted mt-1 leading-relaxed">
+              Published barangay advisories and report notifications will appear here once available.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ============ REPORT API ERROR ============ */}
+      {reportError && (
+        <div
+          role="alert"
+          className="bg-resqnow-critical/10 border border-resqnow-critical/20 rounded-xl px-4 py-3"
+        >
+          <div className="flex items-start gap-2.5">
+
+            <AlertCircle className="w-4 h-4 text-resqnow-critical shrink-0 mt-0.5" />
+
+            <div className="flex-1">
+
+              <p className="text-[12px] font-semibold text-resqnow-crimson">
+                Could not refresh your reports
+              </p>
+
+              <p className="text-[12px] text-resqnow-secondary mt-1 leading-relaxed">
+                {reportError}
+              </p>
+
+              {reports.length >
+                0 && (
+                <p className="text-[11px] text-resqnow-muted mt-1">
+                  Showing the last successfully loaded information.
+                </p>
+              )}
             </div>
-
-            <button
-              type="button"
-              onClick={() =>
-                navigate('/updates')
-              }
-              className="text-[11px] font-semibold text-resqnow-violet flex items-center gap-1 active:scale-95 transition-transform"
-            >
-              View all
-
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
           </div>
 
-          {/* Updates */}
-          <div className="divide-y divide-resqnow-border-soft">
-
-            {dashboardUpdates.map(
-              (update) => {
-                const isCritical =
-                  update.priority ===
-                  'critical';
-
-                const isReport =
-                  update.updateCategory ===
-                  'report';
-
-                // More specific update label
-                let updateLabel =
-                  'Announcement';
-
-                if (isCritical) {
-                  updateLabel =
-                    'Alert';
-                } else if (
-                  isReport &&
-                  update.detailType ===
-                    'assigned_personnel'
-                ) {
-                  updateLabel =
-                    'Assignment Update';
-                } else if (
-                  isReport &&
-                  update.detailType ===
-                    'resolution'
-                ) {
-                  updateLabel =
-                    'Report Resolved';
-                } else if (
-                  isReport
-                ) {
-                  updateLabel =
-                    'Report Update';
-                }
-
-                return (
-                  <button
-                    key={update.id}
-                    type="button"
-                    onClick={() =>
-                      handleUpdateClick(
-                        update
-                      )
-                    }
-                    className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors ${
-                      isCritical
-                        ? 'bg-resqnow-critical/5 hover:bg-resqnow-critical/10'
-                        : 'hover:bg-resqnow-canvas'
-                    }`}
-                  >
-
-                    {/* Semantic indicator */}
-                    <span
-                      className={`w-2 h-2 rounded-full shrink-0 ${
-                        isCritical
-                          ? 'bg-resqnow-critical'
-                          : isReport
-                          ? 'bg-resqnow-violet'
-                          : 'bg-resqnow-info'
-                      }`}
-                    />
-
-                    <div className="flex-1 min-w-0">
-
-                      {/* Update type */}
-                      <div className="flex items-center gap-2">
-
-                        <span
-                          className={`text-[9px] font-bold uppercase tracking-wide ${
-                            isCritical
-                              ? 'text-resqnow-critical'
-                              : isReport
-                              ? 'text-resqnow-violet'
-                              : 'text-resqnow-info'
-                          }`}
-                        >
-                          {updateLabel}
-                        </span>
-
-                        {!update.isRead && (
-                          <span className="w-1.5 h-1.5 bg-resqnow-critical rounded-full" />
-                        )}
-                      </div>
-
-                      {/* Title */}
-                      <p className="text-[12px] font-semibold text-resqnow-primary mt-0.5 truncate">
-                        {update.title}
-                      </p>
-
-                      {/* Date */}
-                      <p className="text-[10px] text-resqnow-muted mt-0.5">
-                        {formatDate(
-                          update.createdAt
-                        )}
-                      </p>
-                    </div>
-
-                    <ChevronRight className="w-3.5 h-3.5 text-resqnow-placeholder shrink-0" />
-                  </button>
-                );
-              }
+          <button
+            type="button"
+            onClick={() =>
+              loadReports({
+                refresh: true,
+              })
+            }
+            disabled={
+              isRefreshing
+            }
+            className="mt-3 min-h-[40px] px-3 py-2 rounded-lg border border-resqnow-critical/20 bg-white text-resqnow-crimson text-[12px] font-semibold flex items-center gap-2 disabled:opacity-60"
+          >
+            {isRefreshing ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <RefreshCw className="w-3.5 h-3.5" />
             )}
-          </div>
-        </section>
+
+            Try Again
+          </button>
+        </div>
       )}
 
       {/* ============ MY REPORTS ============ */}
       <section>
 
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between gap-3 mb-2">
 
-          <h2 className="text-[13px] font-bold text-resqnow-primary">
-            My Reports
-          </h2>
+          <div>
 
-          <button
-            type="button"
-            onClick={() =>
-              navigate('/track')
-            }
-            className="text-[11px] font-semibold text-resqnow-violet active:scale-95 transition-transform"
-          >
-            View all
-          </button>
+            <h2 className="text-[14px] font-bold text-resqnow-primary">
+              My Reports
+            </h2>
+
+            <p className="text-[11px] text-resqnow-muted mt-0.5">
+              {isRefreshing
+                ? 'Refreshing reports...'
+                : lastCheckedText
+                ? `Last checked ${lastCheckedText}`
+                : 'Checking reports...'}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-1">
+
+            <button
+              type="button"
+              aria-label="Refresh reports"
+              onClick={() =>
+                loadReports({
+                  refresh: true,
+                })
+              }
+              disabled={
+                isRefreshing
+              }
+              className="w-9 h-9 rounded-lg flex items-center justify-center text-resqnow-violet hover:bg-resqnow-violet/10 disabled:opacity-50 transition-colors"
+            >
+              {isRefreshing ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4" />
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                navigate('/track')
+              }
+              className="min-h-[40px] px-2 text-[12px] font-semibold text-resqnow-violet active:scale-95 transition-transform"
+            >
+              View all
+            </button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
+        {/* INITIAL LOADING */}
+        {isLoading &&
+        reports.length === 0 ? (
+          <div className="bg-white border border-resqnow-border-soft rounded-2xl p-5 flex items-center justify-center gap-2">
 
-          <StatCard
-            icon={Activity}
-            value={activeCount}
-            label="Active"
-            color="violet"
-            onClick={() =>
-              navigate('/track')
-            }
-          />
+            <Loader2 className="w-4 h-4 text-resqnow-violet animate-spin" />
 
-          <StatCard
-            icon={Clock}
-            value={pendingCount}
-            label="Pending"
-            color="pending"
-            onClick={() =>
-              navigate('/track')
-            }
-          />
+            <p className="text-[12px] text-resqnow-muted">
+              Loading your reports...
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 gap-2">
 
-          <StatCard
-            icon={CheckCircle2}
-            value={resolvedCount}
-            label="Resolved"
-            color="safe"
-            onClick={() =>
-              navigate('/track')
-            }
-          />
-        </div>
+            <StatCard
+              icon={Activity}
+              value={
+                openCount
+              }
+              label="Open"
+              color="violet"
+              onClick={() =>
+                navigate(
+                  '/track'
+                )
+              }
+            />
+
+            <StatCard
+              icon={Clock}
+              value={
+                pendingCount
+              }
+              label="Pending"
+              color="pending"
+              onClick={() =>
+                navigate(
+                  '/track'
+                )
+              }
+            />
+
+            <StatCard
+              icon={
+                CheckCircle2
+              }
+              value={
+                resolvedCount
+              }
+              label="Resolved"
+              color="safe"
+              onClick={() =>
+                navigate(
+                  '/track'
+                )
+              }
+            />
+          </div>
+        )}
       </section>
 
       {/* ============ LATEST REPORT ============ */}
-      {latestReport && (
+      {!isLoading &&
+      latestReport && (
         <section className="bg-white rounded-2xl border border-resqnow-border-soft overflow-hidden">
 
           <div className="h-1 bg-brand-gradient" />
@@ -396,16 +484,18 @@ export default function Dashboard() {
 
             <div className="flex items-center justify-between mb-3">
 
-              <h2 className="text-[13px] font-bold text-resqnow-primary">
+              <h2 className="text-[14px] font-bold text-resqnow-primary">
                 Latest Report
               </h2>
 
               <button
                 type="button"
                 onClick={() =>
-                  navigate('/track')
+                  navigate(
+                    '/track'
+                  )
                 }
-                className="text-[11px] font-semibold text-resqnow-violet flex items-center gap-1 active:scale-95 transition-transform"
+                className="min-h-[40px] text-[12px] font-semibold text-resqnow-violet flex items-center gap-1 active:scale-95 transition-transform"
               >
                 View all
 
@@ -417,55 +507,67 @@ export default function Dashboard() {
               type="button"
               onClick={() =>
                 navigate(
-                  `/track/${latestReport.id}`
+                  `/track/${encodeURIComponent(
+                    latestReport.id
+                  )}`
                 )
               }
               className="w-full text-left active:scale-[0.995] transition-transform"
             >
 
-              {/* ID + report type */}
-              <div className="flex items-center justify-between mb-2">
+              {/* ID + TYPE */}
+              <div className="flex items-center justify-between gap-3 mb-2">
 
-                <span className="text-[11px] font-bold text-resqnow-muted">
-                  {latestReport.id}
+                <span className="text-[12px] font-bold text-resqnow-muted">
+                  {
+                    latestReport.id
+                  }
                 </span>
 
                 <span
-                  className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                  className={`text-[10px] font-bold px-2 py-1 rounded-full ${
                     latestReport.reportType ===
                     'Emergency'
                       ? 'bg-resqnow-critical/15 text-resqnow-critical'
                       : 'bg-resqnow-violet/15 text-resqnow-violet'
                   }`}
                 >
-                  {latestReport.reportType}
+                  {
+                    latestReport.reportType
+                  }
                 </span>
               </div>
 
-              {/* Concern */}
-              <p className="text-sm font-semibold text-resqnow-primary">
-                {latestReport.concernType}
+              {/* CONCERN */}
+              <p className="text-[15px] font-semibold text-resqnow-primary">
+                {
+                  latestReport.concernType
+                }
               </p>
 
-              {/* Location */}
-              <div className="flex items-center gap-1.5 mt-1 text-[11px] text-resqnow-muted">
+              {/* LOCATION */}
+              {latestReport.location && (
+                <div className="flex items-start gap-1.5 mt-1.5 text-[12px] text-resqnow-muted">
 
-                <MapPin className="w-3.5 h-3.5 shrink-0" />
+                  <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5" />
 
-                <span className="line-clamp-1">
-                  {latestReport.location}
-                </span>
-              </div>
+                  <span className="line-clamp-2">
+                    {
+                      latestReport.location
+                    }
+                  </span>
+                </div>
+              )}
 
-              {/* Latest update */}
+              {/* LATEST UPDATE */}
               {latestReport.latestUpdate && (
                 <div className="mt-3 bg-resqnow-canvas rounded-xl px-3 py-2.5">
 
-                  <p className="text-[9px] font-bold text-resqnow-muted uppercase tracking-wide">
+                  <p className="text-[10px] font-bold text-resqnow-muted uppercase tracking-wide">
                     Latest Update
                   </p>
 
-                  <p className="text-[11px] text-resqnow-secondary mt-1 leading-relaxed line-clamp-2">
+                  <p className="text-[12px] text-resqnow-secondary mt-1 leading-relaxed line-clamp-2">
                     {
                       latestReport.latestUpdate
                     }
@@ -473,52 +575,103 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* Status */}
+              {/* STATUS + UPDATED */}
               <div className="mt-3 flex items-center justify-between gap-3">
 
                 <span
-                  className={`text-[9px] font-bold px-2 py-1 rounded-full ${getStatusStyle(
+                  className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${getStatusStyle(
                     latestReport.status
                   )}`}
                 >
-                  {latestReport.status}
+                  {
+                    latestReport.status
+                  }
                 </span>
 
-                <span className="text-[10px] text-resqnow-muted flex items-center gap-1 shrink-0">
+                {latestReport.updatedAt && (
+                  <span className="text-[11px] text-resqnow-muted flex items-center gap-1 shrink-0">
 
-                  <Clock className="w-3 h-3" />
+                    <Clock className="w-3 h-3" />
 
-                  {latestReport.updatedAt}
-                </span>
-              </div>
-
-              {/* Progress */}
-              <div className="flex items-center gap-1 mt-2">
-
-                {latestReport.timeline.map(
-                  (step) => (
-                    <div
-                      key={step.status}
-                      title={step.status}
-                      className={`h-1.5 flex-1 rounded-full ${
-                        step.done
-                          ? 'bg-resqnow-mint'
-                          : 'bg-resqnow-border-soft'
-                      }`}
-                    />
-                  )
+                    {
+                      latestReport.updatedAt
+                    }
+                  </span>
                 )}
               </div>
+
+              {/* PROGRESS */}
+              {Array.isArray(
+                latestReport.timeline
+              ) &&
+                latestReport.timeline
+                  .length >
+                  0 && (
+                  <div className="flex items-center gap-1 mt-3">
+
+                    {latestReport.timeline.map(
+                      (
+                        step,
+                        index
+                      ) => (
+                        <div
+                          key={`${step.status}-${index}`}
+                          title={
+                            step.status
+                          }
+                          className={`h-1.5 flex-1 rounded-full ${
+                            step.done
+                              ? 'bg-resqnow-violet'
+                              : 'bg-resqnow-border-soft'
+                          }`}
+                        />
+                      )
+                    )}
+                  </div>
+                )}
             </button>
           </div>
         </section>
       )}
 
+      {/* ============ NO REPORTS ============ */}
+      {!isLoading &&
+        !latestReport &&
+        !reportError && (
+          <section className="bg-white rounded-2xl border border-resqnow-border-soft p-5 text-center">
+
+            <div className="w-11 h-11 rounded-full bg-resqnow-violet/10 flex items-center justify-center mx-auto">
+
+              <Activity className="w-5 h-5 text-resqnow-violet" />
+            </div>
+
+            <h2 className="text-[14px] font-bold text-resqnow-primary mt-3">
+              No reports yet
+            </h2>
+
+            <p className="text-[12px] text-resqnow-muted mt-1 leading-relaxed">
+              Reports you submit will appear here and in Track Reports.
+            </p>
+
+            <button
+              type="button"
+              onClick={() =>
+                navigate('/submit')
+              }
+              className="mt-4 min-h-[44px] px-4 py-2.5 rounded-xl bg-brand-gradient text-white text-[13px] font-semibold"
+            >
+              Submit a Report
+            </button>
+          </section>
+        )}
+
       {/* ============ SAFETY INFORMATION ============ */}
       <button
         type="button"
         onClick={() =>
-          navigate('/safety-tips')
+          navigate(
+            '/safety-tips'
+          )
         }
         className="w-full flex items-center gap-3 bg-white border border-resqnow-info/20 rounded-2xl px-4 py-3.5 hover:border-resqnow-info/40 active:scale-[0.99] transition-all"
       >
@@ -530,16 +683,16 @@ export default function Dashboard() {
 
         <div className="flex-1 text-left">
 
-          <p className="text-[9px] font-bold text-resqnow-info uppercase tracking-wide">
+          <p className="text-[11px] font-bold text-resqnow-secondary uppercase tracking-wide">
             Safety & Preparedness
           </p>
 
-          <p className="text-[13px] font-semibold text-resqnow-primary mt-0.5">
+          <p className="text-[14px] font-semibold text-resqnow-primary mt-0.5">
             Stay informed and prepared
           </p>
 
-          <p className="text-[10px] text-resqnow-muted mt-1 leading-relaxed">
-            Take time to read the safety tips for more information, awareness, and emergency preparedness.
+          <p className="text-[12px] text-resqnow-muted mt-1 leading-relaxed">
+            Read practical safety information and emergency preparedness guidance.
           </p>
         </div>
 
@@ -550,7 +703,7 @@ export default function Dashboard() {
 }
 
 // ============ STAT CARD ============
-// Small report summary card
+
 function StatCard({
   icon: Icon,
   value,
@@ -593,7 +746,7 @@ function StatCard({
     },
   };
 
-  const c =
+  const selectedColor =
     colorMap[color] ||
     colorMap.violet;
 
@@ -601,17 +754,17 @@ function StatCard({
     <button
       type="button"
       onClick={onClick}
-      className={`bg-white border ${c.border} rounded-2xl p-3 text-center ${c.hover} active:scale-[0.98] transition-all`}
+      className={`bg-white border ${selectedColor.border} rounded-2xl p-3 text-center ${selectedColor.hover} active:scale-[0.98] transition-all`}
     >
       <Icon
-        className={`w-5 h-5 mx-auto ${c.icon}`}
+        className={`w-5 h-5 mx-auto ${selectedColor.icon}`}
       />
 
       <p className="text-lg font-bold text-resqnow-primary mt-1">
         {value}
       </p>
 
-      <p className="text-[10px] text-resqnow-muted">
+      <p className="text-[11px] text-resqnow-muted mt-0.5">
         {label}
       </p>
     </button>
