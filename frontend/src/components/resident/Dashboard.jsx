@@ -482,25 +482,11 @@ export default function Dashboard() {
 
           <div className="p-4">
 
-            <div className="flex items-center justify-between mb-3">
+            <div className="mb-3">
 
               <h2 className="text-[14px] font-bold text-resqnow-primary">
                 Latest Report
               </h2>
-
-              <button
-                type="button"
-                onClick={() =>
-                  navigate(
-                    '/track'
-                  )
-                }
-                className="min-h-[40px] text-[12px] font-semibold text-resqnow-violet flex items-center gap-1 active:scale-95 transition-transform"
-              >
-                View all
-
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
             </div>
 
             <button
