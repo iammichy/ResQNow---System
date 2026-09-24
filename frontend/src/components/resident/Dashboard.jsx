@@ -1,18 +1,11 @@
-// src/components/resident/Dashboard.jsx
-
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Activity,
   AlertCircle,
   BookOpen,
-  CheckCircle2,
   ChevronRight,
-  Clock,
   House,
-  Loader2,
   MapPin,
-  MessageSquareText,
   Navigation,
   Phone,
   RefreshCw,
@@ -33,6 +26,7 @@ import {
 } from '../../services/operationsService';
 import { getReports } from '../../services/reportService';
 import { getStatusStyle } from '../../utils/statusUtils';
+import SOSAction from './SOSAction';
 
 const TERMINAL_STATUSES = ['Resolved', 'Invalid'];
 const HOME_REPORT_POLL_MS = 15000;
@@ -44,11 +38,7 @@ export default function Dashboard() {
   const isOnline = useOnlineStatus();
 
   const [reports, setReports] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [reportError, setReportError] = useState('');
-  const [lastChecked, setLastChecked] = useState(null);
-
   const [announcements, setAnnouncements] = useState([]);
   const [announcementsSource, setAnnouncementsSource] = useState('api');
   const [operationsError, setOperationsError] = useState('');
@@ -56,21 +46,13 @@ export default function Dashboard() {
   const [evacuationSource, setEvacuationSource] = useState('api');
   const [hotline, setHotline] = useState(null);
 
-  const loadReports = useCallback(async ({ refresh = false } = {}) => {
-    if (refresh) setIsRefreshing(true);
-    else setIsLoading(true);
-
-    setReportError('');
-
+  const loadReports = useCallback(async () => {
     try {
       const result = await getReports();
       setReports(Array.isArray(result) ? result : []);
-      setLastChecked(new Date());
+      setReportError('');
     } catch (error) {
-      setReportError(error?.message || 'Unable to load your reports.');
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
+      setReportError(error?.message || 'Unable to refresh your active rescue status.');
     }
   }, []);
 
@@ -122,7 +104,7 @@ export default function Dashboard() {
         });
       }
     } catch {
-      // Contacts page still has its own saved-directory fallback.
+      // contactService already falls back to the bundled saved directory.
     }
   }, []);
 
@@ -132,20 +114,16 @@ export default function Dashboard() {
     loadHotline();
 
     const reportIntervalId = window.setInterval(() => {
-      if (document.visibilityState === 'visible') {
-        loadReports({ refresh: true });
-      }
+      if (document.visibilityState === 'visible') loadReports();
     }, HOME_REPORT_POLL_MS);
 
     const operationsIntervalId = window.setInterval(() => {
-      if (document.visibilityState === 'visible') {
-        loadOperations();
-      }
+      if (document.visibilityState === 'visible') loadOperations();
     }, HOME_OPERATIONS_POLL_MS);
 
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
-        loadReports({ refresh: true });
+        loadReports();
         loadOperations();
       }
     };
@@ -159,51 +137,27 @@ export default function Dashboard() {
     };
   }, [loadReports, loadOperations, loadHotline]);
 
-  const openReports = useMemo(
-    () => reports.filter((report) => !TERMINAL_STATUSES.includes(report.status)),
-    [reports]
-  );
-
-  const pendingCount = useMemo(
-    () => reports.filter((report) => report.status === 'Pending Verification').length,
-    [reports]
-  );
-
-  const resolvedCount = useMemo(
-    () => reports.filter((report) => report.status === 'Resolved').length,
-    [reports]
-  );
-
-  const activeReport = useMemo(() => {
-    if (openReports.length === 0) return null;
-    return [...openReports].sort((a, b) => getReportTime(b) - getReportTime(a))[0];
-  }, [openReports]);
-
-  const recentReports = useMemo(() => {
+  const activeRescue = useMemo(() => {
     return [...reports]
-      .sort((a, b) => getReportTime(b) - getReportTime(a))
-      .filter((report) => report.id !== activeReport?.id)
-      .slice(0, 2);
-  }, [reports, activeReport]);
+      .filter(
+        (report) =>
+          report.reportType === 'Emergency' &&
+          !TERMINAL_STATUSES.includes(report.status)
+      )
+      .sort((a, b) => getReportTime(b) - getReportTime(a))[0] || null;
+  }, [reports]);
 
   const criticalAlert = useMemo(
     () => announcements.find((item) => item.category === 'critical') || null,
     [announcements]
   );
 
-  const nonCriticalAnnouncements = useMemo(
-    () => announcements.filter((item) => item.category !== 'critical'),
+  const barangayUpdates = useMemo(
+    () => announcements.filter((item) => item.category !== 'critical').slice(0, 2),
     [announcements]
   );
 
   const nearestCenter = evacuationCenters[0] || null;
-
-  const lastCheckedText = lastChecked
-    ? lastChecked.toLocaleTimeString('en-PH', {
-        hour: 'numeric',
-        minute: '2-digit',
-      })
-    : '';
 
   const callHotline = () => {
     if (hotline?.number) {
@@ -211,6 +165,18 @@ export default function Dashboard() {
       return;
     }
     navigate('/contacts');
+  };
+
+  const handleSosCreated = (report) => {
+    if (!report?.id) {
+      loadReports();
+      return;
+    }
+
+    setReports((current) => [
+      report,
+      ...current.filter((item) => item.id !== report.id),
+    ]);
   };
 
   return (
@@ -223,107 +189,35 @@ export default function Dashboard() {
         />
       )}
 
-      {!isOnline && (
-        <OfflineModeBanner
-          hotline={hotline}
-          onOpenSms={() => navigate('/submit/emergency?offline=1')}
-          onCall={callHotline}
+      {barangayUpdates.length > 0 && (
+        <BarangayUpdates
+          announcements={barangayUpdates}
+          source={announcementsSource}
+          onOpen={() => navigate('/updates')}
         />
       )}
 
-      <HomePriorityStack
-        activeReport={activeReport}
-        announcements={nonCriticalAnnouncements}
-        onOpenReport={(reportCode) =>
-          navigate(`/track/${encodeURIComponent(reportCode)}`)
-        }
-        onOpenUpdates={() => navigate('/updates')}
-      />
+      {!isOnline && <OfflineModeBanner />}
 
-      <section>
-        <div className="flex items-center justify-between gap-3 mb-2">
-          <div>
-            <h1 className="text-[14px] font-extrabold text-resqnow-primary">
-              My Reports
-            </h1>
-            <p className="text-[11px] text-resqnow-muted mt-0.5">
-              {isRefreshing
-                ? 'Checking for updates...'
-                : lastCheckedText
-                ? `Last checked ${lastCheckedText}`
-                : 'Checking your latest report status'}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              aria-label="Refresh reports"
-              onClick={() => loadReports({ refresh: true })}
-              disabled={isRefreshing}
-              className="w-10 h-10 rounded-lg flex items-center justify-center text-resqnow-violet hover:bg-resqnow-violet/10 disabled:opacity-50 transition-colors"
-            >
-              {isRefreshing ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4" />
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => navigate('/track')}
-              className="min-h-[40px] px-2 text-[12px] font-bold text-resqnow-violet active:scale-95 transition-transform"
-            >
-              View all
-            </button>
-          </div>
-        </div>
-
-        {isLoading && reports.length === 0 ? (
-          <div className="bg-white border border-resqnow-border-soft rounded-2xl p-5 flex items-center justify-center gap-2">
-            <Loader2 className="w-4 h-4 text-resqnow-violet animate-spin" />
-            <p className="text-[12px] text-resqnow-muted">Loading your reports...</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-3 gap-2">
-            <StatCard
-              icon={Activity}
-              value={openReports.length}
-              label="Open"
-              color="blue"
-              onClick={() => navigate('/track')}
-            />
-            <StatCard
-              icon={Clock}
-              value={pendingCount}
-              label="Pending"
-              color="orange"
-              onClick={() => navigate('/track')}
-            />
-            <StatCard
-              icon={CheckCircle2}
-              value={resolvedCount}
-              label="Resolved"
-              color="green"
-              onClick={() => navigate('/track')}
-            />
-          </div>
-        )}
-      </section>
+      {activeRescue ? (
+        <ActiveRescueCard
+          report={activeRescue}
+          onOpen={() => navigate(`/track/${encodeURIComponent(activeRescue.id)}`)}
+        />
+      ) : (
+        <SOSAction
+          user={user}
+          hotline={hotline}
+          onCreated={handleSosCreated}
+          onCallHotline={callHotline}
+        />
+      )}
 
       {reportError && (
         <InlineError
-          title="Could not refresh your reports"
-          message={reportError}
-          onRetry={() => loadReports({ refresh: true })}
-        />
-      )}
-
-      {!isLoading && activeReport && (
-        <ActiveReportCard
-          report={activeReport}
-          onOpen={() => navigate(`/track/${encodeURIComponent(activeReport.id)}`)}
+          title="Active rescue status could not refresh"
+          message={`${reportError} The SOS endpoint still performs its own duplicate protection.`}
+          onRetry={loadReports}
         />
       )}
 
@@ -345,18 +239,11 @@ export default function Dashboard() {
         onOpen={() => navigate('/safety-tips')}
       />
 
-      {operationsError && !criticalAlert && !nearestCenter && (
+      {operationsError && !criticalAlert && barangayUpdates.length === 0 && !nearestCenter && (
         <InlineError
           title="Barangay information could not refresh"
           message={operationsError}
           onRetry={loadOperations}
-        />
-      )}
-
-      {!isLoading && recentReports.length > 0 && (
-        <RecentActivity
-          reports={recentReports}
-          onOpen={(report) => navigate(`/track/${encodeURIComponent(report.id)}`)}
         />
       )}
     </div>
@@ -397,7 +284,61 @@ function CriticalAlertBanner({ alert, onOpen, source }) {
   );
 }
 
-function OfflineModeBanner({ hotline, onOpenSms, onCall }) {
+function BarangayUpdates({ announcements, source, onOpen }) {
+  return (
+    <section aria-label="Barangay alerts">
+      <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-resqnow-muted mb-2">
+        Barangay alerts
+      </p>
+      <div className="space-y-2">
+        {announcements.map((item) => {
+          const advisory = item.category === 'advisory';
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={onOpen}
+              className={`w-full rounded-2xl border px-3.5 py-3 text-left shadow-[0_5px_16px_rgba(7,55,99,0.06)] active:scale-[0.995] transition-transform ${
+                advisory
+                  ? 'bg-bgy-yellow-soft border-bgy-yellow/40 border-l-4 border-l-bgy-yellow'
+                  : 'bg-white border-resqnow-border-soft border-l-4 border-l-resqnow-violet'
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                  advisory
+                    ? 'bg-bgy-yellow text-bgy-navy'
+                    : 'bg-resqnow-violet/10 text-resqnow-violet'
+                }`}>
+                  <ShieldAlert className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-[9px] font-extrabold uppercase tracking-[0.1em] text-resqnow-muted">
+                      {advisory ? 'Barangay advisory' : 'Barangay announcement'}
+                    </p>
+                    {source === 'cache' && (
+                      <span className="text-[8px] font-bold text-resqnow-pending">Saved copy</span>
+                    )}
+                  </div>
+                  <p className="text-[12px] font-extrabold text-resqnow-primary mt-0.5 line-clamp-1">
+                    {item.title}
+                  </p>
+                  <p className="text-[10px] text-resqnow-muted mt-0.5 line-clamp-2">
+                    {item.body}
+                  </p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-resqnow-muted shrink-0 mt-2" />
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function OfflineModeBanner() {
   return (
     <section className="rounded-2xl border border-resqnow-pending/30 bg-resqnow-pending/10 px-3.5 py-3">
       <div className="flex items-start gap-3">
@@ -407,107 +348,70 @@ function OfflineModeBanner({ hotline, onOpenSms, onCall }) {
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-extrabold text-resqnow-primary">Offline Mode</p>
           <p className="text-[10px] text-resqnow-secondary mt-0.5 leading-relaxed">
-            Live status may be outdated. You can prepare a formatted emergency SMS or call the barangay directly.
+            Live information may be outdated. SOS still attempts the ResQNow API first and offers SMS/call fallback if delivery cannot be confirmed.
           </p>
-          <div className="flex gap-2 mt-2.5">
-            <button
-              type="button"
-              onClick={onOpenSms}
-              className="min-h-[40px] px-3 rounded-xl bg-resqnow-pending text-white text-[10px] font-extrabold flex items-center gap-1.5"
-            >
-              <MessageSquareText className="w-3.5 h-3.5" />
-              SMS SOS
-            </button>
-            <button
-              type="button"
-              onClick={onCall}
-              className="min-h-[40px] px-3 rounded-xl bg-white border border-resqnow-pending/25 text-resqnow-primary text-[10px] font-extrabold flex items-center gap-1.5"
-            >
-              <Phone className="w-3.5 h-3.5" />
-              {hotline?.displayNumber ? 'Call Hotline' : 'Contacts'}
-            </button>
-          </div>
         </div>
       </div>
     </section>
   );
 }
 
-function HomePriorityStack({ activeReport, announcements, onOpenReport, onOpenUpdates }) {
-  const items = useMemo(() => {
-    const selected = [];
-
-    if (activeReport) {
-      selected.push(buildReportStateNotice(activeReport));
-    }
-
-    const advisory = announcements.find((item) => item.category === 'advisory');
-    const general = announcements.find((item) => item.category === 'general');
-
-    if (advisory && selected.length < 3) selected.push({ ...advisory, kind: 'announcement' });
-    if (general && selected.length < 3) selected.push({ ...general, kind: 'announcement' });
-
-    for (const announcement of announcements) {
-      if (selected.length >= 3) break;
-      if (selected.some((item) => item.id === announcement.id)) continue;
-      selected.push({ ...announcement, kind: 'announcement' });
-    }
-
-    return selected.slice(0, 3);
-  }, [activeReport, announcements]);
-
-  if (items.length === 0) return null;
+function ActiveRescueCard({ report, onOpen }) {
+  const status = getRescueStatus(report);
+  const isSos = report.concernCode === 'sos';
 
   return (
-    <section aria-label="Priority updates">
-      <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-resqnow-muted mb-2">
-        Priority updates
-      </p>
-      <div className="relative">
-        {items.map((item, index) => {
-          const reportItem = item.kind === 'report';
-          const advisory = item.category === 'advisory';
+    <section className="bg-white rounded-3xl border-2 border-resqnow-critical/25 overflow-hidden shadow-[0_10px_28px_rgba(217,45,32,0.10)]">
+      <div className="px-4 py-3 bg-resqnow-critical/8 border-b border-resqnow-critical/12">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[9px] font-extrabold uppercase tracking-[0.12em] text-resqnow-critical">
+              Active Rescue
+            </p>
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <span className="text-[14px] font-extrabold text-resqnow-primary">{report.id}</span>
+              {isSos && (
+                <span className="text-[8px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full bg-resqnow-critical text-white">
+                  SOS
+                </span>
+              )}
+            </div>
+          </div>
+          <span className={`shrink-0 text-[9px] font-bold px-2.5 py-1 rounded-full border ${getStatusStyle(report.status)}`}>
+            {report.status}
+          </span>
+        </div>
+      </div>
 
-          return (
-            <button
-              key={reportItem ? `report-${item.reportCode}` : `announcement-${item.id}`}
-              type="button"
-              onClick={() => reportItem ? onOpenReport(item.reportCode) : onOpenUpdates()}
-              style={{ zIndex: 30 - index, marginTop: index === 0 ? 0 : '-8px' }}
-              className={`relative w-full min-h-[68px] rounded-2xl border px-3.5 py-3 text-left shadow-[0_5px_16px_rgba(7,55,99,0.08)] active:scale-[0.995] transition-transform ${
-                reportItem
-                  ? 'bg-white border-resqnow-violet/25 border-l-4 border-l-resqnow-violet'
-                  : advisory
-                  ? 'bg-bgy-yellow-soft border-bgy-yellow/40 border-l-4 border-l-bgy-yellow'
-                  : 'bg-white border-resqnow-border-soft border-l-4 border-l-resqnow-violet'
-              }`}
-            >
-              <div className="flex items-start gap-3">
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                  reportItem
-                    ? 'bg-resqnow-violet/10 text-resqnow-violet'
-                    : advisory
-                    ? 'bg-bgy-yellow text-bgy-navy'
-                    : 'bg-resqnow-violet/10 text-resqnow-violet'
-                }`}>
-                  {reportItem ? <Activity className="w-4 h-4" /> : <ShieldAlert className="w-4 h-4" />}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[9px] font-extrabold uppercase tracking-[0.1em] text-resqnow-muted">
-                    {reportItem ? 'Report update' : advisory ? 'Barangay advisory' : 'Barangay announcement'}
-                  </p>
-                  <p className="text-[12px] font-extrabold text-resqnow-primary mt-0.5 line-clamp-1">
-                    {item.title}
-                  </p>
-                  <p className="text-[10px] text-resqnow-muted mt-0.5 line-clamp-1">
-                    {reportItem ? item.message : item.body}
-                  </p>
-                </div>
-                <ChevronRight className="w-4 h-4 text-resqnow-muted shrink-0 mt-2" />
-              </div>
-            </button>
-          );
-        })}
+      <div className="p-4">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-resqnow-critical/10 text-resqnow-critical flex items-center justify-center shrink-0">
+            <Siren className="w-5 h-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[13px] font-extrabold text-resqnow-primary">{status.title}</p>
+            <p className="text-[10px] text-resqnow-muted mt-1 leading-relaxed">{status.message}</p>
+          </div>
+        </div>
+
+        {report.location && (
+          <div className="mt-3 rounded-xl bg-resqnow-canvas px-3 py-2.5 flex items-start gap-2">
+            <MapPin className="w-3.5 h-3.5 text-resqnow-violet mt-0.5 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-[9px] font-extrabold text-resqnow-muted uppercase tracking-[0.08em]">Location on report</p>
+              <p className="text-[10px] text-resqnow-primary mt-0.5 line-clamp-2">{report.location}</p>
+            </div>
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={onOpen}
+          className="mt-3 w-full min-h-[46px] rounded-xl bg-resqnow-violet text-white text-[11px] font-extrabold flex items-center justify-center gap-1.5 active:scale-[0.99] transition-transform"
+        >
+          Track Rescue
+          <ChevronRight className="w-4 h-4" />
+        </button>
       </div>
     </section>
   );
@@ -521,24 +425,24 @@ function QuickAccess({ hotline, onCallHotline, onHousehold }) {
         <button
           type="button"
           onClick={onHousehold}
-          className="min-h-[72px] bg-white border border-resqnow-border-soft rounded-2xl p-3 text-left flex items-center gap-3 active:scale-[0.99] transition-transform"
+          className="min-h-[82px] bg-white border border-resqnow-violet/20 rounded-2xl px-3 py-3 flex items-center gap-3 text-left active:scale-[0.98] transition-transform"
         >
-          <div className="w-9 h-9 rounded-xl bg-resqnow-violet/10 text-resqnow-violet flex items-center justify-center shrink-0">
-            <Users className="w-4 h-4" />
+          <div className="w-10 h-10 rounded-xl bg-resqnow-violet/10 text-resqnow-violet flex items-center justify-center shrink-0">
+            <Users className="w-4.5 h-4.5" />
           </div>
           <div className="min-w-0">
             <p className="text-[11px] font-extrabold text-resqnow-primary">Household Information</p>
-            <p className="text-[9px] text-resqnow-muted mt-0.5">Update family and home details</p>
+            <p className="text-[9px] text-resqnow-muted mt-0.5">Keep emergency profile details current</p>
           </div>
         </button>
 
         <button
           type="button"
           onClick={onCallHotline}
-          className="min-h-[72px] bg-white border border-resqnow-violet/20 rounded-2xl p-3 text-left flex items-center gap-3 active:scale-[0.99] transition-transform"
+          className="min-h-[82px] bg-white border border-resqnow-critical/20 rounded-2xl px-3 py-3 flex items-center gap-3 text-left active:scale-[0.98] transition-transform"
         >
-          <div className="w-9 h-9 rounded-xl bg-resqnow-violet text-white flex items-center justify-center shrink-0">
-            <Phone className="w-4 h-4" />
+          <div className="w-10 h-10 rounded-xl bg-resqnow-critical/10 text-resqnow-critical flex items-center justify-center shrink-0">
+            <Phone className="w-4.5 h-4.5" />
           </div>
           <div className="min-w-0">
             <p className="text-[11px] font-extrabold text-resqnow-primary">Call Barangay Hotline</p>
@@ -676,96 +580,6 @@ function SafetySnapshot({ offline, onOpen }) {
   );
 }
 
-function ActiveReportCard({ report, onOpen }) {
-  const isEmergency = report.reportType === 'Emergency';
-
-  return (
-    <section className={`bg-white rounded-2xl border border-resqnow-border-soft overflow-hidden ${
-      isEmergency ? 'border-l-4 border-l-resqnow-critical' : 'border-l-4 border-l-resqnow-violet'
-    }`}>
-      <div className="p-3.5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[9px] font-extrabold uppercase tracking-[0.12em] text-resqnow-muted">Active rescue</p>
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <span className="text-[12px] font-extrabold text-resqnow-primary">{report.id}</span>
-              <span className={`text-[8px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full ${
-                isEmergency ? 'bg-resqnow-critical/10 text-resqnow-critical' : 'bg-resqnow-violet/10 text-resqnow-violet'
-              }`}>
-                {report.reportType}
-              </span>
-            </div>
-          </div>
-          <span className={`shrink-0 text-[9px] font-bold px-2.5 py-1 rounded-full border ${getStatusStyle(report.status)}`}>
-            {report.status}
-          </span>
-        </div>
-        <h2 className="text-[13px] font-bold text-resqnow-primary mt-2.5 line-clamp-1">{report.concernType}</h2>
-        {report.location && (
-          <div className="flex items-start gap-2 mt-1.5 text-[10px] text-resqnow-muted">
-            <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-            <span className="line-clamp-1">{report.location}</span>
-          </div>
-        )}
-        <div className="mt-2.5 flex items-center justify-between gap-3">
-          <p className="min-w-0 text-[10px] text-resqnow-secondary line-clamp-1">
-            {report.latestUpdate || 'Open Track for the confirmed report history.'}
-          </p>
-          <button
-            type="button"
-            onClick={onOpen}
-            className="shrink-0 min-h-[40px] px-3.5 rounded-xl bg-resqnow-violet text-white text-[10px] font-extrabold flex items-center gap-1"
-          >
-            Track
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function RecentActivity({ reports, onOpen }) {
-  return (
-    <section>
-      <h2 className="text-[14px] font-extrabold text-resqnow-primary mb-2.5">Recent Activity</h2>
-      <div className="bg-white border border-resqnow-border-soft rounded-2xl overflow-hidden">
-        {reports.map((report, index) => (
-          <button
-            key={report.id}
-            type="button"
-            onClick={() => onOpen(report)}
-            className={`w-full px-3.5 py-3 flex items-center gap-3 text-left active:bg-resqnow-canvas transition-colors ${
-              index > 0 ? 'border-t border-resqnow-border-soft' : ''
-            }`}
-          >
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-              report.reportType === 'Emergency'
-                ? 'bg-resqnow-critical/10 text-resqnow-critical'
-                : 'bg-resqnow-violet/10 text-resqnow-violet'
-            }`}>
-              <Activity className="w-4 h-4" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-[11px] font-extrabold text-resqnow-primary shrink-0">{report.id}</span>
-                <span className="text-[11px] text-resqnow-muted truncate">{report.concernType}</span>
-              </div>
-              <div className="mt-1 flex items-center gap-2 min-w-0">
-                <span className={`text-[8px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${getStatusStyle(report.status)}`}>
-                  {report.status}
-                </span>
-                {report.updatedAt && <span className="text-[9px] text-resqnow-muted truncate">{report.updatedAt}</span>}
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-resqnow-muted shrink-0" />
-          </button>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 function InlineError({ title, message, onRetry }) {
   return (
     <div role="alert" className="bg-resqnow-critical/10 border border-resqnow-critical/20 rounded-xl px-4 py-3">
@@ -788,89 +602,49 @@ function InlineError({ title, message, onRetry }) {
   );
 }
 
-function StatCard({ icon: Icon, value, label, color, onClick }) {
-  const styles = {
-    blue: {
-      icon: 'text-resqnow-violet',
-      border: 'border-resqnow-violet/20',
-      hover: 'hover:bg-resqnow-violet/5',
-    },
-    orange: {
-      icon: 'text-resqnow-pending',
-      border: 'border-resqnow-pending/20',
-      hover: 'hover:bg-resqnow-pending/5',
-    },
-    green: {
-      icon: 'text-resqnow-safe',
-      border: 'border-resqnow-safe/20',
-      hover: 'hover:bg-resqnow-safe/5',
-    },
-  };
-  const selected = styles[color] || styles.blue;
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`min-h-[88px] bg-white border ${selected.border} ${selected.hover} rounded-2xl p-3 text-center active:scale-[0.98] transition-all`}
-    >
-      <Icon className={`w-5 h-5 mx-auto ${selected.icon}`} />
-      <p className="text-lg font-extrabold text-resqnow-primary mt-1">{value}</p>
-      <p className="text-[11px] text-resqnow-muted mt-0.5">{label}</p>
-    </button>
-  );
-}
-
-function buildReportStateNotice(report) {
+function getRescueStatus(report) {
   const assignments = Array.isArray(report?.assignedPersonnelList)
     ? report.assignedPersonnelList
     : [];
-  const acknowledgedAssignment = assignments.find((assignment) => assignment?.acknowledged);
-
-  let title = report.latestUpdate || 'Report status updated';
-  let message = 'Open Track to view the confirmed status and full history.';
+  const acknowledged = assignments.some((assignment) => assignment?.acknowledged);
 
   switch (report.status) {
     case 'Submitted':
-      title = 'Emergency report received';
-      message = 'Barangay Camunatan has received your report. Keep your phone reachable.';
-      break;
-    case 'Pending Verification':
-      title = 'Barangay is reviewing your report';
-      message = 'Your report is waiting for verification and response coordination.';
-      break;
-    case 'Verified':
-      title = 'Report verified';
-      message = 'Barangay personnel confirmed your report and are coordinating the response.';
-      break;
+      return {
+        title: report.concernCode === 'sos' ? 'SOS received' : 'Emergency report received',
+        message: 'Your emergency is recorded. Keep your phone reachable for barangay coordination.',
+      };
     case 'Assigned':
-      title = acknowledgedAssignment ? 'Responder acknowledged your report' : 'Responder assigned';
-      message = acknowledgedAssignment
-        ? 'Your assigned responder has confirmed the assignment.'
-        : 'A responder has been assigned and is awaiting acknowledgement.';
-      break;
+      return acknowledged
+        ? {
+            title: 'Responder acknowledged',
+            message: 'Your assigned responder has confirmed the rescue assignment.',
+          }
+        : {
+            title: 'Responder assigned',
+            message: 'A responder has been assigned to your emergency.',
+          };
     case 'In Progress':
-      title = 'Response started';
-      message = 'The assigned responder has started handling your report.';
-      break;
+      return {
+        title: 'Response started',
+        message: 'The assigned responder has started handling your emergency.',
+      };
     case 'Responders En Route':
-      title = 'Responders are on the way';
-      message = 'Responders are traveling to your reported location. Stay in a safe area.';
-      break;
+      return {
+        title: 'Responders are on the way',
+        message: 'Stay in the safest reachable place and keep your phone accessible.',
+      };
     case 'Responded':
-      title = 'Responders arrived / response recorded';
-      message = 'A responder has recorded arrival or an on-scene response.';
-      break;
+      return {
+        title: 'Responders arrived / response recorded',
+        message: 'An on-scene response has been recorded. Open Track for the confirmed history.',
+      };
     default:
-      break;
+      return {
+        title: report.latestUpdate || 'Active emergency',
+        message: 'Open Track to review the latest confirmed rescue status.',
+      };
   }
-
-  return {
-    kind: 'report',
-    reportCode: report.id,
-    title,
-    message,
-  };
 }
 
 function formatDistance(distanceMeters, hasSavedLocation) {

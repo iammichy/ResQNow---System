@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\EvacuationCenterController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\SosReportController;
 use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\EnsureVerifiedAccount;
 use Illuminate\Support\Facades\Route;
@@ -108,6 +109,19 @@ Route::middleware([
                 ReportController::class,
                 'index',
             ]
+        );
+
+
+        // One-swipe emergency SOS. Identity comes from Sanctum;
+        // GPS is best-effort and the request is idempotent.
+        Route::post(
+            '/reports/sos',
+            [
+                SosReportController::class,
+                'store',
+            ]
+        )->middleware(
+            'throttle:6,1'
         );
 
 
