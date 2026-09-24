@@ -1,129 +1,89 @@
 // src/utils/statusUtils.js
 
 // ============ STATUS STYLES ============
-// Returns color classes for report status
+// One status = one visual meaning across resident and responder views.
 function getStatusStyle(status) {
   switch (status) {
     case 'Submitted':
-      return 'bg-resqnow-info/15 text-resqnow-info';
+      return 'border bg-resqnow-violet/10 text-resqnow-violet border-resqnow-violet/20';
 
     case 'Pending Verification':
-      return 'bg-resqnow-pending/15 text-resqnow-pending';
+      return 'border bg-slate-100 text-slate-600 border-slate-200';
 
     case 'Verified':
-      return 'bg-resqnow-mint/15 text-resqnow-mint';
+      return 'border bg-resqnow-safe/10 text-resqnow-safe border-resqnow-safe/20';
 
     case 'Assigned':
-    case 'In Progress':
-      return 'bg-resqnow-insight/15 text-resqnow-insight';
+      return 'border bg-resqnow-insight/10 text-resqnow-insight border-resqnow-insight/20';
 
+    case 'In Progress':
     case 'Responders En Route':
-      return 'bg-resqnow-violet/15 text-resqnow-violet';
+      return 'border bg-resqnow-pending/10 text-resqnow-pending border-resqnow-pending/20';
 
     case 'Responded':
-      return 'bg-resqnow-mint/15 text-resqnow-mint';
+      return 'border bg-resqnow-indigo/10 text-resqnow-indigo border-resqnow-indigo/20';
 
     case 'Resolved':
-      return 'bg-resqnow-safe/15 text-resqnow-safe';
+      return 'border bg-resqnow-safe/10 text-resqnow-safe border-resqnow-safe/20';
 
     case 'Invalid':
-      return 'bg-resqnow-crimson/15 text-resqnow-crimson';
+      return 'border bg-resqnow-crimson/10 text-resqnow-crimson border-resqnow-crimson/20';
 
     default:
-      return 'bg-slate-100 text-slate-600';
+      return 'border bg-slate-100 text-slate-600 border-slate-200';
   }
 }
 
 // ============ PRIORITY STYLES ============
-// Returns color classes for report priority
 function getPriorityStyle(priority) {
   switch (priority) {
     case 'Critical':
-      return 'bg-resqnow-crimson/10 text-resqnow-crimson border-resqnow-crimson/20';
+      return 'border bg-resqnow-crimson/10 text-resqnow-crimson border-resqnow-crimson/25';
 
     case 'High':
-      return 'bg-resqnow-critical/10 text-resqnow-critical border-resqnow-critical/20';
+      return 'border bg-resqnow-pending/10 text-resqnow-pending border-resqnow-pending/25';
 
     case 'Medium':
-      return 'bg-resqnow-pending/10 text-resqnow-pending border-resqnow-pending/20';
+      return 'border bg-bgy-yellow-soft text-bgy-navy border-bgy-yellow/60';
 
     case 'Low':
-      return 'bg-resqnow-info/10 text-resqnow-info border-resqnow-info/20';
+      return 'border bg-slate-100 text-slate-600 border-slate-200';
 
     default:
-      return 'bg-slate-50 text-slate-500 border-slate-200';
+      return 'border bg-slate-50 text-slate-500 border-slate-200';
   }
 }
 
 // ============ STATUS LABELS ============
-// Backend status stays English
-// Only the visible label gets translated
 const statusKeys = {
-  Submitted:
-    'status.submitted',
-
-  'Pending Verification':
-    'status.pendingVerification',
-
-  Verified:
-    'status.verified',
-
-  Assigned:
-    'status.assigned',
-
-  'In Progress':
-    'status.inProgress',
-
-  'Responders En Route':
-    'status.respondersEnRoute',
-
-  Responded:
-    'status.responded',
-
-  Resolved:
-    'status.resolved',
-
-  Invalid:
-    'status.invalid',
+  Submitted: 'status.submitted',
+  'Pending Verification': 'status.pendingVerification',
+  Verified: 'status.verified',
+  Assigned: 'status.assigned',
+  'In Progress': 'status.inProgress',
+  'Responders En Route': 'status.respondersEnRoute',
+  Responded: 'status.responded',
+  Resolved: 'status.resolved',
+  Invalid: 'status.invalid',
 };
 
-// Get translated report status
 function getStatusLabel(status, t) {
-  const key =
-    statusKeys[status];
-
-  if (!key || !t) {
-    return status;
-  }
-
+  const key = statusKeys[status];
+  if (!key || !t) return status;
   return t(key);
 }
 
 // ============ PRIORITY LABELS ============
-// Backend priority stays English
 const priorityKeys = {
-  Critical:
-    'priority.critical',
-
-  High:
-    'priority.high',
-
-  Medium:
-    'priority.medium',
-
-  Low:
-    'priority.low',
+  Critical: 'priority.critical',
+  High: 'priority.high',
+  Medium: 'priority.medium',
+  Low: 'priority.low',
 };
 
-// Get translated priority
 function getPriorityLabel(priority, t) {
-  const key =
-    priorityKeys[priority];
-
-  if (!key || !t) {
-    return priority;
-  }
-
+  const key = priorityKeys[priority];
+  if (!key || !t) return priority;
   return t(key);
 }
 

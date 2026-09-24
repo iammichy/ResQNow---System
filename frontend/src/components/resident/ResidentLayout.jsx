@@ -1,19 +1,28 @@
-import { useCallback, useEffect, useState } from 'react';
 // src/components/resident/ResidentLayout.jsx
-import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
+
+import { useCallback, useEffect, useState } from 'react';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Home, MapPin, CirclePlus, Bell, Phone, Shield, ShieldCheck } from 'lucide-react';
+import {
+  Bell,
+  CirclePlus,
+  Home,
+  MapPin,
+  Phone,
+  Shield,
+  ShieldCheck,
+} from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext';
 import { getNotifications } from '../../services/notificationService';
 
-
 // ============ RESIDENT LAYOUT ============
-// Main layout used by all resident pages
+// Stable app shell for all resident routes. The layout deliberately keeps
+// the existing routes and navigation behavior while using a more official
+// barangay visual identity.
 export default function ResidentLayout() {
   const { user } = useAuth();
   const { t } = useTranslation();
-
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -24,7 +33,7 @@ export default function ResidentLayout() {
       const result = await getNotifications();
       setUnreadCount(result.unreadCount || 0);
     } catch {
-      // Keep the last confirmed badge count on temporary failures.
+      // Preserve the last confirmed count on temporary failures.
     }
   }, []);
 
@@ -48,220 +57,91 @@ export default function ResidentLayout() {
     };
 
     document.addEventListener('visibilitychange', handleVisibility);
-    window.addEventListener('resqnow:notifications-changed', handleNotificationsChanged);
+    window.addEventListener(
+      'resqnow:notifications-changed',
+      handleNotificationsChanged
+    );
 
     return () => {
       window.clearInterval(intervalId);
       document.removeEventListener('visibilitychange', handleVisibility);
-      window.removeEventListener('resqnow:notifications-changed', handleNotificationsChanged);
+      window.removeEventListener(
+        'resqnow:notifications-changed',
+        handleNotificationsChanged
+      );
     };
   }, [refreshUnreadCount]);
 
-  // Get first letter for profile avatar
-  const firstLetter = (
-    user?.fullName ||
-    t('common.resident')
-  )
+  const firstLetter = (user?.fullName || t('common.resident'))
     .charAt(0)
     .toUpperCase();
 
-  // Check if resident is inside report pages
-  const reportActive =
-    location.pathname.startsWith('/submit');
-
-  // ============ ACTIVE NAV TAB ============
-  // Get position of selected bottom tab
-  const getActiveTab = () => {
-    if (
-      location.pathname.startsWith('/dashboard')
-    ) {
-      return 0;
-    }
-
-    if (
-      location.pathname.startsWith('/track')
-    ) {
-      return 1;
-    }
-
-    if (
-      location.pathname.startsWith('/submit')
-    ) {
-      return 2;
-    }
-
-    if (
-      location.pathname.startsWith('/safety-tips')
-    ) {
-      return 3;
-    }
-
-    if (
-      location.pathname.startsWith('/contacts')
-    ) {
-      return 4;
-    }
-
-    return null;
-  };
-
-  const activeTab =
-    getActiveTab();
+  const reportActive = location.pathname.startsWith('/submit');
 
   return (
     <div className="min-h-screen resqnow-page pb-28 overflow-x-hidden">
-
-      {/* ============ BRAND HEADER ============ */}
-      <header className="relative h-[132px] bg-brand-gradient overflow-hidden">
-
-        {/* Header grid */}
-        <div
-          className="absolute inset-0 opacity-[0.10]"
-          style={{
-            backgroundImage: `
-              linear-gradient(rgba(255,255,255,0.45) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(255,255,255,0.45) 1px, transparent 1px)
-            `,
-            backgroundSize:
-              '20px 20px',
-          }}
-        />
-
-        {/* Header content */}
-        <div className="relative z-20 max-w-lg mx-auto px-4 pt-4 flex items-center justify-between">
-
-          {/* ResQNow brand */}
+      {/* ============ OFFICIAL BARANGAY HEADER ============ */}
+      <header className="bg-resqnow-violet border-b-4 border-b-bgy-yellow shadow-[0_3px_14px_rgba(7,55,99,0.16)]">
+        <div className="max-w-lg mx-auto min-h-[84px] px-4 flex items-center justify-between gap-3">
           <button
             type="button"
-            onClick={() =>
-              navigate('/dashboard')
-            }
-            className="flex items-center gap-2.5 text-left active:scale-[0.98] transition-transform"
+            onClick={() => navigate('/dashboard')}
+            className="min-h-[52px] flex items-center gap-3 text-left active:scale-[0.99] transition-transform"
           >
-            <div className="w-10 h-10 rounded-xl bg-white/20 border border-white/30 flex items-center justify-center shadow-sm backdrop-blur-sm">
-              <Shield className="w-5 h-5 text-white" />
+            <div className="w-11 h-11 rounded-xl bg-bgy-yellow text-bgy-navy flex items-center justify-center border border-white/20 shadow-sm shrink-0">
+              <Shield className="w-5 h-5" strokeWidth={2.4} />
             </div>
 
-            <div>
-              <p className="text-[17px] font-bold text-white leading-tight">
-                ResQNow
-              </p>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-[18px] font-extrabold tracking-[-0.02em] text-white leading-tight">
+                  ResQNow
+                </p>
+                <span className="inline-flex text-[8px] font-extrabold uppercase tracking-[0.12em] text-bgy-navy bg-bgy-yellow px-1.5 py-0.5 rounded-full">
+                  Resident
+                </span>
+              </div>
 
-              <p className="text-[9px] text-white/75 mt-0.5">
-                Barangay Camunatan
+              <p className="text-[11px] font-medium text-white/80 mt-0.5">
+                Barangay Camunatan Emergency Response
               </p>
             </div>
           </button>
 
-          {/* Notification + profile */}
-          <div className="flex items-center gap-2.5">
-
-            {/* Updates */}
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() =>
-                navigate('/updates')
-              }
-              aria-label={
-                t('nav.updates')
-              }
-              className="relative w-9 h-9 rounded-xl bg-white/15 border border-white/20 flex items-center justify-center text-white backdrop-blur-sm hover:bg-white/25 active:scale-90 transition-all"
+              onClick={() => navigate('/updates')}
+              aria-label={t('nav.updates')}
+              className="relative w-11 h-11 rounded-xl border border-white/20 bg-white/10 text-white flex items-center justify-center hover:bg-white/15 active:scale-95 transition-all"
             >
-              <Bell className="w-4 h-4" />
+              <Bell className="w-[18px] h-[18px]" />
 
               {unreadCount > 0 && (
                 <span
                   key={unreadCount}
-                  className="resqnow-badge-pop absolute -top-1.5 -right-1.5 min-w-[17px] h-[17px] px-1 bg-resqnow-critical text-white text-[8px] font-bold rounded-full flex items-center justify-center border-2 border-white shadow-[0_2px_6px_rgba(255,45,85,0.30)]"
+                  className="resqnow-badge-pop absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-resqnow-critical text-white text-[9px] font-extrabold rounded-full flex items-center justify-center border-2 border-resqnow-violet"
                 >
-                  {unreadCount > 9
-                    ? '9+'
-                    : unreadCount}
+                  {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
             </button>
 
-            {/* Profile */}
             <button
               type="button"
-              onClick={() =>
-                navigate('/settings')
-              }
-              aria-label={
-                t(
-                  'nav.profileSettings'
-                )
-              }
-              className="group active:scale-95 transition-transform"
+              onClick={() => navigate('/settings')}
+              aria-label={t('nav.profileSettings')}
+              className="w-11 h-11 rounded-full bg-bgy-yellow border-2 border-white text-bgy-navy flex items-center justify-center font-extrabold text-[13px] shadow-sm active:scale-95 transition-transform"
             >
-              <div className="w-10 h-10 rounded-full bg-linear-to-br from-resqnow-mint to-resqnow-violet border-2 border-white flex items-center justify-center text-white font-bold text-[13px] shadow-sm group-hover:scale-[1.03] transition-transform">
-                {firstLetter}
-              </div>
+              {firstLetter}
             </button>
           </div>
         </div>
-
-        {/* ============ FOLDER SHAPE ============ */}
-        {/* Cream cutout at the bottom of the brand header */}
-        <svg
-          className="absolute bottom-0 left-0 w-full h-[55px] z-10 block"
-          viewBox="0 0 500 60"
-          preserveAspectRatio="none"
-          aria-hidden="true"
-        >
-          <path
-            d="
-              M0,34
-              C8,18 25,12 50,12
-              H160
-              C184,12 198,16 217,28
-              L250,47
-              C265,55 282,57 307,57
-              H500
-              V60
-              H0
-              Z
-            "
-            fill="var(--warm-ivory)"
-          />
-
-          {/* Solid bottom strip inside SVG */}
-          <rect
-            x="0"
-            y="58"
-            width="500"
-            height="2"
-            fill="var(--warm-ivory)"
-          />
-        </svg>
-
-        {/* Covers possible browser SVG anti-aliasing */}
-        <div
-          className="absolute bottom-0 left-0 right-0 h-[2px] z-[11]"
-          style={{
-            background:
-              'var(--warm-ivory)',
-          }}
-        />
       </header>
 
-      {/* ============ HEADER COLOR BRIDGE ============ */}
-      {/* Prevents a visible seam between header and page */}
-      <div
-        className="relative z-30 h-[2px] -mt-px"
-        style={{
-          background:
-            'var(--warm-ivory)',
-        }}
-      />
-
       {/* ============ PAGE CONTENT ============ */}
-      <main className="relative z-20 max-w-lg mx-auto">
-
-        <div
-          key={location.pathname}
-          className="resqnow-page-transition"
-        >
+      <main className="relative max-w-lg mx-auto">
+        <div key={location.pathname} className="resqnow-page-transition">
           <Outlet />
         </div>
       </main>
@@ -270,108 +150,41 @@ export default function ResidentLayout() {
       <div
         className="fixed bottom-0 left-0 right-0 z-50 px-3 pointer-events-none"
         style={{
-          paddingBottom:
-            'max(12px, env(safe-area-inset-bottom))',
+          paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
         }}
       >
-        <nav className="relative max-w-lg mx-auto h-[72px] bg-white/95 backdrop-blur-xl border border-resqnow-border-soft rounded-[24px] shadow-[0_8px_30px_rgba(31,29,71,0.12)] pointer-events-auto">
-
-          {/* Sliding active pill */}
-          {activeTab !== null &&
-            !reportActive && (
-              <div className="absolute left-1.5 right-1.5 top-[12px] h-[48px] pointer-events-none z-0">
-
-                <div
-                  className="w-1/5 h-full flex justify-center transition-transform duration-300 ease-out"
-                  style={{
-                    transform:
-                      `translateX(${activeTab * 100}%)`,
-                  }}
-                >
-                  <div className="w-[58px] h-[48px] rounded-[16px] bg-resqnow-violet/10 shadow-[0_4px_14px_rgba(131,70,242,0.10)]" />
-                </div>
-              </div>
-            )}
-
-          {/* Navigation items */}
+        <nav className="relative max-w-lg mx-auto h-[72px] bg-white/95 backdrop-blur-xl border border-resqnow-border-soft rounded-[22px] shadow-[0_8px_28px_rgba(7,55,99,0.14)] pointer-events-auto">
           <div className="relative z-10 grid grid-cols-5 items-center h-full px-1.5">
+            <NavItem to="/dashboard" icon={Home} label={t('nav.home')} />
+            <NavItem to="/track" icon={MapPin} label={t('nav.track')} />
 
-            {/* Home */}
-            <NavItem
-              to="/dashboard"
-              icon={Home}
-              label={
-                t('nav.home')
-              }
-            />
-
-            {/* Track */}
-            <NavItem
-              to="/track"
-              icon={MapPin}
-              label={
-                t('nav.track')
-              }
-            />
-
-            {/* Report */}
+            {/* Generic report entry remains available for both report types.
+                The Home screen now carries the dedicated emergency CTA. */}
             <div className="relative h-full flex flex-col items-center justify-end">
-
               <button
                 type="button"
-                onClick={() =>
-                  navigate('/submit')
-                }
-                aria-label={
-                  t(
-                    'nav.submitReport'
-                  )
-                }
-                className={`absolute -top-6 w-[64px] h-[64px] rounded-full bg-report-gradient text-white flex items-center justify-center border-4 border-white ring-2 ring-resqnow-coral/20 transition-all duration-300 ease-out active:scale-90 ${
+                onClick={() => navigate('/submit')}
+                aria-label={t('nav.submitReport')}
+                className={`absolute -top-5 w-[60px] h-[60px] rounded-full bg-resqnow-violet text-white flex items-center justify-center border-[4px] border-white ring-2 ring-bgy-yellow transition-all duration-200 active:scale-90 ${
                   reportActive
-                    ? '-translate-y-1 scale-[1.06] shadow-[0_10px_28px_rgba(255,90,54,0.42)]'
-                    : 'shadow-[0_8px_22px_rgba(255,90,54,0.32)] hover:-translate-y-1 hover:scale-[1.03]'
+                    ? 'shadow-[0_9px_24px_rgba(11,79,156,0.32)] -translate-y-0.5'
+                    : 'shadow-[0_7px_20px_rgba(11,79,156,0.24)]'
                 }`}
               >
-                <CirclePlus
-                  className={`w-8 h-8 transition-all duration-300 ${
-                    reportActive
-                      ? 'rotate-90 scale-110'
-                      : ''
-                  }`}
-                />
+                <CirclePlus className="w-7 h-7" />
               </button>
 
-              <span
-                className={`text-[10px] font-bold mb-1 transition-all duration-300 ${
-                  reportActive
-                    ? 'text-resqnow-coral -translate-y-0.5'
-                    : 'text-resqnow-coral'
-                }`}
-              >
-                {t(
-                  'nav.report'
-                )}
+              <span className="text-[10px] font-bold text-resqnow-violet mb-1">
+                {t('nav.report')}
               </span>
             </div>
 
-            {/* Safety */}
             <NavItem
               to="/safety-tips"
               icon={ShieldCheck}
-              label={
-                t('nav.safety')
-              }
+              label={t('nav.safety')}
             />
-
-            {/* Contacts */}
-            <NavItem
-              to="/contacts"
-              icon={Phone}
-              label={
-                t('nav.contacts')
-              }
-            />
+            <NavItem to="/contacts" icon={Phone} label={t('nav.contacts')} />
           </div>
         </nav>
       </div>
@@ -380,12 +193,7 @@ export default function ResidentLayout() {
 }
 
 // ============ NAV ITEM ============
-// Normal bottom navigation item
-function NavItem({
-  to,
-  icon: Icon,
-  label,
-}) {
+function NavItem({ to, icon: Icon, label }) {
   return (
     <NavLink
       to={to}
@@ -393,27 +201,19 @@ function NavItem({
     >
       {({ isActive }) => (
         <div
-          className={`relative z-10 w-full max-w-[58px] h-[48px] rounded-[16px] flex flex-col items-center justify-center gap-0.5 transition-all duration-300 ease-out active:scale-95 ${
+          className={`relative w-full max-w-[60px] min-h-[52px] rounded-xl flex flex-col items-center justify-center gap-1 transition-all active:scale-95 ${
             isActive
-              ? 'text-resqnow-violet -translate-y-0.5'
+              ? 'text-resqnow-violet font-bold'
               : 'text-resqnow-muted hover:text-resqnow-primary'
           }`}
         >
-          <Icon
-            className={`w-5 h-5 transition-all duration-300 ${
-              isActive
-                ? '-translate-y-0.5 scale-110'
-                : ''
-            }`}
-          />
+          {isActive && (
+            <span className="absolute top-0 w-5 h-1 rounded-full bg-bgy-yellow" />
+          )}
 
-          <span
-            className={`text-[9px] whitespace-nowrap transition-all duration-300 ${
-              isActive
-                ? 'font-bold -translate-y-0.5'
-                : 'font-medium'
-            }`}
-          >
+          <Icon className="w-5 h-5" strokeWidth={isActive ? 2.5 : 2} />
+
+          <span className="text-[10px] whitespace-nowrap">
             {label}
           </span>
         </div>

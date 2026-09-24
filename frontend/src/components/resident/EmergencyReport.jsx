@@ -25,8 +25,11 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { emergencyTypes } from '../../data/mockData';
 import { createEmergencyReport } from '../../services/reportService';
+import { getBarangayHotline } from '../../utils/contactUtils';
 
 // ============ ICONS ============
+const HOTLINE = getBarangayHotline();
+
 const iconMap = {
   HeartPulse,
   Flame,
@@ -564,6 +567,16 @@ export default function EmergencyReport() {
               Track This Report
             </button>
 
+            {HOTLINE && (
+              <a
+                href={HOTLINE.href}
+                className="w-full mt-2 min-h-[46px] rounded-xl border border-resqnow-critical/25 bg-resqnow-critical/5 text-resqnow-critical text-[12px] font-bold flex items-center justify-center gap-2 active:scale-[0.99] transition-all"
+              >
+                <Phone className="w-4 h-4" />
+                Call Barangay Hotline
+              </a>
+            )}
+
             {/* Back home */}
             <button
               type="button"
@@ -787,6 +800,32 @@ export default function EmergencyReport() {
           )}
         </button>
 
+        {locationMode === 'gps' &&
+          locationAccuracy !== null &&
+          locationAccuracy > 100 && (
+            <div className="mt-2 rounded-xl border border-resqnow-pending/25 bg-resqnow-pending/5 px-3 py-2.5">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-resqnow-pending mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <p className="text-[11px] font-bold text-resqnow-primary">
+                    GPS accuracy is limited (about ±{Math.round(locationAccuracy)} m)
+                  </p>
+                  <p className="text-[10px] text-resqnow-muted mt-1 leading-relaxed">
+                    Add a nearby landmark or try GPS again to help responders locate the exact place. You can still continue if the situation is urgent.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={useCurrentLocation}
+                    disabled={isLocating}
+                    className="mt-2 min-h-[36px] px-3 rounded-lg border border-resqnow-pending/25 bg-white text-resqnow-pending text-[10px] font-bold disabled:opacity-60"
+                  >
+                    Try GPS Again
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
         {/* Saved home address */}
         <button
           type="button"
@@ -868,8 +907,8 @@ export default function EmergencyReport() {
             placeholder="Example: Blue gate beside the covered court"
             className="w-full bg-resqnow-canvas border border-resqnow-border rounded-xl px-3 py-2.5 text-[12px] text-resqnow-primary outline-none focus:border-resqnow-violet/40 focus:ring-2 focus:ring-resqnow-violet/10"
           />
-          <p className="text-[9px] text-resqnow-muted mt-1">
-            Optional, but it can help responders find the exact place faster.
+          <p className="text-[10px] text-resqnow-muted mt-1">
+            Strongly recommended — landmarks help responders find the exact place faster.
           </p>
         </div>
       </section>
@@ -1064,17 +1103,22 @@ export default function EmergencyReport() {
         <p className="text-[10px] text-resqnow-secondary leading-relaxed flex-1">
           Weak signal? Call the hotline directly.{' '}
 
-          <button
-            type="button"
-            onClick={() =>
-              navigate(
-                '/contacts'
-              )
-            }
-            className="font-bold text-resqnow-caution underline"
-          >
-            View Contacts
-          </button>
+          {HOTLINE ? (
+            <a
+              href={HOTLINE.href}
+              className="font-bold text-resqnow-primary underline"
+            >
+              Call {HOTLINE.displayNumber}
+            </a>
+          ) : (
+            <button
+              type="button"
+              onClick={() => navigate('/contacts')}
+              className="font-bold text-resqnow-primary underline"
+            >
+              View Contacts
+            </button>
+          )}
         </p>
       </div>
 
@@ -1085,8 +1129,12 @@ export default function EmergencyReport() {
         disabled={isSubmitting}
         className="w-full py-4 rounded-2xl bg-emergency-gradient text-white text-[15px] font-bold flex items-center justify-center gap-2 shadow-[0_8px_24px_rgba(255,45,85,0.35)] active:scale-[0.98] transition-all disabled:opacity-70 disabled:cursor-not-allowed"
       >
-        Send Emergency Report
+        Review Emergency Report
       </button>
+
+      <p className="text-[10px] text-resqnow-muted text-center mt-2 leading-relaxed">
+        Review the details before sending. If the situation is life-threatening, call the barangay hotline immediately.
+      </p>
 
       {/* ============ CONFIRM MODAL ============ */}
       {showConfirm && (
@@ -1104,7 +1152,7 @@ export default function EmergencyReport() {
             </div>
 
             <p className="text-[12px] text-resqnow-muted leading-relaxed mb-3">
-              Send now? Your resident account information and emergency location will be sent to barangay personnel.
+              Check the details below. Sending this report will share your resident account information and emergency location with authorized barangay personnel.
             </p>
 
             {/* Confirmation information */}
@@ -1170,7 +1218,7 @@ export default function EmergencyReport() {
                   Sending...
                 </>
               ) : (
-                'Send Now'
+                'Send Emergency Report'
               )}
             </button>
 

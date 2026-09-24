@@ -17,6 +17,7 @@ import {
   Siren,
   FileText,
   MapPin,
+  Phone,
   Clock,
   UserRound,
   MessageSquareText,
@@ -39,8 +40,10 @@ import {
   getStatusStyle,
   getPriorityStyle,
 } from '../../utils/statusUtils';
+import { getBarangayHotline } from '../../utils/contactUtils';
 
 const ACTIVE_REPORT_POLL_MS = 15000;
+const HOTLINE = getBarangayHotline();
 
 function formatIsoDateTime(value) {
   if (!value) {
@@ -98,76 +101,58 @@ function getTimelineStyle(status) {
   switch (status) {
     case 'Submitted':
       return {
-        circle:
-          'bg-resqnow-info text-white',
-        line:
-          'bg-resqnow-info/30',
+        circle: 'bg-resqnow-violet text-white',
+        line: 'bg-resqnow-violet/30',
       };
 
     case 'Pending Verification':
       return {
-        circle:
-          'bg-resqnow-pending text-white',
-        line:
-          'bg-resqnow-pending/30',
+        circle: 'bg-slate-500 text-white',
+        line: 'bg-slate-300',
       };
 
     case 'Verified':
       return {
-        circle:
-          'bg-resqnow-mint text-white',
-        line:
-          'bg-resqnow-mint/30',
+        circle: 'bg-resqnow-safe text-white',
+        line: 'bg-resqnow-safe/30',
       };
 
     case 'Assigned':
     case 'Acknowledged':
-    case 'In Progress':
       return {
-        circle:
-          'bg-resqnow-insight text-white',
-        line:
-          'bg-resqnow-insight/30',
+        circle: 'bg-resqnow-insight text-white',
+        line: 'bg-resqnow-insight/30',
       };
 
+    case 'In Progress':
     case 'Responders En Route':
       return {
-        circle:
-          'bg-resqnow-violet text-white',
-        line:
-          'bg-resqnow-violet/30',
+        circle: 'bg-resqnow-pending text-white',
+        line: 'bg-resqnow-pending/30',
       };
 
     case 'Responded':
       return {
-        circle:
-          'bg-resqnow-mint text-white',
-        line:
-          'bg-resqnow-mint/30',
+        circle: 'bg-resqnow-indigo text-white',
+        line: 'bg-resqnow-indigo/30',
       };
 
     case 'Resolved':
       return {
-        circle:
-          'bg-resqnow-safe text-white',
-        line:
-          'bg-resqnow-safe/30',
+        circle: 'bg-resqnow-safe text-white',
+        line: 'bg-resqnow-safe/30',
       };
 
     case 'Invalid':
       return {
-        circle:
-          'bg-resqnow-crimson text-white',
-        line:
-          'bg-resqnow-crimson/30',
+        circle: 'bg-resqnow-crimson text-white',
+        line: 'bg-resqnow-crimson/30',
       };
 
     default:
       return {
-        circle:
-          'bg-resqnow-violet text-white',
-        line:
-          'bg-resqnow-violet/30',
+        circle: 'bg-slate-500 text-white',
+        line: 'bg-slate-300',
       };
   }
 }
@@ -810,6 +795,16 @@ export default function ReportDetail() {
               </p>
             </div>
           )}
+
+        {!isResolved && HOTLINE && (
+          <a
+            href={HOTLINE.href}
+            className="mt-4 min-h-[44px] w-full rounded-xl border border-resqnow-violet/20 bg-resqnow-violet/5 text-resqnow-violet text-[11px] font-bold flex items-center justify-center gap-2 active:scale-[0.99] transition-transform"
+          >
+            <Phone className="w-4 h-4" />
+            Call Barangay Hotline
+          </a>
+        )}
       </section>
 
       {/* ============ REPORT PROGRESS ============ */}
