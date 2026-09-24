@@ -1,5 +1,5 @@
 // src/components/resident/SafetyTips.jsx
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ChevronDown,
   ShieldCheck,
@@ -19,6 +19,9 @@ import {
 } from 'lucide-react';
 
 import { safetyTips } from '../../data/mockData';
+import useOnlineStatus from '../../hooks/useOnlineStatus';
+
+const SAFETY_CACHE_KEY = 'resqnow_safety_guides_cache_v1';
 
 // ============ TIP ICONS ============
 // Map each safety tip ID to an icon
@@ -42,6 +45,26 @@ const iconMap = {
 // ============ SAFETY TIPS ============
 // Quick safety guides for emergencies and barangay concerns
 export default function SafetyTips() {
+  const isOnline = useOnlineStatus();
+
+  const guides = useMemo(() => {
+    try {
+      const cached = JSON.parse(localStorage.getItem(SAFETY_CACHE_KEY) || 'null');
+      if (Array.isArray(cached) && cached.length > 0) return cached;
+    } catch {
+      // Fall back to bundled guides.
+    }
+    return safetyTips;
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(SAFETY_CACHE_KEY, JSON.stringify(safetyTips));
+    } catch {
+      // Local caching is best-effort.
+    }
+  }, []);
+
   // Currently opened safety guide
   const [openId, setOpenId] = useState(null);
 
@@ -76,8 +99,15 @@ export default function SafetyTips() {
           </div>
         </div>
 
+        {!isOnline && (
+          <div className="mb-4 rounded-xl border border-resqnow-pending/25 bg-resqnow-pending/10 px-3.5 py-3">
+            <p className="text-[11px] font-bold text-resqnow-primary">Offline safety access</p>
+            <p className="text-[10px] text-resqnow-secondary mt-0.5">These saved guides remain available while live services are offline.</p>
+          </div>
+        )}
+
         {/* ============ TIP GROUPS ============ */}
-        {safetyTips.map((group) => {
+        {guides.map((group) => {
           const isEmergency =
             group.category === 'Emergency Safety';
 

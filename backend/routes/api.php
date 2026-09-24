@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\EvacuationCenterController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ReportController;
@@ -186,6 +188,24 @@ Route::middleware([
         )->middleware(
             'throttle:60,1'
         );
+
+
+        // Active barangay alerts and announcements.
+        Route::get(
+            '/announcements',
+            [AnnouncementController::class, 'index']
+        );
+
+        Route::get(
+            '/announcements/{announcement}',
+            [AnnouncementController::class, 'show']
+        )->whereNumber('announcement');
+
+        // Published evacuation-center operational data.
+        Route::get(
+            '/evacuation-centers',
+            [EvacuationCenterController::class, 'index']
+        );
     });
 });
 
@@ -196,4 +216,8 @@ require __DIR__ . '/contacts.php';
 
 // ============ RESPONDER API ============
 
-    require __DIR__ . '/responders.php';
+require __DIR__ . '/responders.php';
+
+// ============ ADMIN OPERATIONAL API ============
+
+require __DIR__ . '/admin.php';

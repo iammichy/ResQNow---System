@@ -1,6 +1,6 @@
 // src/components/resident/EmergencyReport.jsx
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   HeartPulse,
@@ -23,12 +23,15 @@ import {
 } from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext';
+import useOnlineStatus from '../../hooks/useOnlineStatus';
 import { emergencyTypes } from '../../data/mockData';
 import { createEmergencyReport } from '../../services/reportService';
 import { getBarangayHotline } from '../../utils/contactUtils';
+import { buildEmergencySmsMessage, openSmsComposer } from '../../utils/smsFallback';
 
 // ============ ICONS ============
 const HOTLINE = getBarangayHotline();
+const EMERGENCY_DRAFT_KEY = 'resqnow_emergency_draft_v1';
 
 const iconMap = {
   HeartPulse,
@@ -101,6 +104,7 @@ function getEmergencyInfo(type) {
 export default function EmergencyReport() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isOnline = useOnlineStatus();
 
   // Emergency form state
   const [selectedType, setSelectedType] =
@@ -171,6 +175,82 @@ export default function EmergencyReport() {
     submittedReport,
     setSubmittedReport,
   ] = useState(null);
+
+  const [notice, setNotice] = useState('');
+  const [draftHydrated, setDraftHydrated] = useState(false);
+  const [forceSmsFallback, setForceSmsFallback] = useState(false);
+  const useSmsFallback = !isOnline || forceSmsFallback;
+
+  // Restore the resident's unfinished emergency draft.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(EMERGENCY_DRAFT_KEY);
+      const draft = raw ? JSON.parse(raw) : null;
+
+      if (draft) {
+        const type = emergencyTypes.find((item) => item.id === draft.selectedTypeId);
+        if (type) setSelectedType(type);
+        if (typeof draft.location === 'string') setLocation(draft.location);
+        if (typeof draft.locationMode === 'string') setLocationMode(draft.locationMode);
+        if (Number.isFinite(draft.latitude)) setLatitude(draft.latitude);
+        if (Number.isFinite(draft.longitude)) setLongitude(draft.longitude);
+        if (Number.isFinite(draft.locationAccuracy)) setLocationAccuracy(draft.locationAccuracy);
+        if (typeof draft.locationCapturedAt === 'string') setLocationCapturedAt(draft.locationCapturedAt);
+        if (typeof draft.landmark === 'string') setLandmark(draft.landmark);
+        if (typeof draft.description === 'string') setDescription(draft.description);
+        if (typeof draft.reportingForOther === 'boolean') setReportingForOther(draft.reportingForOther);
+        if (typeof draft.victimName === 'string') setVictimName(draft.victimName);
+        if (typeof draft.victimContact === 'string') setVictimContact(draft.victimContact);
+        setNotice('Your saved emergency draft was restored.');
+      }
+    } catch {
+      // Ignore malformed local drafts.
+    } finally {
+      setDraftHydrated(true);
+    }
+  }, []);
+
+  // Keep emergency details locally so a weak connection does not erase work.
+  useEffect(() => {
+    if (!draftHydrated || submittedReport) return;
+
+    const draft = {
+      selectedTypeId: selectedType?.id || null,
+      location,
+      locationMode,
+      latitude,
+      longitude,
+      locationAccuracy,
+      locationCapturedAt,
+      landmark,
+      description,
+      reportingForOther,
+      victimName,
+      victimContact,
+      savedAt: new Date().toISOString(),
+    };
+
+    try {
+      localStorage.setItem(EMERGENCY_DRAFT_KEY, JSON.stringify(draft));
+    } catch {
+      // Best-effort offline draft only.
+    }
+  }, [
+    draftHydrated,
+    submittedReport,
+    selectedType,
+    location,
+    locationMode,
+    latitude,
+    longitude,
+    locationAccuracy,
+    locationCapturedAt,
+    landmark,
+    description,
+    reportingForOther,
+    victimName,
+    victimContact,
+  ]);
 
   // ============ LOCATION ============
   // Clear location metadata when switching away
@@ -340,14 +420,47 @@ export default function EmergencyReport() {
     setShowConfirm(true);
   };
 
+  const openOfflineSmsFallback = () => {
+    if (!HOTLINE?.number) {
+      setError('Barangay hotline number is unavailable. Open Contacts and call the barangay directly.');
+      return;
+    }
+
+    const body = buildEmergencySmsMessage({
+      emergencyType: getEmergencyInfo(selectedType).label,
+      reporterName: user?.fullName || 'Resident',
+      contactNumber: user?.contactNumber || '',
+      location: location.trim(),
+      latitude,
+      longitude,
+      landmark: landmark.trim(),
+      description: description.trim(),
+    });
+
+    try {
+      openSmsComposer({ number: HOTLINE.number, body });
+      setShowConfirm(false);
+      setNotice('The SMS app was opened with your emergency details. Review the message and press Send.');
+    } catch (smsError) {
+      setError(smsError.message || 'Unable to open the SMS app.');
+    }
+  };
+
   // ============ SUBMIT REPORT ============
-  // Submit the emergency report to Laravel/MySQL
+  // Submit online when available; otherwise hand off to the native SMS app.
   const handleSubmit = async () => {
     if (isSubmitting) {
       return;
     }
 
     setError('');
+    setNotice('');
+
+    if (useSmsFallback) {
+      openOfflineSmsFallback();
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -404,6 +517,13 @@ export default function EmergencyReport() {
       // Store Laravel's actual report response.
       // Example ID: EM-000001
       setSubmittedReport(report);
+      setForceSmsFallback(false);
+
+      try {
+        localStorage.removeItem(EMERGENCY_DRAFT_KEY);
+      } catch {
+        // Ignore local-storage cleanup failures.
+      }
 
       setShowConfirm(false);
 
@@ -425,6 +545,11 @@ export default function EmergencyReport() {
         'Unable to submit the emergency report. Please try again.';
 
       setError(message);
+
+      if (submitError?.status === 0) {
+        setForceSmsFallback(true);
+        setNotice('The ResQNow server could not be reached. Your draft is saved. Review the form again to open the SMS fallback, or call the barangay hotline now.');
+      }
 
       // Close modal so the resident can
       // see and correct the problem.
@@ -463,6 +588,13 @@ export default function EmergencyReport() {
 
     setShowConfirm(false);
     setError('');
+    setNotice('');
+
+    try {
+      localStorage.removeItem(EMERGENCY_DRAFT_KEY);
+    } catch {
+      // Ignore local-storage cleanup failures.
+    }
   };
 
   // ============ SUCCESS ============
@@ -620,6 +752,25 @@ export default function EmergencyReport() {
           </h1>
         </div>
       </div>
+
+      {!isOnline && (
+        <div className="mb-3 flex items-start gap-2 bg-resqnow-pending/10 border border-resqnow-pending/25 rounded-xl px-3 py-2.5">
+          <Phone className="w-4 h-4 text-resqnow-pending mt-0.5 shrink-0" />
+          <div className="flex-1">
+            <p className="text-[11px] font-bold text-resqnow-primary">Offline Mode</p>
+            <p className="text-[10px] text-resqnow-secondary mt-0.5 leading-relaxed">
+              Your form is saved on this device. Complete the emergency details, then ResQNow will open a formatted SMS for you to review and send.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {notice && (
+        <div className="mb-3 flex items-start gap-2 bg-resqnow-violet/8 border border-resqnow-violet/20 rounded-xl px-3 py-2.5">
+          <ShieldCheck className="w-4 h-4 text-resqnow-violet mt-0.5 shrink-0" />
+          <p className="text-[11px] text-resqnow-secondary">{notice}</p>
+        </div>
+      )}
 
       {/* ============ ERROR ============ */}
       {error && (
@@ -1129,7 +1280,7 @@ export default function EmergencyReport() {
         disabled={isSubmitting}
         className="w-full py-4 rounded-2xl bg-emergency-gradient text-white text-[15px] font-bold flex items-center justify-center gap-2 shadow-[0_8px_24px_rgba(255,45,85,0.35)] active:scale-[0.98] transition-all disabled:opacity-70 disabled:cursor-not-allowed"
       >
-        Review Emergency Report
+        {useSmsFallback ? 'Review SMS Emergency Fallback' : 'Review Emergency Report'}
       </button>
 
       <p className="text-[10px] text-resqnow-muted text-center mt-2 leading-relaxed">
@@ -1152,7 +1303,9 @@ export default function EmergencyReport() {
             </div>
 
             <p className="text-[12px] text-resqnow-muted leading-relaxed mb-3">
-              Check the details below. Sending this report will share your resident account information and emergency location with authorized barangay personnel.
+              {useSmsFallback
+                ? 'The online service is unavailable. ResQNow will open your phone SMS app with these emergency details already formatted. Review the message and press Send in the SMS app.'
+                : 'Check the details below. Sending this report will share your resident account information and emergency location with authorized barangay personnel.'}
             </p>
 
             {/* Confirmation information */}
@@ -1218,7 +1371,7 @@ export default function EmergencyReport() {
                   Sending...
                 </>
               ) : (
-                'Send Emergency Report'
+                useSmsFallback ? 'Open SMS App' : 'Send Emergency Report'
               )}
             </button>
 
