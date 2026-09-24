@@ -1,10 +1,8 @@
-// src/App.jsx
-
 import {
   BrowserRouter,
-  Routes,
-  Route,
   Navigate,
+  Route,
+  Routes,
 } from 'react-router-dom';
 
 import {
@@ -16,8 +14,6 @@ import LoadingSpinner from './components/common/LoadingSpinner';
 
 import Login from './components/resident/Login';
 import Register from './components/resident/Register';
-import ResetPassword from './components/resident/ResetPassword';
-
 import ResidentLayout from './components/resident/ResidentLayout';
 import Dashboard from './components/resident/Dashboard';
 import SubmitReportChoice from './components/resident/SubmitReportChoice';
@@ -31,28 +27,59 @@ import Settings from './components/resident/Settings';
 import SafetyTips from './components/resident/SafetyTips';
 import Updates from './components/resident/Updates';
 import UpdateDetail from './components/resident/UpdateDetail';
-import ForgotPassword from './components/resident/ForgotPassword';
 
-// ============ PROTECTED ROUTE ============
-// Resident must be logged in.
+import ResponderLogin from './components/responder/ResponderLogin';
+import ResponderLayout from './components/responder/ResponderLayout';
+import ResponderDashboard from './components/responder/ResponderDashboard';
+import ResponderTrack from './components/responder/ResponderTrack';
+import ResponderFullMap from './components/responder/ResponderFullMap';
+import ResponderIncidentDetail from './components/responder/ResponderIncidentDetail';
+import ResponderContacts from './components/responder/ResponderContacts';
+import ResponderSafetyTips from './components/responder/ResponderSafetyTips';
+import ResponderUpdates from './components/responder/ResponderUpdates';
+import ResponderProfile from './components/responder/ResponderProfile';
+
+function homeForRole(role) {
+  if (role === 'responder') {
+    return '/responder/dashboard';
+  }
+
+  return '/dashboard';
+}
+
 function ProtectedRoute({
   children,
+  roles,
+  loginPath = '/login',
 }) {
   const {
     isLoggedIn,
     isLoading,
+    user,
   } = useAuth();
 
   if (isLoading) {
     return (
-      <LoadingSpinner message="Checking session..." />
+      <LoadingSpinner message="Checking secure session..." />
     );
   }
 
   if (!isLoggedIn) {
     return (
       <Navigate
-        to="/login"
+        to={loginPath}
+        replace
+      />
+    );
+  }
+
+  if (
+    roles?.length &&
+    !roles.includes(user?.role)
+  ) {
+    return (
+      <Navigate
+        to={homeForRole(user?.role)}
         replace
       />
     );
@@ -61,15 +88,13 @@ function ProtectedRoute({
   return children;
 }
 
-// ============ PUBLIC ROUTE ============
-// Logged-in resident should not return to
-// normal guest-only pages such as Login/Register.
 function PublicRoute({
   children,
 }) {
   const {
     isLoggedIn,
     isLoading,
+    user,
   } = useAuth();
 
   if (isLoading) {
@@ -81,7 +106,7 @@ function PublicRoute({
   if (isLoggedIn) {
     return (
       <Navigate
-        to="/dashboard"
+        to={homeForRole(user?.role)}
         replace
       />
     );
@@ -90,17 +115,38 @@ function PublicRoute({
   return children;
 }
 
-// ============ APP ROUTES ============
+function UnknownRoute() {
+  const {
+    isLoggedIn,
+    isLoading,
+    user,
+  } = useAuth();
+
+  if (isLoading) {
+    return (
+      <LoadingSpinner message="Checking session..." />
+    );
+  }
+
+  return (
+    <Navigate
+      to={
+        isLoggedIn
+          ? homeForRole(user?.role)
+          : '/login'
+      }
+      replace
+    />
+  );
+}
 
 export default function App() {
   return (
     <BrowserRouter>
-
       <AuthProvider>
-
         <Routes>
 
-          {/* ============ PUBLIC AUTH ROUTES ============ */}
+          {/* ============ PUBLIC ============ */}
 
           <Route
             path="/login"
@@ -119,153 +165,207 @@ export default function App() {
               </PublicRoute>
             }
           />
-          <Route
-            path="/forgot-password"
-            element={
-            <PublicRoute>
-              <ForgotPassword />
-            </PublicRoute>
-            }
-          />
-          {/*
-            Password reset links must remain directly accessible.
 
-            We intentionally do NOT wrap this route in:
-            - ProtectedRoute
-            - PublicRoute
-            - ResidentLayout
-
-            A resident must be able to open the reset link
-            from their email even when they are logged out.
-          */}
           <Route
-            path="/reset-password"
+            path="/responder/login"
             element={
-              <ResetPassword />
+              <PublicRoute>
+                <ResponderLogin />
+              </PublicRoute>
             }
           />
 
-          {/* ============ RESIDENT PROTECTED ROUTES ============ */}
+
+          {/* ============ RESIDENT ============ */}
 
           <Route
             element={
-              <ProtectedRoute>
+              <ProtectedRoute
+                roles={['resident']}
+              >
                 <ResidentLayout />
               </ProtectedRoute>
             }
           >
-
             <Route
               path="/dashboard"
-              element={
-                <Dashboard />
-              }
+              element={<Dashboard />}
             />
 
             <Route
               path="/submit"
-              element={
-                <SubmitReportChoice />
-              }
+              element={<SubmitReportChoice />}
             />
 
             <Route
               path="/submit/emergency"
-              element={
-                <EmergencyReport />
-              }
+              element={<EmergencyReport />}
             />
 
             <Route
               path="/submit/non-emergency"
-              element={
-                <NonEmergencyReport />
-              }
+              element={<NonEmergencyReport />}
             />
 
             <Route
               path="/track"
-              element={
-                <TrackReports />
-              }
+              element={<TrackReports />}
             />
 
             <Route
               path="/track/:reportId"
-              element={
-                <ReportDetail />
-              }
+              element={<ReportDetail />}
             />
 
             <Route
               path="/contacts"
-              element={
-                <EmergencyContacts />
-              }
+              element={<EmergencyContacts />}
             />
 
-            {/* Updates */}
             <Route
               path="/updates"
-              element={
-                <Updates />
-              }
+              element={<Updates />}
             />
 
-            {/* Specific announcement / alert */}
             <Route
               path="/updates/:updateId"
-              element={
-                <UpdateDetail />
-              }
+              element={<UpdateDetail />}
             />
 
-            {/* Existing alias */}
             <Route
               path="/notifications"
-              element={
-                <Notifications />
-              }
+              element={<Notifications />}
             />
 
             <Route
               path="/profile"
-              element={
-                <Settings />
-              }
+              element={<Settings />}
             />
 
             <Route
               path="/settings"
-              element={
-                <Settings />
-              }
+              element={<Settings />}
             />
 
             <Route
               path="/safety-tips"
-              element={
-                <SafetyTips />
-              }
+              element={<SafetyTips />}
             />
           </Route>
 
-          {/* ============ UNKNOWN ROUTE ============ */}
+
+          {/* ============ RESPONDER ============ */}
 
           <Route
-            path="*"
+            path="/responder"
             element={
               <Navigate
-                to="/login"
+                to="/responder/dashboard"
                 replace
               />
             }
           />
 
+          <Route
+            element={
+              <ProtectedRoute
+                roles={['responder']}
+                loginPath="/responder/login"
+              >
+                <ResponderLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route
+              path="/responder/dashboard"
+              element={<ResponderDashboard />}
+            />
+
+            {/* Track */}
+            <Route
+              path="/responder/incidents"
+              element={<ResponderTrack />}
+            />
+
+            <Route
+              path="/responder/track"
+              element={
+                <Navigate
+                  to="/responder/incidents"
+                  replace
+                />
+              }
+            />
+
+            {/* Full-screen assigned map */}
+            <Route
+              path="/responder/incidents/map"
+              element={<ResponderFullMap />}
+            />
+
+            {/* Incident review */}
+            <Route
+              path="/responder/incidents/:reportId"
+              element={<ResponderIncidentDetail />}
+            />
+
+            {/* Contact directory */}
+            <Route
+              path="/responder/contacts"
+              element={<ResponderContacts />}
+            />
+
+            {/* Safety tips */}
+            <Route
+              path="/responder/safety-tips"
+              element={<ResponderSafetyTips />}
+            />
+
+            {/* Header bell */}
+            <Route
+              path="/responder/updates"
+              element={<ResponderUpdates />}
+            />
+
+            {/* Header profile */}
+            <Route
+              path="/responder/settings"
+              element={<ResponderProfile />}
+            />
+
+            {/* Old profile URL */}
+            <Route
+              path="/responder/profile"
+              element={
+                <Navigate
+                  to="/responder/settings"
+                  replace
+                />
+              }
+            />
+
+            {/* Old map URL */}
+            <Route
+              path="/responder/map"
+              element={
+                <Navigate
+                  to="/responder/incidents"
+                  replace
+                />
+              }
+            />
+          </Route>
+
+
+          {/* ============ FALLBACK ============ */}
+
+          <Route
+            path="*"
+            element={<UnknownRoute />}
+          />
+
         </Routes>
-
       </AuthProvider>
-
     </BrowserRouter>
   );
 }

@@ -23,76 +23,39 @@ use Illuminate\Validation\ValidationException;
 class AuthController extends Controller
 {
     // ============ REGISTER ============
+
     /**
      * Register a new resident account.
      */
     public function register(
         RegisterRequest $request
     ): JsonResponse {
-        $data =
-            $request->validated();
+        $data = $request->validated();
 
         $user = DB::transaction(
             function () use ($data) {
-                // Create resident account.
                 $user = User::create([
-                    'name' =>
-                        $data['fullName'],
-
-                    'email' =>
-                        strtolower(
-                            $data['email']
-                        ),
-
-                    'password' =>
-                        Hash::make(
-                            $data['password']
-                        ),
-
-                    'role' =>
-                        'resident',
-
-                    'account_status' =>
-                        'Pending Verification',
+                    'name' => $data['fullName'],
+                    'email' => strtolower($data['email']),
+                    'password' => Hash::make($data['password']),
+                    'role' => 'resident',
+                    'account_status' => 'Pending Verification',
                 ]);
 
-                // Create resident profile.
-                $householdProfile =
-                    $data['householdProfile'] ?? [];
+                $householdProfile = $data['householdProfile'] ?? [];
 
-                $user
-                    ->profile()
-                    ->create([
-                        'contact_number' =>
-                            $data['contactNumber'],
-
-                        'purok' =>
-                            $data['purok'],
-
-                        'address' =>
-                            $data['address'],
-
-                        'household_count' =>
-                            $data['householdCount'] ?? 1,
-
-                        'has_senior_citizen' =>
-                            $householdProfile['hasSeniorCitizen'] ?? false,
-
-                        'has_child' =>
-                            $householdProfile['hasChild'] ?? false,
-
-                        'has_pwd' =>
-                            $householdProfile['hasPWD'] ?? false,
-
-                        'has_pregnant_person' =>
-                            $householdProfile['hasPregnantPerson'] ?? false,
-
-                        'home_latitude' =>
-                            $data['homeLatitude'] ?? null,
-
-                        'home_longitude' =>
-                            $data['homeLongitude'] ?? null,
-                    ]);
+                $user->profile()->create([
+                    'contact_number' => $data['contactNumber'],
+                    'purok' => $data['purok'],
+                    'address' => $data['address'],
+                    'household_count' => $data['householdCount'] ?? 1,
+                    'has_senior_citizen' => $householdProfile['hasSeniorCitizen'] ?? false,
+                    'has_child' => $householdProfile['hasChild'] ?? false,
+                    'has_pwd' => $householdProfile['hasPWD'] ?? false,
+                    'has_pregnant_person' => $householdProfile['hasPregnantPerson'] ?? false,
+                    'home_latitude' => $data['homeLatitude'] ?? null,
+                    'home_longitude' => $data['homeLongitude'] ?? null,
+                ]);
 
                 return $user;
             }
@@ -101,290 +64,180 @@ class AuthController extends Controller
         $user->load('profile');
 
         return response()->json([
-            'message' =>
-                'Resident account created successfully. Your account is pending barangay verification.',
-
-            'user' =>
-                new UserResource(
-                    $user
-                ),
+            'message' => 'Resident account created successfully. Your account is pending barangay verification.',
+            'user' => new UserResource($user),
         ], 201);
     }
 
     // ============ LOGIN ============
+
     /**
-     * Authenticate a verified resident.
+     * Authenticate a verified ResQNow account.
+     *
+     * Resident and Responder share the same login.
+     * Role-specific access is enforced by route middleware.
      */
     public function login(
         LoginRequest $request
     ): JsonResponse {
-        $data =
-            $request->validated();
+        $data = $request->validated();
+        $remember = $data['remember'] ?? false;
 
-        $remember =
-            $data['remember'] ?? false;
-
-        // Check email and password.
         if (
             !Auth::attempt(
                 [
-                    'email' =>
-                        strtolower(
-                            $data['email']
-                        ),
-
-                    'password' =>
-                        $data['password'],
+                    'email' => strtolower($data['email']),
+                    'password' => $data['password'],
                 ],
                 $remember
             )
         ) {
             return response()->json([
-                'message' =>
-                    'The email or password you entered is incorrect.',
+                'message' => 'The email or password you entered is incorrect.',
             ], 422);
         }
 
-        // Rotate the session ID after login.
-        $request
-            ->session()
-            ->regenerate();
-
         /** @var User $user */
-        $user =
-            $request->user();
+        $user = Auth::user();
 
-        // Resident portal only.
         if (
-            $user->role !==
-            'resident'
+            !in_array(
+                $user->role,
+                ['resident', 'responder', 'admin'],
+                true
+            )
         ) {
-            $this->endSession(
-                $request
-            );
+            $this->endSession($request);
 
             return response()->json([
-                'message' =>
-                    'This account does not have resident access.',
+                'message' => 'This account does not have ResQNow access.',
             ], 403);
         }
 
-        // Barangay must verify resident first.
-        if (
-            $user->account_status !==
-            'Verified'
-        ) {
-            $accountStatus =
-                $user->account_status;
+        if ($user->account_status !== 'Verified') {
+            $accountStatus = $user->account_status;
 
-            $this->endSession(
-                $request
-            );
+            $this->endSession($request);
 
             return response()->json([
-                'message' =>
-                    $accountStatus ===
-                    'Pending Verification'
-                        ? 'Your account is still waiting for barangay verification.'
-                        : 'Your account is currently unavailable.',
-
-                'accountStatus' =>
-                    $accountStatus,
+                'message' => $accountStatus === 'Pending Verification'
+                    ? 'Your account is still waiting for barangay verification.'
+                    : 'Your account is currently unavailable.',
+                'accountStatus' => $accountStatus,
             ], 403);
+        }
+
+        // This project uses Sanctum SPA/session authentication.
+        // A stateful React request has a session store attached.
+        if ($request->hasSession()) {
+            $request->session()->regenerate();
         }
 
         $user->load('profile');
 
         return response()->json([
-            'message' =>
-                'Signed in successfully.',
-
-            'user' =>
-                new UserResource(
-                    $user
-                ),
+            'message' => 'Signed in successfully.',
+            'user' => new UserResource($user),
         ]);
     }
 
     // ============ FORGOT PASSWORD ============
+
     /**
      * Request password reset instructions.
-     *
-     * The response stays generic so people cannot
-     * determine whether an email address is registered.
      */
     public function forgotPassword(
         ForgotPasswordRequest $request
     ): JsonResponse {
-        $data =
-            $request->validated();
+        $data = $request->validated();
+        $email = strtolower($data['email']);
 
-        $email =
-            strtolower(
-                $data['email']
-            );
-
-        /**
-         * Laravel will create the reset token and
-         * send the password reset notification when
-         * a matching resident account exists.
-         *
-         * Restrict this endpoint to resident accounts.
-         */
         Password::sendResetLink([
-            'email' =>
-                $email,
-
-            'role' =>
-                'resident',
+            'email' => $email,
         ]);
 
-        /**
-         * Always use the same public response.
-         *
-         * Do not reveal whether the email exists.
-         */
         return response()->json([
-            'message' =>
-                'If an account exists for that email, password reset instructions have been sent.',
+            'message' => 'If an account exists for that email, password reset instructions have been sent.',
         ]);
     }
 
     // ============ RESET PASSWORD ============
+
     /**
-     * Reset a resident password using a valid
-     * password-reset token.
+     * Reset an account password using a valid password-reset token.
      */
     public function resetPassword(
         ResetPasswordRequest $request
     ): JsonResponse {
-        $data =
-            $request->validated();
+        $data = $request->validated();
 
         $credentials = [
-            'email' =>
-                strtolower(
-                    $data['email']
-                ),
-
-            'password' =>
-                $data['password'],
-
-            'password_confirmation' =>
-                $data['password_confirmation'],
-
-            'token' =>
-                $data['token'],
-
-            // Resident portal only.
-            'role' =>
-                'resident',
+            'email' => strtolower($data['email']),
+            'password' => $data['password'],
+            'password_confirmation' => $data['password_confirmation'],
+            'token' => $data['token'],
         ];
 
-        $status =
-            Password::reset(
-                $credentials,
-
-                function (
-                    User $user,
-                    string $password
-                ) {
-                    /**
-                    * Do not allow the resident to reuse
-                    * their current password.
-                    */
-                    if (
-                        Hash::check(
-                            $password,
-                            $user->password
-                    )
-                ) {
+        $status = Password::reset(
+            $credentials,
+            function (
+                User $user,
+                string $password
+            ) {
+                if (Hash::check($password, $user->password)) {
                     throw ValidationException::withMessages([
                         'password' => [
                             'Your new password must be different from your current password.',
-                      ],
+                        ],
                     ]);
                 }
 
-                /**
-                * Store the new password securely.
-                */
                 $user
                     ->forceFill([
-                        'password' =>
-                            Hash::make(
-                                $password
-                            ),
-                ])
-                ->setRememberToken(
-                    Str::random(60)
-                );
+                        'password' => Hash::make($password),
+                    ])
+                    ->setRememberToken(Str::random(60));
 
-             $user->save();
+                $user->save();
 
-            /**
-            * Dispatch Laravel's normal
-            * password reset event.
-            */
-            event(
-                new PasswordReset(
-                    $user
-                )
-            );
-        }
-            );
+                event(new PasswordReset($user));
+            }
+        );
 
-        /**
-         * A reset can fail because the token is
-         * invalid, expired, or does not match the user.
-         */
-        if (
-            $status !==
-            Password::PASSWORD_RESET
-        ) {
+        if ($status !== Password::PASSWORD_RESET) {
             return response()->json([
-                'message' =>
-                    'This password reset link is invalid or has expired.',
+                'message' => 'This password reset link is invalid or has expired.',
             ], 422);
         }
 
         return response()->json([
-            'message' =>
-                'Your password has been reset successfully. You can now sign in with your new password.',
+            'message' => 'Your password has been reset successfully. You can now sign in with your new password.',
         ]);
     }
 
     // ============ CHANGE PASSWORD ============
+
     /**
-     * Change the authenticated resident's password.
+     * Change the authenticated user's password.
      */
     public function changePassword(
         ChangePasswordRequest $request
     ): JsonResponse {
-        $data =
-            $request->validated();
+        $data = $request->validated();
 
         /** @var User $user */
-        $user =
-            $request->user();
+        $user = $request->user();
 
-        // Resident portal only.
-        if (
-            $user->role !==
-            'resident'
-        ) {
-            return response()->json([
-                'message' =>
-                    'This account does not have resident access.',
-            ], 403);
-        }
+        abort_unless(
+            $user && in_array(
+                $user->role,
+                ['resident', 'responder', 'admin'],
+                true
+            ),
+            403,
+            'Your account cannot perform this action.'
+        );
 
-        /**
-         * Verify the current password on the server.
-         *
-         * React must never decide whether the current
-         * password is correct.
-         */
         if (
             !Hash::check(
                 $data['currentPassword'],
@@ -392,9 +245,7 @@ class AuthController extends Controller
             )
         ) {
             return response()->json([
-                'message' =>
-                    'The current password you entered is incorrect.',
-
+                'message' => 'The current password you entered is incorrect.',
                 'errors' => [
                     'currentPassword' => [
                         'The current password you entered is incorrect.',
@@ -403,20 +254,9 @@ class AuthController extends Controller
             ], 422);
         }
 
-        /**
-         * Do not allow the new password to be the
-         * same as the current password.
-         */
-        if (
-            Hash::check(
-                $data['password'],
-                $user->password
-            )
-        ) {
+        if (Hash::check($data['password'], $user->password)) {
             return response()->json([
-                'message' =>
-                    'Your new password must be different from your current password.',
-
+                'message' => 'Your new password must be different from your current password.',
                 'errors' => [
                     'password' => [
                         'Your new password must be different from your current password.',
@@ -425,91 +265,67 @@ class AuthController extends Controller
             ], 422);
         }
 
-        /**
-         * Hash and save the new password.
-         *
-         * Rotating remember_token invalidates old
-         * remember-me authentication cookies.
-         */
         $user
             ->forceFill([
-                'password' =>
-                    Hash::make(
-                        $data['password']
-                    ),
+                'password' => Hash::make($data['password']),
             ])
-            ->setRememberToken(
-                Str::random(60)
-            );
+            ->setRememberToken(Str::random(60));
 
         $user->save();
 
-        /**
-         * Keep the currently authenticated resident
-         * signed in, but rotate the session ID after
-         * this security-sensitive operation.
-         */
-        $request
-            ->session()
-            ->regenerate();
+        if ($request->hasSession()) {
+            $request->session()->regenerate();
+        }
 
         return response()->json([
-            'message' =>
-                'Your password has been changed successfully.',
+            'message' => 'Your password has been changed successfully.',
         ]);
     }
 
     // ============ CURRENT USER ============
+
     /**
-     * Return the authenticated resident.
+     * Return the authenticated ResQNow user.
      */
     public function user(
         Request $request
     ): UserResource {
         /** @var User $user */
-        $user =
-            $request->user();
+        $user = $request->user();
 
         $user->load('profile');
 
-        return new UserResource(
-            $user
-        );
+        return new UserResource($user);
     }
 
     // ============ LOGOUT ============
+
     /**
-     * End the resident session.
+     * End the authenticated ResQNow session.
      */
     public function logout(
         Request $request
     ): JsonResponse {
-        $this->endSession(
-            $request
-        );
+        $this->endSession($request);
 
         return response()->json([
-            'message' =>
-                'Signed out successfully.',
+            'message' => 'Signed out successfully.',
         ]);
     }
 
     // ============ SESSION ============
+
     /**
-     * Safely destroy an authenticated session.
+     * Safely destroy the authenticated session.
      */
     private function endSession(
         Request $request
     ): void {
-        Auth::guard('web')
-            ->logout();
+        Auth::guard('web')->logout();
 
-        $request
-            ->session()
-            ->invalidate();
-
-        $request
-            ->session()
-            ->regenerateToken();
+        if ($request->hasSession()) {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
     }
 }

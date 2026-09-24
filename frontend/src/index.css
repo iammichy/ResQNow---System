@@ -234,3 +234,9 @@ textarea {
     animation: none;
   }
 }
+/* ============ RESPONDER PAGE BACKGROUND ============ */
+.responder-page {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(56, 189, 248, 0.10), transparent 30%),
+    linear-gradient(180deg, #F8FAFC 0%, #FFFFFF 52%, #EEF8FF 100%);
+}

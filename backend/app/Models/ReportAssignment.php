@@ -20,6 +20,7 @@ class ReportAssignment extends Model
         'notes',
         'assigned_at',
         'unassigned_at',
+        'acknowledged_at',
     ];
 
     /**
@@ -28,8 +29,14 @@ class ReportAssignment extends Model
     protected function casts(): array
     {
         return [
-            'assigned_at' => 'datetime',
-            'unassigned_at' => 'datetime',
+            'assigned_at' =>
+                'datetime',
+
+            'unassigned_at' =>
+                'datetime',
+
+            'acknowledged_at' =>
+                'datetime',
         ];
     }
 
@@ -38,11 +45,13 @@ class ReportAssignment extends Model
      */
     public function report(): BelongsTo
     {
-        return $this->belongsTo(Report::class);
+        return $this->belongsTo(
+            Report::class
+        );
     }
 
     /**
-     * Personnel/responder assigned to the report.
+     * Personnel / responder assigned to the report.
      */
     public function assignedUser(): BelongsTo
     {
@@ -53,7 +62,7 @@ class ReportAssignment extends Model
     }
 
     /**
-     * Admin/barangay user who made the assignment.
+     * Admin / barangay user who made the assignment.
      *
      * This may be null for system-generated assignments.
      */

@@ -17,6 +17,21 @@ class Report extends Model
      */
     protected $fillable = [
         'user_id',
+
+        // Request safety / concurrency.
+        'client_request_id',
+        'request_fingerprint',
+        'version',
+
+        // File storage metadata.
+        'photo_disk',
+
+        // Location metadata.
+        'location_source',
+        'location_accuracy',
+        'location_captured_at',
+
+        // Existing report fields.
         'report_code',
         'report_type',
         'concern_code',
@@ -48,9 +63,23 @@ class Report extends Model
     protected function casts(): array
     {
         return [
-            'affected_individuals' => 'array',
-            'latitude' => 'decimal:7',
-            'longitude' => 'decimal:7',
+            'affected_individuals' =>
+                'array',
+
+            'version' =>
+                'integer',
+
+            'location_accuracy' =>
+                'float',
+
+            'location_captured_at' =>
+                'datetime',
+
+            'latitude' =>
+                'decimal:7',
+
+            'longitude' =>
+                'decimal:7',
         ];
     }
 
@@ -59,15 +88,20 @@ class Report extends Model
      */
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(
+            User::class
+        );
     }
 
     /**
-     * Complete status history of the report.
+     * Complete status / field activity history.
      */
     public function statusLogs(): HasMany
     {
-        return $this->hasMany(ReportStatusLog::class)
+        return $this
+            ->hasMany(
+                ReportStatusLog::class
+            )
             ->orderBy('created_at')
             ->orderBy('id');
     }
@@ -77,8 +111,24 @@ class Report extends Model
      */
     public function latestStatusLog(): HasOne
     {
-        return $this->hasOne(ReportStatusLog::class)
+        return $this
+            ->hasOne(
+                ReportStatusLog::class
+            )
             ->latestOfMany();
+    }
+
+    /**
+     * Support, unable-to-locate and review requests
+     * created during field response.
+     */
+    public function attentionRequests(): HasMany
+    {
+        return $this
+            ->hasMany(
+                ReportAttentionRequest::class
+            )
+            ->orderByDesc('id');
     }
 
     /**
@@ -86,7 +136,10 @@ class Report extends Model
      */
     public function assignments(): HasMany
     {
-        return $this->hasMany(ReportAssignment::class)
+        return $this
+            ->hasMany(
+                ReportAssignment::class
+            )
             ->orderBy('assigned_at');
     }
 
@@ -95,8 +148,13 @@ class Report extends Model
      */
     public function activeAssignments(): HasMany
     {
-        return $this->hasMany(ReportAssignment::class)
-            ->whereNull('unassigned_at')
+        return $this
+            ->hasMany(
+                ReportAssignment::class
+            )
+            ->whereNull(
+                'unassigned_at'
+            )
             ->orderBy('assigned_at');
     }
 }

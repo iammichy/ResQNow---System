@@ -150,8 +150,8 @@ export default function Login() {
     setIsSubmitting(true);
 
     try {
-      // Login using Laravel Sanctum
-      await login({
+      // Login using the shared Laravel Sanctum session.
+      const loggedInUser = await login({
         email: email
           .trim()
           .toLowerCase(),
@@ -175,12 +175,12 @@ export default function Login() {
         );
       }
 
-      // Go to resident dashboard
+      // Route the authenticated account to its own interface.
       navigate(
-        '/dashboard',
-        {
-          replace: true,
-        }
+        loggedInUser?.role === 'responder'
+          ? '/responder/dashboard'
+          : '/dashboard',
+        { replace: true }
       );
     } catch (loginError) {
       const backendErrors =
@@ -529,13 +529,13 @@ export default function Login() {
                 </span>
               </label>
 
-             {/* Forgot Password */}
-            <Link
-              to="/forgot-password"
-              className="text-[11px] font-semibold text-resqnow-violet hover:text-resqnow-primary hover:underline transition-colors"
-            >
-              Forgot password?
-            </Link>
+              {/* Forgot Password */}
+              <button
+                type="button"
+                className="text-[11px] font-semibold text-resqnow-violet hover:text-resqnow-primary transition-colors"
+              >
+                Forgot password?
+              </button>
             </div>
 
             {/* ============ SIGN IN BUTTON ============ */}
@@ -596,6 +596,7 @@ export default function Login() {
 
                 <button
                   type="button"
+                  onClick={() => navigate('/responder/login')}
                   className="mt-3 text-[11px] font-semibold text-resqnow-violet hover:text-resqnow-primary flex items-center gap-1.5"
                 >
                   Responder Access

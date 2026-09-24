@@ -2,71 +2,122 @@
 
 namespace App\Http\Resources;
 
+use App\Support\ReportWorkflow;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class ReportResource extends JsonResource
 {
     /**
-     * Transform a report into the structure
-     * expected by the React resident frontend.
+     * Shared report structure used by
+     * Resident, Responder, and later Admin.
      *
      * @return array<string, mixed>
      */
-    public function toArray(Request $request): array
-    {
-        $timeline = $this->buildTimeline();
-
+    public function toArray(
+        Request $request
+    ): array {
         return [
-            // Public report ID shown to residents
-            // Example: EM-000001 / NE-000001
-            'id' => $this->report_code,
+            // ============ IDENTIFIERS ============
 
-            // Internal database ID
-            'databaseId' => $this->id,
+            // Public code:
+            // EM-000001 / NE-000001
+            'id' =>
+                $this->report_code,
 
-            // Main report information
-            'reportType' => $this->report_type,
-            'concernCode' => $this->concern_code,
-            'concernType' => $this->concern_type,
-            'subcategory' => $this->subcategory,
+            // Internal database ID.
+            'databaseId' =>
+                $this->id,
 
-            // Current workflow state
-            'status' => $this->status,
-            'priority' => $this->priority,
+            // Used for stale-update protection.
+            'version' =>
+                (int) $this->version,
 
-            // Who the report is for
-            'reportingFor' => $this->reporting_for,
 
-            // Person / victim information
-            //
-            // We expose both names temporarily so
-            // existing frontend components can use
-            // victimName while newer code can use
-            // subjectName.
-            'subjectName' => $this->subject_name,
-            'subjectContact' => $this->subject_contact,
+            // ============ REPORT ============
 
-            'victimName' => $this->subject_name,
-            'victimContact' => $this->subject_contact,
+            'reportType' =>
+                $this->report_type,
 
-            'relationshipNote' => $this->relationship_note,
+            'concernCode' =>
+                $this->concern_code,
 
-            // Incident location
-            'purok' => $this->purok,
-            'location' => $this->location,
-            'landmark' => $this->landmark,
+            'concernType' =>
+                $this->concern_type,
 
-            'latitude' => $this->latitude !== null
-                ? (float) $this->latitude
-                : null,
+            'subcategory' =>
+                $this->subcategory,
 
-            'longitude' => $this->longitude !== null
-                ? (float) $this->longitude
-                : null,
+            'status' =>
+                $this->status,
 
-            // Resident-provided details
-            'description' => $this->description,
+            'priority' =>
+                $this->priority,
+
+
+            // ============ REPORTER / SUBJECT ============
+
+            'reportingFor' =>
+                $this->reporting_for,
+
+            'reporter' =>
+                $this->getReporter(),
+
+            'subjectName' =>
+                $this->subject_name,
+
+            'subjectContact' =>
+                $this->subject_contact,
+
+            // Existing Resident compatibility.
+            'victimName' =>
+                $this->subject_name,
+
+            'victimContact' =>
+                $this->subject_contact,
+
+            'relationshipNote' =>
+                $this->relationship_note,
+
+
+            // ============ LOCATION ============
+
+            'purok' =>
+                $this->purok,
+
+            'location' =>
+                $this->location,
+
+            'landmark' =>
+                $this->landmark,
+
+            'latitude' =>
+                $this->latitude !== null
+                    ? (float) $this->latitude
+                    : null,
+
+            'longitude' =>
+                $this->longitude !== null
+                    ? (float) $this->longitude
+                    : null,
+
+            'locationSource' =>
+                $this->location_source,
+
+            'locationAccuracy' =>
+                $this->location_accuracy !== null
+                    ? (float) $this->location_accuracy
+                    : null,
+
+            'locationCapturedAt' =>
+                $this->location_captured_at
+                    ?->toISOString(),
+
+
+            // ============ RESIDENT DETAILS ============
+
+            'description' =>
+                $this->description,
 
             'requiredAssistance' =>
                 $this->required_assistance,
@@ -74,12 +125,27 @@ class ReportResource extends JsonResource
             'affectedIndividuals' =>
                 $this->affected_individuals ?? [],
 
-            // Photo evidence
-            'photoUrl' => $this->photo_path
-                ? asset('storage/' . $this->photo_path)
-                : null,
 
-            // Barangay-side information
+            // ============ RESIDENT EVIDENCE ============
+
+            /*
+             * Preserve the current Resident behavior
+             * for now.
+             *
+             * Field evidence from responders will use
+             * a protected endpoint later.
+             */
+            'photoUrl' =>
+                $this->photo_path
+                    ? asset(
+                        'storage/' .
+                        $this->photo_path
+                    )
+                    : null,
+
+
+            // ============ BARANGAY INFORMATION ============
+
             'barangayRemarks' =>
                 $this->barangay_remarks,
 
@@ -89,146 +155,332 @@ class ReportResource extends JsonResource
             'resolvedRemarks' =>
                 $this->resolved_remarks,
 
-            // Report timeline
-            'timeline' => $timeline,
 
-            // Latest report update
+            // ============ HISTORY ============
+
+            'timeline' =>
+                $this->buildTimeline(),
+
+            'events' =>
+                $this->getEvents(),
+
             'latestUpdate' =>
                 $this->getLatestUpdateText(),
 
-            // Personnel assignment
+
+            // ============ ASSIGNMENT ============
+
             'assignedPersonnel' =>
                 $this->getAssignedPersonnelText(),
 
             'assignedPersonnelList' =>
                 $this->getAssignedPersonnelList(),
 
-            // Display timestamps expected by
-            // the current resident interface
-            'submittedAt' => $this->created_at
-                ? $this->created_at->format(
-                    'Y-m-d h:i A'
-                )
-                : null,
 
-            'updatedAt' => $this->updated_at
-                ? $this->updated_at->format(
-                    'Y-m-d h:i A'
-                )
-                : null,
+            // ============ SUPPORT / REVIEW ============
 
-            // ISO timestamps are also included
-            // for future frontend formatting
-            'createdAt' => $this->created_at?->toISOString(),
-            'updatedAtIso' => $this->updated_at?->toISOString(),
+            'attentionRequests' =>
+                $this->getAttentionRequests(),
+
+
+            // ============ RESPONDER ACTIONS ============
+
+            /*
+             * Only authenticated responder accounts
+             * receive permitted field actions.
+             */
+            'responderActions' =>
+                $this->getResponderActions(
+                    $request
+                ),
+
+
+            // ============ DISPLAY TIMES ============
+
+            'submittedAt' =>
+                $this->created_at
+                    ? $this->created_at->format(
+                        'Y-m-d h:i A'
+                    )
+                    : null,
+
+            'updatedAt' =>
+                $this->updated_at
+                    ? $this->updated_at->format(
+                        'Y-m-d h:i A'
+                    )
+                    : null,
+
+
+            // ============ ISO TIMES ============
+
+            'createdAt' =>
+                $this->created_at
+                    ?->toISOString(),
+
+            'updatedAtIso' =>
+                $this->updated_at
+                    ?->toISOString(),
         ];
     }
 
+
     /**
-     * Build the full progress timeline.
-     *
-     * Completed statuses come from report_status_logs.
-     * Future statuses are also returned with done=false
-     * so the current Track Report UI can display them.
+     * Resident who submitted the report.
+     */
+    private function getReporter(): ?array
+    {
+        if (
+            !$this->relationLoaded('user') ||
+            !$this->user
+        ) {
+            return null;
+        }
+
+        $profile =
+            $this->user->relationLoaded(
+                'profile'
+            )
+                ? $this->user->profile
+                : null;
+
+        return [
+            'id' =>
+                $this->user->id,
+
+            'fullName' =>
+                $this->user->name,
+
+            'email' =>
+                $this->user->email,
+
+            'contactNumber' =>
+                $profile?->contact_number,
+        ];
+    }
+
+
+    /**
+     * Build lifecycle progress for the
+     * existing Resident tracking screen.
      *
      * @return array<int, array<string, mixed>>
      */
     private function buildTimeline(): array
     {
-        $workflow = $this->report_type === 'Emergency'
-            ? [
-                'Submitted',
-                'Assigned',
-                'In Progress',
-                'Responders En Route',
-                'Responded',
-                'Resolved',
-            ]
-            : [
-                'Submitted',
-                'Pending Verification',
-                'Verified',
-                'Assigned',
-                'In Progress',
-                'Responded',
-                'Resolved',
-            ];
+        $workflow =
+            $this->report_type ===
+            'Emergency'
+                ? [
+                    'Submitted',
+                    'Assigned',
+                    'In Progress',
+                    'Responders En Route',
+                    'Responded',
+                    'Resolved',
+                ]
+                : [
+                    'Submitted',
+                    'Pending Verification',
+                    'Verified',
+                    'Assigned',
+                    'In Progress',
+                    'Responded',
+                    'Resolved',
+                ];
 
-        // Status logs should normally be eager loaded
-        // by ReportController.
-        $logs = $this->relationLoaded('statusLogs')
-            ? $this->statusLogs
-            : collect();
-
+        $logs =
+            $this->relationLoaded(
+                'statusLogs'
+            )
+                ? $this->statusLogs
+                : collect();
 
         $timeline = [];
 
-        foreach ($workflow as $status) {
-            $log = $logs
-                ->where('status', $status)
-                ->sortBy('created_at')
-                ->first();
+        foreach (
+            $workflow as $status
+        ) {
+            $log =
+                $logs
+                    ->where(
+                        'status',
+                        $status
+                    )
+                    ->sortBy(
+                        'created_at'
+                    )
+                    ->first();
 
             $timeline[] = [
-                'status' => $status,
+                'status' =>
+                    $status,
 
-                'date' => $log?->created_at
-                    ? $log->created_at->format(
-                        'Y-m-d h:i A'
-                    )
-                    : null,
+                'date' =>
+                    $log?->created_at
+                        ? $log
+                            ->created_at
+                            ->format(
+                                'Y-m-d h:i A'
+                            )
+                        : null,
 
-                'done' => $log !== null,
+                'done' =>
+                    $log !== null,
             ];
         }
 
-        // Invalid is not part of the normal workflow,
-        // so add it only when the report was invalidated.
-        if ($this->status === 'Invalid') {
-            $invalidLog = $logs
-                ->where('status', 'Invalid')
-                ->sortByDesc('created_at')
-                ->first();
+        if (
+            $this->status ===
+            'Invalid'
+        ) {
+            $invalidLog =
+                $logs
+                    ->where(
+                        'status',
+                        'Invalid'
+                    )
+                    ->sortByDesc(
+                        'created_at'
+                    )
+                    ->first();
 
             $timeline[] = [
-                'status' => 'Invalid',
+                'status' =>
+                    'Invalid',
 
-                'date' => $invalidLog?->created_at
-                    ? $invalidLog->created_at->format(
-                        'Y-m-d h:i A'
-                    )
-                    : null,
+                'date' =>
+                    $invalidLog?->created_at
+                        ? $invalidLog
+                            ->created_at
+                            ->format(
+                                'Y-m-d h:i A'
+                            )
+                        : null,
 
-                'done' => true,
+                'done' =>
+                    true,
             ];
         }
 
         return $timeline;
     }
 
+
     /**
-     * Get the most recent report update message.
+     * Real saved report activity.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function getEvents(): array
+    {
+        if (
+            !$this->relationLoaded(
+                'statusLogs'
+            )
+        ) {
+            return [];
+        }
+
+        return $this
+            ->statusLogs
+            ->map(
+                function ($log) {
+                    $actor =
+                        $log->relationLoaded(
+                            'changedBy'
+                        )
+                            ? $log->changedBy
+                            : null;
+
+                    return [
+                        'id' =>
+                            $log->id,
+
+                        'status' =>
+                            $log->status,
+
+                        'activity' =>
+                            $log->activity,
+
+                        'remarks' =>
+                            $log->remarks,
+
+                        'checklist' =>
+                            $log->checklist ?? [],
+
+                        /*
+                         * Field evidence remains protected.
+                         * We will add its authorized endpoint
+                         * when the Responder controller is ready.
+                         */
+                        'hasPhoto' =>
+                            !empty(
+                                $log->photo_path
+                            ),
+
+                        'photoUrl' =>
+                            null,
+
+                        'actor' =>
+                            $actor
+                                ? [
+                                    'id' =>
+                                        $actor->id,
+
+                                    'fullName' =>
+                                        $actor->name,
+
+                                    'role' =>
+                                        $actor->role,
+                                ]
+                                : null,
+
+                        'createdAt' =>
+                            $log->created_at
+                                ?->toISOString(),
+                    ];
+                }
+            )
+            ->values()
+            ->all();
+    }
+
+
+    /**
+     * Most recent readable update.
      */
     private function getLatestUpdateText(): ?string
     {
-        if (!$this->relationLoaded('statusLogs')) {
+        if (
+            !$this->relationLoaded(
+                'statusLogs'
+            )
+        ) {
             return null;
         }
 
-        $latestLog = $this->statusLogs
-            ->sortByDesc('id')
-            ->first();
+        $latestLog =
+            $this
+                ->statusLogs
+                ->sortByDesc('id')
+                ->first();
 
         if (!$latestLog) {
             return null;
         }
 
-        // Prefer a real remark from barangay personnel.
         if ($latestLog->remarks) {
             return $latestLog->remarks;
         }
 
-        return match ($latestLog->status) {
+        if ($latestLog->activity) {
+            return $latestLog->activity;
+        }
+
+        return match (
+            $latestLog->status
+        ) {
             'Submitted' =>
                 'Your report has been submitted.',
 
@@ -242,13 +494,13 @@ class ReportResource extends JsonResource
                 'Personnel have been assigned to your report.',
 
             'In Progress' =>
-                'Your report is now being processed.',
+                'Response work has started.',
 
             'Responders En Route' =>
-                'Barangay responders are on the way to the reported location.',
+                'Assigned responders recorded that they are en route.',
 
             'Responded' =>
-                'Barangay personnel have responded to the report.',
+                'Barangay personnel recorded a response to the incident.',
 
             'Resolved' =>
                 'This report has been resolved.',
@@ -261,23 +513,31 @@ class ReportResource extends JsonResource
         };
     }
 
+
     /**
-     * Build the text currently expected
-     * by ReportDetail.jsx.
+     * Existing Resident-compatible assignment text.
      */
     private function getAssignedPersonnelText(): ?string
     {
-        if (!$this->relationLoaded('activeAssignments')) {
+        if (
+            !$this->relationLoaded(
+                'activeAssignments'
+            )
+        ) {
             return null;
         }
 
-        $names = $this->activeAssignments
-            ->map(
-                fn ($assignment) =>
-                    $assignment->assignedUser?->name
-            )
-            ->filter()
-            ->values();
+        $names =
+            $this
+                ->activeAssignments
+                ->map(
+                    fn ($assignment) =>
+                        $assignment
+                            ->assignedUser
+                            ?->name
+                )
+                ->filter()
+                ->values();
 
         if ($names->isEmpty()) {
             return null;
@@ -286,36 +546,64 @@ class ReportResource extends JsonResource
         return $names->implode(', ');
     }
 
+
     /**
-     * Return structured personnel information
-     * for future frontend use.
+     * Structured active assignment data.
      *
      * @return array<int, array<string, mixed>>
      */
     private function getAssignedPersonnelList(): array
     {
-        if (!$this->relationLoaded('activeAssignments')) {
+        if (
+            !$this->relationLoaded(
+                'activeAssignments'
+            )
+        ) {
             return [];
         }
 
-        return $this->activeAssignments
+        return $this
+            ->activeAssignments
             ->filter(
                 fn ($assignment) =>
-                    $assignment->assignedUser !== null
+                    $assignment
+                        ->assignedUser !==
+                    null
             )
             ->map(
                 fn ($assignment) => [
+                    'assignmentId' =>
+                        $assignment->id,
+
                     'id' =>
-                        $assignment->assignedUser->id,
+                        $assignment
+                            ->assignedUser
+                            ->id,
 
                     'fullName' =>
-                        $assignment->assignedUser->name,
+                        $assignment
+                            ->assignedUser
+                            ->name,
 
                     'role' =>
-                        $assignment->assignedUser->role,
+                        $assignment
+                            ->assignedUser
+                            ->role,
 
                     'assignedAt' =>
-                        $assignment->assigned_at?->toISOString(),
+                        $assignment
+                            ->assigned_at
+                            ?->toISOString(),
+
+                    'acknowledged' =>
+                        $assignment
+                            ->acknowledged_at !==
+                        null,
+
+                    'acknowledgedAt' =>
+                        $assignment
+                            ->acknowledged_at
+                            ?->toISOString(),
 
                     'notes' =>
                         $assignment->notes,
@@ -323,5 +611,127 @@ class ReportResource extends JsonResource
             )
             ->values()
             ->all();
+    }
+
+
+    /**
+     * Saved support / location / review requests.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function getAttentionRequests(): array
+    {
+        if (
+            !$this->relationLoaded(
+                'attentionRequests'
+            )
+        ) {
+            return [];
+        }
+
+        return $this
+            ->attentionRequests
+            ->map(
+                function ($attention) {
+                    $requestedBy =
+                        $attention->relationLoaded(
+                            'requestedBy'
+                        )
+                            ? $attention
+                                ->requestedBy
+                            : null;
+
+                    $acknowledgedBy =
+                        $attention->relationLoaded(
+                            'acknowledgedBy'
+                        )
+                            ? $attention
+                                ->acknowledgedBy
+                            : null;
+
+                    return [
+                        'id' =>
+                            $attention->id,
+
+                        'kind' =>
+                            $attention->kind,
+
+                        'response' =>
+                            $attention->response,
+
+                        'acknowledged' =>
+                            $attention
+                                ->acknowledged_at !==
+                            null,
+
+                        'acknowledgedAt' =>
+                            $attention
+                                ->acknowledged_at
+                                ?->toISOString(),
+
+                        'requestedBy' =>
+                            $requestedBy
+                                ? [
+                                    'id' =>
+                                        $requestedBy->id,
+
+                                    'fullName' =>
+                                        $requestedBy->name,
+
+                                    'role' =>
+                                        $requestedBy->role,
+                                ]
+                                : null,
+
+                        'acknowledgedBy' =>
+                            $acknowledgedBy
+                                ? [
+                                    'id' =>
+                                        $acknowledgedBy->id,
+
+                                    'fullName' =>
+                                        $acknowledgedBy->name,
+
+                                    'role' =>
+                                        $acknowledgedBy->role,
+                                ]
+                                : null,
+
+                        'createdAt' =>
+                            $attention
+                                ->created_at
+                                ?->toISOString(),
+                    ];
+                }
+            )
+            ->values()
+            ->all();
+    }
+
+
+    /**
+     * Server-authorized field actions
+     * for the authenticated Responder.
+     *
+     * @return array<int, array<string, string>>
+     */
+    private function getResponderActions(
+        Request $request
+    ): array {
+        $user =
+            $request->user();
+
+        if (
+            !$user ||
+            $user->role !==
+            'responder'
+        ) {
+            return [];
+        }
+
+        return ReportWorkflow::actionsFor(
+            $this->resource,
+            $user->id
+        );
     }
 }
