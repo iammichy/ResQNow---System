@@ -1,767 +1,345 @@
-// src/components/resident/Updates.jsx
-import { useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  AlertCircle,
   Bell,
-  Megaphone,
-  AlertTriangle,
-  FileText,
+  BellRing,
+  CheckCheck,
   ChevronRight,
+  FileText,
+  Loader2,
+  Megaphone,
+  RefreshCw,
 } from 'lucide-react';
 
 import {
-  mockAnnouncements,
-  mockNotifications,
-} from '../../data/mockData';
+  getNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
+} from '../../services/notificationService';
 
-import {
-  getAllUpdates,
-  isUpdateExpired,
-} from '../../utils/updateUtils';
-
-import { formatDate } from '../../utils/dateUtils';
-
-// ============ FILTER TABS ============
 const filters = [
-  {
-    id: 'all',
-    label: 'All',
-  },
-  {
-    id: 'alerts',
-    label: 'Alerts',
-  },
-  {
-    id: 'announcements',
-    label: 'Announcements',
-  },
-  {
-    id: 'reports',
-    label: 'My Reports',
-  },
+  { id: 'all', label: 'All' },
+  { id: 'report', label: 'My Reports' },
+  { id: 'announcement', label: 'Announcements' },
 ];
 
-// ============ REPORT UPDATE STATUS ============
-// Get the report status from the update
-function getReportUpdateStatus(update) {
-  // Use progressStatus first when available
-  if (update.progressStatus) {
-    return update.progressStatus;
-  }
-
-  const text = `
-    ${update.status || ''}
-    ${update.title || ''}
-    ${update.message || ''}
-  `.toLowerCase();
-
-  if (
-    text.includes(
-      'pending verification'
-    )
-  ) {
-    return 'Pending Verification';
-  }
-
-  if (
-    text.includes(
-      'responders en route'
-    )
-  ) {
-    return 'Responders En Route';
-  }
-
-  if (
-    text.includes(
-      'in progress'
-    )
-  ) {
-    return 'In Progress';
-  }
-
-  if (
-    text.includes(
-      'assigned'
-    )
-  ) {
-    return 'Assigned';
-  }
-
-  if (
-    text.includes(
-      'responded'
-    )
-  ) {
-    return 'Responded';
-  }
-
-  if (
-    text.includes(
-      'resolved'
-    )
-  ) {
-    return 'Resolved';
-  }
-
-  if (
-    text.includes(
-      'invalid'
-    )
-  ) {
-    return 'Invalid';
-  }
-
-  if (
-    text.includes(
-      'verified'
-    )
-  ) {
-    return 'Verified';
-  }
-
-  if (
-    text.includes(
-      'submitted'
-    )
-  ) {
-    return 'Submitted';
-  }
-
-  return '';
+function formatTime(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString('en-PH', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 }
 
-// ============ REPORT UPDATE STYLE ============
-// Returns semantic colors for report updates
-function getReportUpdateStyle(update) {
-  // Assigned personnel update
-  if (
-    update.detailType ===
-    'assigned_personnel'
-  ) {
+function getStyle(kind) {
+  if (kind === 'announcement') {
     return {
-      iconBox:
-        'bg-resqnow-insight/15 text-resqnow-insight',
-
-      labelColor:
-        'text-resqnow-insight',
-
-      label:
-        'Personnel Assigned',
+      Icon: Megaphone,
+      label: 'Barangay Announcement',
+      iconClass: 'bg-resqnow-pending/10 text-resqnow-pending',
     };
   }
 
-  // Resolution update
-  if (
-    update.detailType ===
-    'resolution'
-  ) {
+  if (kind === 'report') {
     return {
-      iconBox:
-        'bg-resqnow-safe/15 text-resqnow-safe',
-
-      labelColor:
-        'text-resqnow-safe',
-
-      label:
-        'Resolved',
+      Icon: FileText,
+      label: 'Report Update',
+      iconClass: 'bg-resqnow-violet/10 text-resqnow-violet',
     };
   }
 
-  const status =
-    getReportUpdateStatus(update);
-
-  switch (status) {
-    case 'Submitted':
-      return {
-        iconBox:
-          'bg-resqnow-info/15 text-resqnow-info',
-
-        labelColor:
-          'text-resqnow-info',
-
-        label:
-          'Submitted',
-      };
-
-    case 'Pending Verification':
-      return {
-        iconBox:
-          'bg-resqnow-pending/15 text-resqnow-pending',
-
-        labelColor:
-          'text-resqnow-pending',
-
-        label:
-          'Pending Verification',
-      };
-
-    case 'Verified':
-      return {
-        iconBox:
-          'bg-resqnow-mint/15 text-resqnow-mint',
-
-        labelColor:
-          'text-resqnow-mint',
-
-        label:
-          'Verified',
-      };
-
-    case 'Assigned':
-      return {
-        iconBox:
-          'bg-resqnow-insight/15 text-resqnow-insight',
-
-        labelColor:
-          'text-resqnow-insight',
-
-        label:
-          'Assigned',
-      };
-
-    case 'In Progress':
-      return {
-        iconBox:
-          'bg-resqnow-insight/15 text-resqnow-insight',
-
-        labelColor:
-          'text-resqnow-insight',
-
-        label:
-          'In Progress',
-      };
-
-    case 'Responders En Route':
-      return {
-        iconBox:
-          'bg-resqnow-violet/15 text-resqnow-violet',
-
-        labelColor:
-          'text-resqnow-violet',
-
-        label:
-          'Responders En Route',
-      };
-
-    case 'Responded':
-      return {
-        iconBox:
-          'bg-resqnow-mint/15 text-resqnow-mint',
-
-        labelColor:
-          'text-resqnow-mint',
-
-        label:
-          'Responded',
-      };
-
-    case 'Resolved':
-      return {
-        iconBox:
-          'bg-resqnow-safe/15 text-resqnow-safe',
-
-        labelColor:
-          'text-resqnow-safe',
-
-        label:
-          'Resolved',
-      };
-
-    case 'Invalid':
-      return {
-        iconBox:
-          'bg-resqnow-crimson/15 text-resqnow-crimson',
-
-        labelColor:
-          'text-resqnow-crimson',
-
-        label:
-          'Invalid',
-      };
-
-    default:
-      return {
-        iconBox:
-          'bg-resqnow-info/10 text-resqnow-info',
-
-        labelColor:
-          'text-resqnow-info',
-
-        label:
-          'Report Update',
-      };
-  }
-}
-
-// ============ CARD STYLING ============
-// Returns icon, colors, and label
-function getCardStyle(update) {
-  // Critical alert
-  if (
-    update.priority ===
-    'critical'
-  ) {
-    return {
-      icon: AlertTriangle,
-
-      iconBox:
-        'bg-resqnow-critical/15 text-resqnow-critical',
-
-      label:
-        'Critical Alert',
-
-      labelColor:
-        'text-resqnow-critical',
-    };
-  }
-
-  // Personal report update
-  if (
-    update.updateCategory ===
-    'report'
-  ) {
-    const reportStyle =
-      getReportUpdateStyle(
-        update
-      );
-
-    return {
-      icon: FileText,
-
-      iconBox:
-        reportStyle.iconBox,
-
-      label:
-        reportStyle.label,
-
-      labelColor:
-        reportStyle.labelColor,
-    };
-  }
-
-  // Barangay announcement
-  if (
-    update.updateSource ===
-    'announcement'
-  ) {
-    return {
-      icon: Megaphone,
-
-      iconBox:
-        'bg-resqnow-violet/10 text-resqnow-violet',
-
-      label:
-        'Announcement',
-
-      labelColor:
-        'text-resqnow-violet',
-    };
-  }
-
-  // Other update
   return {
-    icon: Bell,
-
-    iconBox:
-      'bg-resqnow-info/10 text-resqnow-info',
-
-    label:
-      'Update',
-
-    labelColor:
-      'text-resqnow-info',
+    Icon: BellRing,
+    label: 'Update',
+    iconClass: 'bg-resqnow-info/10 text-resqnow-info',
   };
 }
 
-// ============ UPDATE CARD ============
-// Shared card for active and expired updates
-function UpdateCard({
-  update,
-  onOpen,
-}) {
-  const style =
-    getCardStyle(update);
-
-  const Icon =
-    style.icon;
-
-  const expired =
-    isUpdateExpired(update);
-
-  return (
-    <div
-      onClick={() =>
-        onOpen(update)
-      }
-      onKeyDown={(e) => {
-        if (
-          e.key === 'Enter' ||
-          e.key === ' '
-        ) {
-          e.preventDefault();
-
-          onOpen(update);
-        }
-      }}
-      role="button"
-      tabIndex={0}
-      aria-label={`Open ${update.title}`}
-      className={`rounded-2xl border p-4 cursor-pointer transition-all hover:border-resqnow-violet/30 hover:shadow-[0_4px_14px_rgba(31,29,71,0.06)] active:scale-[0.99] ${
-        expired
-          ? 'border-resqnow-border-soft bg-resqnow-canvas opacity-70'
-          : update.priority ===
-            'critical'
-          ? 'border-resqnow-critical/20 bg-resqnow-critical/5'
-          : 'border-resqnow-border-soft bg-white'
-      }`}
-    >
-      <div className="flex items-start gap-3">
-
-        {/* Update icon */}
-        <div
-          className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${style.iconBox}`}
-        >
-          <Icon className="w-5 h-5" />
-        </div>
-
-        {/* Update details */}
-        <div className="flex-1 min-w-0">
-
-          {/* Type + unread + expired */}
-          <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-
-            {/* Semantic label */}
-            <span
-              className={`text-[9px] font-bold uppercase tracking-wide ${style.labelColor}`}
-            >
-              {style.label}
-            </span>
-
-            {/* Unread indicator */}
-            {!update.isRead && (
-              <span
-                className="w-1.5 h-1.5 bg-resqnow-critical rounded-full"
-                aria-label="Unread"
-              />
-            )}
-
-            {/* Expired indicator */}
-            {expired && (
-              <span className="text-[9px] font-semibold text-resqnow-muted uppercase tracking-wide">
-                Expired
-              </span>
-            )}
-          </div>
-
-          {/* Title */}
-          <p className="text-[13px] font-semibold text-resqnow-primary leading-snug">
-            {update.title}
-          </p>
-
-          {/* Message */}
-          <p className="text-[12px] text-resqnow-muted mt-1 leading-relaxed">
-            {update.message}
-          </p>
-
-          {/* Dates */}
-          <div className="flex items-center gap-x-3 gap-y-1 mt-2 flex-wrap">
-
-            <span className="text-[10px] text-resqnow-muted">
-              {formatDate(
-                update.createdAt
-              )}
-            </span>
-
-            {update.expiresAt && (
-              <span className="text-[10px] text-resqnow-muted">
-                Until{' '}
-                {formatDate(
-                  update.expiresAt
-                )}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Every update can be opened */}
-        <ChevronRight className="w-4 h-4 text-resqnow-placeholder shrink-0 mt-1" />
-      </div>
-    </div>
-  );
-}
-
-// ============ UPDATES PAGE ============
 export default function Updates() {
-  const navigate =
-    useNavigate();
+  const navigate = useNavigate();
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [filter, setFilter] = useState('all');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isMarkingAll, setIsMarkingAll] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  const requestInFlight = useRef(false);
 
-  const [filter, setFilter] =
-    useState('all');
+  const loadUpdates = useCallback(async ({ refresh = false } = {}) => {
+    if (requestInFlight.current) return;
+    requestInFlight.current = true;
 
-  // Combine announcements and notifications
-  const updates =
-    getAllUpdates(
-      mockAnnouncements,
-      mockNotifications
-    );
+    refresh ? setIsRefreshing(true) : setIsLoading(true);
 
-  // ============ FILTER UPDATES ============
-  const filteredUpdates =
-    updates.filter((update) => {
-      if (
-        filter === 'all'
-      ) {
-        return true;
+    try {
+      const result = await getNotifications();
+      setNotifications(result.notifications);
+      setUnreadCount(result.unreadCount);
+      setLoadError('');
+    } catch (error) {
+      setLoadError(
+        error?.message || 'Unable to load your updates.'
+      );
+    } finally {
+      requestInFlight.current = false;
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadUpdates();
+
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        loadUpdates({ refresh: true });
       }
+    }, 30000);
 
-      if (
-        filter === 'alerts'
-      ) {
-        return (
-          update.priority ===
-            'critical' ||
-          update.updateCategory ===
-            'alert'
+    return () => window.clearInterval(intervalId);
+  }, [loadUpdates]);
+
+  const filtered = useMemo(() => {
+    if (filter === 'all') return notifications;
+    return notifications.filter((item) => item.kind === filter);
+  }, [notifications, filter]);
+
+  const openNotification = async (notification) => {
+    if (!notification.readAt) {
+      try {
+        const updated = await markNotificationRead(notification.id);
+        setNotifications((current) =>
+          current.map((item) =>
+            item.id === updated.id ? updated : item
+          )
         );
-      }
-
-      if (
-        filter ===
-        'announcements'
-      ) {
-        return (
-          update.updateSource ===
-          'announcement'
+        setUnreadCount((current) => Math.max(0, current - 1));
+        window.dispatchEvent(
+          new Event('resqnow:notifications-changed')
         );
+      } catch {
+        // Opening the update should still be possible.
       }
+    }
 
-      if (
-        filter === 'reports'
-      ) {
-        return (
-          update.updateCategory ===
-          'report'
-        );
-      }
-
-      return true;
-    });
-
-  // ============ ACTIVE / PAST ============
-  // Active updates always appear first
-  const activeUpdates =
-    filteredUpdates.filter(
-      (update) =>
-        !isUpdateExpired(update)
-    );
-
-  // Expired announcements go below
-  const pastUpdates =
-    filteredUpdates.filter(
-      (update) =>
-        isUpdateExpired(update)
-    );
-
-  // Count unread updates
-  const unreadCount =
-    updates.filter(
-      (update) =>
-        !update.isRead
-    ).length;
-
-  // ============ OPEN UPDATE ============
-  // All updates open their own detail page
-  const handleUpdateClick = (
-    update
-  ) => {
-    navigate(
-      `/updates/${update.id}`
-    );
+    navigate(`/updates/${notification.id}`);
   };
 
-  const hasUpdates =
-    activeUpdates.length > 0 ||
-    pastUpdates.length > 0;
+  const markAllRead = async () => {
+    if (isMarkingAll || unreadCount === 0) return;
+    setIsMarkingAll(true);
+
+    try {
+      await markAllNotificationsRead();
+      const now = new Date().toISOString();
+      setNotifications((current) =>
+        current.map((item) => ({
+          ...item,
+          readAt: item.readAt || now,
+        }))
+      );
+      setUnreadCount(0);
+      setLoadError('');
+      window.dispatchEvent(
+        new Event('resqnow:notifications-changed')
+      );
+    } catch (error) {
+      setLoadError(
+        error?.message || 'Unable to mark updates as read.'
+      );
+    } finally {
+      setIsMarkingAll(false);
+    }
+  };
 
   return (
     <div className="px-4 pt-5 pb-28 min-h-screen">
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div>
+          <h1 className="text-xl font-bold text-resqnow-primary">
+            Updates
+          </h1>
+          <p className="text-xs text-resqnow-muted mt-1 leading-relaxed">
+            Confirmed report activity and barangay notifications for your account.
+          </p>
+        </div>
 
-      {/* ============ PAGE HEADER ============ */}
-      <div className="mb-4">
-
-        <h1 className="text-xl font-bold text-resqnow-primary">
-          Updates
-        </h1>
-
-        <p className="text-xs text-resqnow-muted mt-1">
-          Barangay announcements, emergency alerts, and your report updates.
-        </p>
+        <button
+          type="button"
+          onClick={() => loadUpdates({ refresh: true })}
+          disabled={isRefreshing}
+          aria-label="Refresh updates"
+          className="w-10 h-10 rounded-xl border border-resqnow-violet/15 bg-resqnow-violet/5 text-resqnow-violet flex items-center justify-center shrink-0 disabled:opacity-50"
+        >
+          {isRefreshing ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <RefreshCw className="w-4 h-4" />
+          )}
+        </button>
       </div>
 
-      {/* ============ FILTER PILLS ============ */}
-      <div className="flex gap-2 mb-5 overflow-x-auto pb-1 -mx-4 px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {loadError && (
+        <div
+          role="alert"
+          className="mb-4 rounded-xl border border-resqnow-critical/20 bg-resqnow-critical/10 p-3 flex gap-2.5"
+        >
+          <AlertCircle className="w-4 h-4 text-resqnow-critical mt-0.5 shrink-0" />
+          <div>
+            <p className="text-[12px] font-semibold text-resqnow-crimson">
+              Could not refresh updates
+            </p>
+            <p className="text-[11px] text-resqnow-secondary mt-1">
+              {loadError}
+            </p>
+            {notifications.length > 0 && (
+              <p className="text-[10px] text-resqnow-muted mt-1">
+                Showing the last confirmed update list.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
-        {filters.map(
-          (item) => {
-            const selected =
-              filter === item.id;
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <div className="flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {filters.map((item) => {
+            const selected = filter === item.id;
 
             return (
               <button
                 key={item.id}
                 type="button"
-                onClick={() =>
-                  setFilter(
-                    item.id
-                  )
-                }
-                className={`shrink-0 min-h-[44px] px-4 py-2 rounded-full text-[12px] font-semibold border active:scale-95 transition-all ${
+                onClick={() => setFilter(item.id)}
+                className={`shrink-0 min-h-[42px] px-3.5 rounded-full text-[11px] font-semibold border transition-all ${
                   selected
-                    ? 'bg-resqnow-violet text-white border-resqnow-violet shadow-[0_4px_12px_rgba(131,70,242,0.18)]'
-                    : 'bg-white text-resqnow-muted border-resqnow-border-soft hover:border-resqnow-violet/30 hover:text-resqnow-violet'
+                    ? 'bg-resqnow-violet text-white border-resqnow-violet'
+                    : 'bg-white text-resqnow-muted border-resqnow-border-soft'
                 }`}
               >
                 {item.label}
-
-                {/* Unread count */}
-                {item.id ===
-                  'all' &&
-                  unreadCount >
-                    0 && (
-                    <span
-                      className={`ml-1.5 inline-block text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                        selected
-                          ? 'bg-white/20 text-white'
-                          : 'bg-resqnow-critical/10 text-resqnow-critical'
-                      }`}
-                    >
-                      {
-                        unreadCount
-                      }
-                    </span>
-                  )}
+                {item.id === 'all' && unreadCount > 0 && (
+                  <span
+                    className={`ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+                      selected
+                        ? 'bg-white/20 text-white'
+                        : 'bg-resqnow-critical/10 text-resqnow-critical'
+                    }`}
+                  >
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
               </button>
             );
-          }
+          })}
+        </div>
+
+        {unreadCount > 0 && (
+          <button
+            type="button"
+            onClick={markAllRead}
+            disabled={isMarkingAll}
+            className="shrink-0 min-h-[42px] px-3 rounded-xl text-[10px] font-bold text-resqnow-violet border border-resqnow-violet/15 bg-resqnow-violet/5 flex items-center gap-1.5 disabled:opacity-50"
+          >
+            {isMarkingAll ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <CheckCheck className="w-3.5 h-3.5" />
+            )}
+            Mark read
+          </button>
         )}
       </div>
 
-      {/* ============ UPDATES LIST ============ */}
-      {hasUpdates ? (
-        <div>
+      {isLoading && notifications.length === 0 ? (
+        <div className="py-16 text-center">
+          <Loader2 className="w-7 h-7 text-resqnow-violet animate-spin mx-auto" />
+          <p className="text-[12px] text-resqnow-muted mt-3">
+            Loading confirmed updates...
+          </p>
+        </div>
+      ) : filtered.length > 0 ? (
+        <div className="space-y-2.5">
+          {filtered.map((notification) => {
+            const { Icon, label, iconClass } = getStyle(notification.kind);
 
-          {/* ============ ACTIVE UPDATES ============ */}
-          {activeUpdates.length >
-            0 && (
-            <section>
+            return (
+              <button
+                key={notification.id}
+                type="button"
+                onClick={() => openNotification(notification)}
+                className={`w-full text-left rounded-2xl border p-4 transition-all active:scale-[0.99] ${
+                  notification.readAt
+                    ? 'border-resqnow-border-soft bg-white'
+                    : 'border-resqnow-violet/20 bg-resqnow-violet/5'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${iconClass}`}>
+                    <Icon className="w-5 h-5" />
+                  </div>
 
-              <div className="flex items-center gap-3 mb-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[9px] font-bold uppercase tracking-wide text-resqnow-muted">
+                        {label}
+                      </span>
 
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-resqnow-muted">
-                  Active Updates
-                </p>
+                      {!notification.readAt && (
+                        <span
+                          className="w-1.5 h-1.5 bg-resqnow-critical rounded-full"
+                          aria-label="Unread"
+                        />
+                      )}
 
-                <div className="flex-1 h-px bg-resqnow-border-soft" />
+                      {notification.reportCode && (
+                        <span className="text-[9px] font-bold text-resqnow-violet">
+                          {notification.reportCode}
+                        </span>
+                      )}
+                    </div>
 
-                <span className="text-[10px] font-semibold text-resqnow-violet">
-                  {
-                    activeUpdates.length
-                  }
-                </span>
-              </div>
+                    <p className="text-[13px] font-semibold text-resqnow-primary mt-1 leading-snug">
+                      {notification.title}
+                    </p>
 
-              <div className="space-y-2.5">
+                    <p className="text-[11px] text-resqnow-muted mt-1 leading-relaxed">
+                      {notification.message}
+                    </p>
 
-                {activeUpdates.map(
-                  (update) => (
-                    <UpdateCard
-                      key={
-                        update.id
-                      }
-                      update={
-                        update
-                      }
-                      onOpen={
-                        handleUpdateClick
-                      }
-                    />
-                  )
-                )}
-              </div>
-            </section>
-          )}
+                    <p className="text-[10px] text-resqnow-muted mt-2">
+                      {formatTime(notification.createdAt)}
+                    </p>
+                  </div>
 
-          {/* ============ PAST UPDATES ============ */}
-          {pastUpdates.length >
-            0 && (
-            <section
-              className={
-                activeUpdates.length >
-                0
-                  ? 'mt-8'
-                  : ''
-              }
-            >
-
-              <div className="flex items-center gap-3 mb-3">
-
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-resqnow-muted">
-                  Past Updates
-                </p>
-
-                <div className="flex-1 h-px bg-resqnow-border-soft" />
-
-                <span className="text-[10px] font-semibold text-resqnow-muted">
-                  {
-                    pastUpdates.length
-                  }
-                </span>
-              </div>
-
-              <p className="text-[11px] text-resqnow-muted mb-3 leading-relaxed">
-                Expired barangay advisories and announcements are kept here for reference.
-              </p>
-
-              <div className="space-y-2.5">
-
-                {pastUpdates.map(
-                  (update) => (
-                    <UpdateCard
-                      key={
-                        update.id
-                      }
-                      update={
-                        update
-                      }
-                      onOpen={
-                        handleUpdateClick
-                      }
-                    />
-                  )
-                )}
-              </div>
-            </section>
-          )}
+                  <ChevronRight className="w-4 h-4 text-resqnow-placeholder shrink-0 mt-1" />
+                </div>
+              </button>
+            );
+          })}
         </div>
       ) : (
-        /* ============ EMPTY STATE ============ */
         <div className="text-center py-16">
-
           <div className="w-12 h-12 rounded-full bg-resqnow-canvas flex items-center justify-center mx-auto mb-3">
-
             <Bell className="w-6 h-6 text-resqnow-placeholder" />
           </div>
-
-          <p className="text-sm font-medium text-resqnow-primary">
-            Nothing here yet
+          <p className="text-sm font-semibold text-resqnow-primary">
+            No confirmed updates yet
           </p>
-
-          <p className="text-[12px] text-resqnow-muted mt-1">
-            No{' '}
-            {filter === 'all'
-              ? 'updates'
-              : filter}{' '}
-            to show.
+          <p className="text-[11px] text-resqnow-muted mt-1 max-w-xs mx-auto leading-relaxed">
+            Responder activity and official notifications for your account will appear here.
           </p>
         </div>
       )}

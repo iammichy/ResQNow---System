@@ -109,6 +109,21 @@ export default function EmergencyReport() {
   const [location, setLocation] =
     useState('');
 
+  const [latitude, setLatitude] =
+    useState(null);
+
+  const [longitude, setLongitude] =
+    useState(null);
+
+  const [locationAccuracy, setLocationAccuracy] =
+    useState(null);
+
+  const [locationCapturedAt, setLocationCapturedAt] =
+    useState(null);
+
+  const [isLocating, setIsLocating] =
+    useState(false);
+
   // Reporting for another person
   const [
     reportingForOther,
@@ -155,20 +170,135 @@ export default function EmergencyReport() {
   ] = useState(null);
 
   // ============ LOCATION ============
-  // Uses the resident's saved address.
-  // Real GPS integration will be connected later.
+  // Clear location metadata when switching away
+  // from the currently captured GPS position.
+  const clearGpsMetadata = () => {
+    setLocationAccuracy(null);
+    setLocationCapturedAt(null);
+  };
+
+  // Capture the resident's current device location.
+  // This is intentionally separate from the saved
+  // home address because the emergency may happen
+  // somewhere else.
   const useCurrentLocation = () => {
-    setLocation(
-      user?.address || ''
+    setError('');
+
+    if (!navigator.geolocation) {
+      setError(
+        'Current GPS location is not supported on this device. Use your saved address or enter the location manually.'
+      );
+      return;
+    }
+
+    setIsLocating(true);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = Number(
+          position.coords.latitude
+        );
+        const lng = Number(
+          position.coords.longitude
+        );
+        const accuracy = Number(
+          position.coords.accuracy
+        );
+        const capturedAt = new Date(
+          position.timestamp || Date.now()
+        ).toISOString();
+
+        setLatitude(lat);
+        setLongitude(lng);
+        setLocationAccuracy(
+          Number.isFinite(accuracy)
+            ? accuracy
+            : null
+        );
+        setLocationCapturedAt(capturedAt);
+
+        // Keep a truthful human-readable value even
+        // without depending on an external geocoder.
+        setLocation(
+          `Current GPS location (${lat.toFixed(6)}, ${lng.toFixed(6)})`
+        );
+
+        setLocationMode('gps');
+        setError('');
+        setIsLocating(false);
+      },
+      (geoError) => {
+        let message =
+          'Unable to get your current location. Use your saved address or enter the emergency location manually.';
+
+        if (geoError.code === 1) {
+          message =
+            'Location permission was denied. Allow location access, use your saved address, or enter the emergency location manually.';
+        } else if (geoError.code === 2) {
+          message =
+            'Your current GPS location is unavailable. Use your saved address or enter the emergency location manually.';
+        } else if (geoError.code === 3) {
+          message =
+            'Getting your current location took too long. Try again, use your saved address, or enter the location manually.';
+        }
+
+        setError(message);
+        setIsLocating(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+  };
+
+  // Use the resident's saved home address.
+  // Saved home coordinates are included when the
+  // profile has them, but are not described as GPS.
+  const useSavedLocation = () => {
+    const savedAddress =
+      user?.address?.trim();
+
+    if (!savedAddress) {
+      setError(
+        'No saved home address is available. Enter the emergency location manually.'
+      );
+      setLocationMode('manual');
+      return;
+    }
+
+    const savedLat = Number(
+      user?.homeLocation?.latitude
+    );
+    const savedLng = Number(
+      user?.homeLocation?.longitude
     );
 
-    setLocationMode('auto');
+    setLocation(savedAddress);
+    setLocationMode('saved');
+    setLatitude(
+      Number.isFinite(savedLat)
+        ? savedLat
+        : null
+    );
+    setLongitude(
+      Number.isFinite(savedLng)
+        ? savedLng
+        : null
+    );
+    clearGpsMetadata();
     setError('');
   };
 
-  // Allow resident to enter location manually
+  // Allow resident to enter the actual incident
+  // location manually when GPS/saved home is not right.
   const startManualEntry = () => {
+    setLocation('');
     setLocationMode('manual');
+    setLatitude(null);
+    setLongitude(null);
+    clearGpsMetadata();
     setError('');
   };
 
@@ -254,8 +384,18 @@ export default function EmergencyReport() {
             description.trim() ||
             undefined,
 
-          // Latitude/longitude will be
-          // added when real map/GPS is connected
+          latitude,
+          longitude,
+          locationSource:
+            locationMode || undefined,
+          locationAccuracy:
+            locationMode === 'gps'
+              ? locationAccuracy
+              : undefined,
+          locationCapturedAt:
+            locationMode === 'gps'
+              ? locationCapturedAt
+              : undefined,
         });
 
       // Store Laravel's actual report response.
@@ -303,6 +443,11 @@ export default function EmergencyReport() {
     setSelectedType(null);
     setLocation('');
     setLocationMode(null);
+    setLatitude(null);
+    setLongitude(null);
+    setLocationAccuracy(null);
+    setLocationCapturedAt(null);
+    setIsLocating(false);
 
     setLandmark('');
     setDescription('');
@@ -341,7 +486,7 @@ export default function EmergencyReport() {
             </h1>
 
             <p className="text-[12px] text-resqnow-muted mt-1.5 leading-relaxed">
-              Your emergency report has been received and is ready for barangay response.
+              Your emergency report has been received by ResQNow. Keep your phone nearby while barangay response is being coordinated.
             </p>
 
             {/* REAL REPORT ID FROM LARAVEL */}
@@ -566,130 +711,167 @@ export default function EmergencyReport() {
       {/* ============ LOCATION ============ */}
       <section className="bg-white border border-resqnow-border-soft rounded-2xl p-3 mb-3">
 
-        <div className="px-1 mb-1">
+        <div className="px-1 mb-2">
 
           <div className="flex items-center gap-2">
 
             <MapPin className="w-4 h-4 text-resqnow-violet" />
 
             <h2 className="text-sm font-bold text-resqnow-primary">
-              Where is the emergency?
+              Where should responders go?
             </h2>
           </div>
 
           <p className="text-[10px] text-resqnow-muted mt-0.5">
-            {reportingForOther
-              ? 'The emergency may not be at your location. Set where it is actually happening.'
-              : 'This will use your saved resident address.'}
+            Choose the actual emergency location. Current GPS is best when available.
           </p>
         </div>
 
-        {/* Saved resident location */}
-        {locationMode !==
-          'manual' && (
-          <button
-            type="button"
-            onClick={
-              useCurrentLocation
-            }
-            className={`w-full flex items-center gap-2.5 p-3 rounded-xl border active:scale-[0.99] transition-all ${
-              locationMode ===
-              'auto'
-                ? 'bg-resqnow-violet/10 border-resqnow-violet/30'
-                : 'bg-resqnow-violet border-resqnow-violet hover:bg-resqnow-violet/90'
-            }`}
-          >
+        {/* Current GPS */}
+        <button
+          type="button"
+          onClick={useCurrentLocation}
+          disabled={isLocating}
+          className={`w-full flex items-center gap-2.5 p-3 rounded-xl border active:scale-[0.99] transition-all disabled:opacity-70 ${
+            locationMode === 'gps'
+              ? 'bg-resqnow-violet/10 border-resqnow-violet/30'
+              : 'bg-resqnow-violet border-resqnow-violet hover:bg-resqnow-violet/90'
+          }`}
+        >
 
+          {isLocating ? (
+            <Loader2 className="w-5 h-5 text-white animate-spin shrink-0" />
+          ) : (
             <LocateFixed
               className={`w-5 h-5 shrink-0 ${
-                locationMode ===
-                'auto'
+                locationMode === 'gps'
                   ? 'text-resqnow-violet'
                   : 'text-white'
               }`}
             />
+          )}
 
-            <div className="flex-1 text-left">
+          <div className="flex-1 text-left">
 
-              <p
-                className={`text-[12px] font-semibold ${
-                  locationMode ===
-                  'auto'
-                    ? 'text-resqnow-primary'
-                    : 'text-white'
-                }`}
-              >
-                {reportingForOther
-                  ? 'Emergency is at my saved location'
-                  : 'Use Saved Location'}
-              </p>
+            <p
+              className={`text-[12px] font-semibold ${
+                locationMode === 'gps'
+                  ? 'text-resqnow-primary'
+                  : 'text-white'
+              }`}
+            >
+              {isLocating
+                ? 'Getting current GPS location...'
+                : locationMode === 'gps'
+                  ? 'Current GPS location captured'
+                  : 'Use Current GPS Location'}
+            </p>
 
-              {locationMode ===
-                'auto' && (
+            {locationMode === 'gps' && (
+              <>
                 <p className="text-[10px] text-resqnow-violet mt-0.5 break-words">
-                  {location}
+                  {latitude?.toFixed(6)}, {longitude?.toFixed(6)}
                 </p>
-              )}
-            </div>
 
-            {locationMode ===
-            'auto' ? (
-              <ShieldCheck className="w-5 h-5 text-resqnow-violet shrink-0" />
-            ) : (
-              <ChevronDown className="w-4 h-4 text-white/80 shrink-0" />
+                {locationAccuracy !== null && (
+                  <p className="text-[10px] text-resqnow-muted mt-0.5">
+                    Accuracy approximately ±{Math.round(locationAccuracy)} meters
+                  </p>
+                )}
+              </>
             )}
-          </button>
-        )}
+          </div>
+
+          {locationMode === 'gps' && (
+            <ShieldCheck className="w-5 h-5 text-resqnow-violet shrink-0" />
+          )}
+        </button>
+
+        {/* Saved home address */}
+        <button
+          type="button"
+          onClick={useSavedLocation}
+          className={`mt-2 w-full flex items-center gap-2.5 p-3 rounded-xl border text-left active:scale-[0.99] transition-all ${
+            locationMode === 'saved'
+              ? 'bg-resqnow-info/10 border-resqnow-info/30'
+              : 'bg-white border-resqnow-border-soft hover:border-resqnow-info/30'
+          }`}
+        >
+          <MapPin
+            className={`w-5 h-5 shrink-0 ${
+              locationMode === 'saved'
+                ? 'text-resqnow-info'
+                : 'text-resqnow-muted'
+            }`}
+          />
+
+          <div className="flex-1 min-w-0">
+            <p className="text-[12px] font-semibold text-resqnow-primary">
+              Use Saved Home Address
+            </p>
+            <p className="text-[10px] text-resqnow-muted mt-0.5 break-words">
+              {user?.address || 'No saved address available'}
+            </p>
+          </div>
+
+          {locationMode === 'saved' && (
+            <ShieldCheck className="w-5 h-5 text-resqnow-info shrink-0" />
+          )}
+        </button>
 
         {/* Manual location */}
-        {locationMode ===
-        'manual' ? (
-          <div>
-
+        {locationMode === 'manual' ? (
+          <div className="mt-2">
             <textarea
               value={location}
               onChange={(e) => {
-                setLocation(
-                  e.target.value
-                );
-
+                setLocation(e.target.value);
                 setError('');
               }}
               rows="2"
+              autoFocus
               placeholder={
                 reportingForOther
-                  ? 'Where is the victim located?'
+                  ? 'Where is the person located?'
                   : 'Type the emergency location'
               }
               className="w-full bg-resqnow-canvas border border-resqnow-border rounded-xl px-3 py-2.5 text-[12px] text-resqnow-primary resize-none outline-none focus:border-resqnow-violet/40 focus:ring-2 focus:ring-resqnow-violet/10"
             />
-
-            <button
-              type="button"
-              onClick={
-                useCurrentLocation
-              }
-              className="mt-1.5 text-[10px] font-semibold text-resqnow-violet"
-            >
-              ← Use my saved location instead
-            </button>
           </div>
         ) : (
           <button
             type="button"
-            onClick={
-              startManualEntry
-            }
-            className="mt-1.5 flex items-center gap-1 text-[10px] font-semibold text-resqnow-muted hover:text-resqnow-violet transition-colors"
+            onClick={startManualEntry}
+            className="mt-2 w-full flex items-center gap-2.5 p-3 rounded-xl border border-resqnow-border-soft bg-white text-left hover:border-resqnow-violet/30 active:scale-[0.99] transition-all"
           >
-
-            <Pencil className="w-3 h-3" />
-
-            {reportingForOther
-              ? 'Emergency is somewhere else'
-              : 'Enter location manually'}
+            <Pencil className="w-5 h-5 text-resqnow-muted shrink-0" />
+            <div>
+              <p className="text-[12px] font-semibold text-resqnow-primary">
+                Enter Another Location
+              </p>
+              <p className="text-[10px] text-resqnow-muted mt-0.5">
+                Use this when the emergency is somewhere else.
+              </p>
+            </div>
           </button>
         )}
+
+        {/* Landmark stays visible because it materially helps responders. */}
+        <div className="mt-3 pt-3 border-t border-resqnow-border-soft">
+          <label className="block text-[11px] font-semibold text-resqnow-secondary mb-1">
+            Nearest Landmark
+          </label>
+          <input
+            type="text"
+            value={landmark}
+            onChange={(e) => setLandmark(e.target.value)}
+            placeholder="Example: Blue gate beside the covered court"
+            className="w-full bg-resqnow-canvas border border-resqnow-border rounded-xl px-3 py-2.5 text-[12px] text-resqnow-primary outline-none focus:border-resqnow-violet/40 focus:ring-2 focus:ring-resqnow-violet/10"
+          />
+          <p className="text-[9px] text-resqnow-muted mt-1">
+            Optional, but it can help responders find the exact place faster.
+          </p>
+        </div>
       </section>
 
       {/* ============ REPORTING FOR SOMEONE ELSE ============ */}
@@ -836,7 +1018,7 @@ export default function EmergencyReport() {
             </h2>
 
             <p className="text-[10px] text-resqnow-muted mt-0.5">
-              Landmark & short description
+              Add a short description if it helps responders prepare.
             </p>
           </div>
 
@@ -850,30 +1032,9 @@ export default function EmergencyReport() {
         </button>
 
         {showOptional && (
-          <div className="px-3.5 pb-3.5 border-t border-resqnow-border-soft space-y-3">
+          <div className="px-3.5 pb-3.5 border-t border-resqnow-border-soft">
 
-            {/* Landmark */}
             <div className="mt-3">
-
-              <label className="block text-[11px] font-semibold text-resqnow-secondary mb-1">
-                Nearby Landmark
-              </label>
-
-              <input
-                type="text"
-                value={landmark}
-                onChange={(e) =>
-                  setLandmark(
-                    e.target.value
-                  )
-                }
-                placeholder="Example: Near the covered court"
-                className="w-full bg-resqnow-canvas border border-resqnow-border rounded-xl px-3 py-2.5 text-[12px] text-resqnow-primary outline-none focus:border-resqnow-violet/40 focus:ring-2 focus:ring-resqnow-violet/10"
-              />
-            </div>
-
-            {/* Description */}
-            <div>
 
               <label className="block text-[11px] font-semibold text-resqnow-secondary mb-1">
                 Short Description
@@ -960,6 +1121,14 @@ export default function EmergencyReport() {
                 label="Location"
                 value={location}
               />
+
+              {locationMode === 'gps' &&
+                locationAccuracy !== null && (
+                  <InfoRow
+                    label="GPS accuracy"
+                    value={`±${Math.round(locationAccuracy)} m`}
+                  />
+                )}
 
               <InfoRow
                 label="Reporter"

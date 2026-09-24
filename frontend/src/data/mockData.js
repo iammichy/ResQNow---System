@@ -21,10 +21,6 @@ export const mockResident = {
   accountStatus: 'Verified',
 };
 
-export const mockTestAccount = {
-  email: 'Resident123@gmail.com',
-  password: 'Resident@123',
-};
 
 // ============ EMERGENCY REPORTS ============
 export const mockEmergencyReports = [

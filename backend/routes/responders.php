@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Route;
 | 3. Users whose stored role is "responder"
 |
 | ReportAccess performs the additional report-level check so a responder
-| can retrieve only incidents currently assigned to that account.
+| can retrieve or update only incidents currently assigned to that account.
 |
 */
 
@@ -26,6 +26,7 @@ Route::prefix('responder')
         'auth:sanctum',
         EnsureVerifiedAccount::class,
         EnsureRole::class . ':responder',
+        'throttle:120,1',
     ])
     ->group(function () {
 
@@ -39,6 +40,37 @@ Route::prefix('responder')
                 ResponderReportController::class,
                 'index',
             ]
+        );
+
+        /*
+         * Acknowledge the authenticated responder's
+         * active assignment without changing the
+         * report lifecycle status.
+         */
+        Route::post(
+            '/reports/{reportCode}/acknowledge',
+            [
+                ResponderReportController::class,
+                'acknowledge',
+            ]
+        )->where(
+            'reportCode',
+            '^(EM|NE)-[0-9]{6}$'
+        );
+
+        /*
+         * Perform a server-authorized lifecycle action:
+         * start, en-route, arrived, resolve.
+         */
+        Route::post(
+            '/reports/{reportCode}/actions',
+            [
+                ResponderReportController::class,
+                'action',
+            ]
+        )->where(
+            'reportCode',
+            '^(EM|NE)-[0-9]{6}$'
         );
 
         /*

@@ -18,7 +18,11 @@ import {
 } from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext';
-import { getAssignedReport } from '../../services/responderService';
+import {
+  acknowledgeAssignment,
+  getAssignedReport,
+  performResponderAction,
+} from '../../services/responderService';
 import { getPriorityStyle, getStatusStyle } from '../../utils/statusUtils';
 import {
   contactTarget,
@@ -48,6 +52,9 @@ export default function ResponderIncidentDetail() {
   const [errorStatus, setErrorStatus] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [actionSheet, setActionSheet] = useState(null);
+  const [actionSaving, setActionSaving] = useState(false);
+  const [actionError, setActionError] = useState('');
+  const [actionSuccess, setActionSuccess] = useState('');
 
   const loadReport = useCallback(async () => {
     setError('');
@@ -105,6 +112,46 @@ export default function ResponderIncidentDetail() {
       return;
     }
     navigate('/responder/incidents');
+  }
+
+  async function saveResponderAction(action, remarks = '') {
+    if (!report || actionSaving) return;
+
+    setActionSaving(true);
+    setActionError('');
+    setActionSuccess('');
+
+    try {
+      const updated =
+        action.value === 'acknowledge'
+          ? await acknowledgeAssignment(report.id, report.version)
+          : await performResponderAction(report.id, {
+              action: action.value,
+              remarks: remarks.trim() || null,
+              expectedVersion: report.version,
+            });
+
+      setReport(updated);
+      setLastUpdated(new Date());
+      setActionSheet(null);
+      setActionSuccess(`${action.label} saved successfully.`);
+    } catch (requestError) {
+      const message =
+        requestError?.status === 409
+          ? 'This incident changed while you were viewing it. Refresh the report before trying again.'
+          : requestError?.message || 'Unable to save this responder action.';
+
+      setActionError(message);
+
+      if ([403, 404].includes(requestError?.status)) {
+        setActionSheet(null);
+        setReport(null);
+        setErrorStatus(requestError.status);
+        setError(message);
+      }
+    } finally {
+      setActionSaving(false);
+    }
   }
 
   if (isLoading && !report) {
@@ -210,6 +257,17 @@ export default function ResponderIncidentDetail() {
           </div>
         </div>
       </section>
+
+      {actionSuccess && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="rounded-xl border border-resqnow-safe/25 bg-resqnow-safe/10 p-3 text-[11px] text-resqnow-safe"
+        >
+          <p className="font-bold">{actionSuccess}</p>
+          <p className="mt-1 text-resqnow-muted">The saved incident state has been refreshed from the server.</p>
+        </div>
+      )}
 
       {error && report && (
         <div role="status" className="rounded-xl border border-resqnow-critical/20 bg-resqnow-critical/8 p-3 text-[11px] text-resqnow-crimson">
@@ -378,7 +436,7 @@ export default function ResponderIncidentDetail() {
         <div className="mt-4 space-y-0">
           {(report.events || []).length ? (
             report.events.map((event, index) => (
-              <div key={event.id || `${event.status}-${index}`} className="relative flex gap-3 pb-5 last:pb-0">
+              <div key={event.id || `${event.activity || event.status}-${index}`} className="relative flex gap-3 pb-5 last:pb-0">
                 {index < report.events.length - 1 && (
                   <span className="absolute left-[7px] top-4 bottom-0 w-px bg-resqnow-border-soft" />
                 )}
@@ -451,34 +509,64 @@ export default function ResponderIncidentDetail() {
       )}
 
       {actionSheet && (
-        <ActionPreviewSheet action={actionSheet} onClose={() => setActionSheet(null)} />
+        <ActionPreviewSheet
+          action={actionSheet}
+          onClose={() => {
+            if (!actionSaving) {
+              setActionSheet(null);
+              setActionError('');
+            }
+          }}
+          onSave={saveResponderAction}
+          isSaving={actionSaving}
+          error={actionError}
+        />
       )}
     </div>
   );
 }
 
-function ActionPreviewSheet({ action, onClose }) {
+function ActionPreviewSheet({ action, onClose, onSave, isSaving, error }) {
   const [remarks, setRemarks] = useState('');
   const needsOutcome = action.value === 'resolve';
   const needsRemarks = ['note', 'support', 'unable-locate', 'invalid-finding', 'resolve'].includes(action.value);
+  const supportedNow = ['acknowledge', 'start', 'en-route', 'arrived', 'resolve'].includes(action.value);
+  const missingOutcome = needsOutcome && !remarks.trim();
+
+  async function handleSubmit() {
+    if (!supportedNow || isSaving || missingOutcome) return;
+    await onSave(action, remarks);
+  }
 
   return (
     <div className="fixed inset-0 z-[100] bg-resqnow-primary/35 backdrop-blur-[2px] flex items-end sm:items-center justify-center p-0 sm:p-4" role="dialog" aria-modal="true" aria-label={action.label}>
-      <div className="w-full max-w-lg rounded-t-[24px] sm:rounded-[24px] bg-white shadow-[0_-10px_40px_rgba(31,29,71,.20)]">
+      <div className="flex max-h-[calc(100dvh-12px)] w-full max-w-lg flex-col overflow-hidden rounded-t-[24px] bg-white shadow-[0_-10px_40px_rgba(31,29,71,.20)] sm:max-h-[90dvh] sm:rounded-[24px]">
         <div className="flex items-start justify-between gap-3 border-b border-resqnow-border-soft px-4 py-4">
           <div>
             <p className="text-[9px] font-extrabold uppercase tracking-[.14em] text-resqnow-violet">Responder action</p>
             <h2 className="mt-1 text-[17px] font-bold text-resqnow-primary">{action.label}</h2>
           </div>
-          <button type="button" onClick={onClose} className="w-10 h-10 rounded-xl bg-resqnow-canvas text-resqnow-muted flex items-center justify-center" aria-label="Close action preview">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isSaving}
+            className="w-10 h-10 rounded-xl bg-resqnow-canvas text-resqnow-muted flex items-center justify-center disabled:opacity-50"
+            aria-label="Close responder action"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="px-4 py-4">
-          <div className="rounded-xl border border-resqnow-info/20 bg-resqnow-info/8 p-3 text-[11px] leading-relaxed text-resqnow-secondary">
-            This form is ready in the frontend. Saving will be enabled when the responder write API is connected.
-          </div>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 pb-[110px] sm:pb-4">
+          {supportedNow ? (
+            <div className="rounded-xl border border-resqnow-info/20 bg-resqnow-info/8 p-3 text-[11px] leading-relaxed text-resqnow-secondary">
+              This action will be saved to the ResQNow server and added to the incident history. The resident will see the updated report state after refresh.
+            </div>
+          ) : (
+            <div className="rounded-xl border border-resqnow-caution/25 bg-resqnow-caution/10 p-3 text-[11px] leading-relaxed text-resqnow-secondary">
+              This secondary response form is prepared, but its dedicated server endpoint is not connected yet. Use the main lifecycle actions for tomorrow&apos;s demonstration.
+            </div>
+          )}
 
           {needsRemarks && (
             <label className="mt-4 block">
@@ -490,18 +578,40 @@ function ActionPreviewSheet({ action, onClose }) {
                 value={remarks}
                 onChange={(event) => setRemarks(event.target.value)}
                 rows={4}
+                maxLength={2000}
                 placeholder={needsOutcome ? 'Summarize the response outcome…' : 'Add field details or context…'}
                 className="mt-1.5 w-full resize-none rounded-xl border border-resqnow-border bg-resqnow-canvas px-3 py-3 text-[12px] text-resqnow-primary outline-none focus:border-resqnow-violet/40 focus:ring-2 focus:ring-resqnow-violet/10"
               />
+              {missingOutcome && (
+                <p className="mt-1.5 text-[10px] font-semibold text-resqnow-critical">
+                  An outcome summary is required before resolving the report.
+                </p>
+              )}
             </label>
           )}
 
-          <div className="mt-4 grid grid-cols-2 gap-2">
-            <button type="button" onClick={onClose} className="min-h-[46px] rounded-xl border border-resqnow-border-soft bg-white text-[11px] font-bold text-resqnow-muted">
+          {error && (
+            <div role="alert" className="mt-4 rounded-xl border border-resqnow-critical/20 bg-resqnow-critical/8 p-3 text-[11px] text-resqnow-crimson">
+              {error}
+            </div>
+          )}
+
+          <div className="sticky bottom-0 -mx-4 mt-4 grid grid-cols-2 gap-2 border-t border-resqnow-border-soft bg-white/95 px-4 pb-2 pt-3 backdrop-blur">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSaving}
+              className="min-h-[46px] rounded-xl border border-resqnow-border-soft bg-white text-[11px] font-bold text-resqnow-muted disabled:opacity-50"
+            >
               Cancel
             </button>
-            <button type="button" disabled className="min-h-[46px] rounded-xl bg-resqnow-violet/35 text-[11px] font-bold text-white cursor-not-allowed">
-              Save when API is ready
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={!supportedNow || isSaving || missingOutcome}
+              className="min-h-[46px] rounded-xl bg-brand-gradient px-3 text-[11px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              {isSaving ? 'Saving…' : supportedNow ? `Confirm ${action.label}` : 'API pending'}
             </button>
           </div>
         </div>

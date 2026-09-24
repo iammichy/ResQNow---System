@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from 'react';
 
@@ -39,6 +40,58 @@ import {
   getPriorityStyle,
 } from '../../utils/statusUtils';
 
+const ACTIVE_REPORT_POLL_MS = 15000;
+
+function formatIsoDateTime(value) {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date.toLocaleString(
+    'en-PH',
+    {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    }
+  );
+}
+
+function getResidentTimelineLabel(status) {
+  switch (status) {
+    case 'Submitted':
+      return 'Report received';
+    case 'Pending Verification':
+      return 'Barangay reviewing report';
+    case 'Verified':
+      return 'Report verified';
+    case 'Assigned':
+      return 'Responder assigned';
+    case 'Acknowledged':
+      return 'Responder acknowledged your report';
+    case 'In Progress':
+      return 'Response started';
+    case 'Responders En Route':
+      return 'Responders are on the way';
+    case 'Responded':
+      return 'Responders arrived / response recorded';
+    case 'Resolved':
+      return 'Report resolved';
+    case 'Invalid':
+      return 'Report closed as invalid';
+    default:
+      return status;
+  }
+}
+
 // ============ TIMELINE STYLE ============
 
 function getTimelineStyle(status) {
@@ -68,6 +121,7 @@ function getTimelineStyle(status) {
       };
 
     case 'Assigned':
+    case 'Acknowledged':
     case 'In Progress':
       return {
         circle:
@@ -155,16 +209,32 @@ export default function ReportDetail() {
     setLastChecked,
   ] = useState(null);
 
+  const requestInFlightRef =
+    useRef(false);
+
   // ============ LOAD REPORT ============
 
   const loadReport =
     useCallback(
       async ({
         refresh = false,
+        silent = false,
       } = {}) => {
-        if (refresh) {
+        if (
+          requestInFlightRef.current
+        ) {
+          return;
+        }
+
+        requestInFlightRef.current =
+          true;
+
+        if (
+          refresh &&
+          !silent
+        ) {
           setIsRefreshing(true);
-        } else {
+        } else if (!refresh) {
           setIsLoading(true);
         }
 
@@ -210,7 +280,13 @@ export default function ReportDetail() {
           }
         } finally {
           setIsLoading(false);
-          setIsRefreshing(false);
+
+          if (!silent) {
+            setIsRefreshing(false);
+          }
+
+          requestInFlightRef.current =
+            false;
         }
       },
       [reportId]
@@ -229,6 +305,45 @@ export default function ReportDetail() {
 
     loadReport();
   }, [
+    reportId,
+    loadReport,
+  ]);
+
+  // ============ ACTIVE REPORT AUTO-REFRESH ============
+
+  useEffect(() => {
+    if (
+      !report ||
+      report.status === 'Resolved' ||
+      report.status === 'Invalid'
+    ) {
+      return undefined;
+    }
+
+    const timer =
+      window.setInterval(
+        () => {
+          if (
+            document.visibilityState !==
+            'visible'
+          ) {
+            return;
+          }
+
+          loadReport({
+            refresh: true,
+            silent: true,
+          });
+        },
+        ACTIVE_REPORT_POLL_MS
+      );
+
+    return () =>
+      window.clearInterval(
+        timer
+      );
+  }, [
+    report?.status,
     reportId,
     loadReport,
   ]);
@@ -368,6 +483,55 @@ export default function ReportDetail() {
       ? report.timeline
       : [];
 
+  const assignments =
+    Array.isArray(
+      report.assignedPersonnelList
+    )
+      ? report.assignedPersonnelList
+      : [];
+
+  const acknowledgedAssignment =
+    assignments.find(
+      (assignment) =>
+        assignment?.acknowledged
+    );
+
+  const displayTimeline =
+    timeline.flatMap((step) => {
+      const currentStep = {
+        ...step,
+        displayLabel:
+          getResidentTimelineLabel(
+            step.status
+          ),
+      };
+
+      if (
+        step.status ===
+          'Assigned' &&
+        acknowledgedAssignment
+      ) {
+        return [
+          currentStep,
+          {
+            status:
+              'Acknowledged',
+            displayLabel:
+              getResidentTimelineLabel(
+                'Acknowledged'
+              ),
+            date:
+              formatIsoDateTime(
+                acknowledgedAssignment.acknowledgedAt
+              ),
+            done: true,
+          },
+        ];
+      }
+
+      return [currentStep];
+    });
+
   return (
     <div className="px-4 pt-5 pb-28 min-h-screen">
 
@@ -396,6 +560,13 @@ export default function ReportDetail() {
               ? `Last checked ${lastCheckedText}`
               : 'Checking report...'}
           </p>
+
+          {!isResolved &&
+            !isInvalid && (
+              <p className="text-[10px] text-resqnow-muted mt-0.5 ml-1">
+                Auto-checking every 15 seconds while this report is active
+              </p>
+            )}
         </div>
 
         {/* Normal refresh control */}
@@ -548,6 +719,7 @@ export default function ReportDetail() {
 
       {/* ============ CURRENT STATUS ============ */}
       <section
+        aria-live="polite"
         className={`border rounded-2xl p-4 mb-4 ${
           isResolved
             ? 'bg-resqnow-safe/10 border-resqnow-safe/20'
@@ -647,17 +819,17 @@ export default function ReportDetail() {
           Report Progress
         </h2>
 
-        {timeline.length > 0 ? (
+        {displayTimeline.length > 0 ? (
           <div>
 
-            {timeline.map(
+            {displayTimeline.map(
               (
                 step,
                 index
               ) => {
                 const isLast =
                   index ===
-                  timeline.length -
+                  displayTimeline.length -
                     1;
 
                 const timelineStyle =
@@ -719,6 +891,7 @@ export default function ReportDetail() {
                         }`}
                       >
                         {
+                          step.displayLabel ||
                           step.status
                         }
                       </p>
@@ -815,6 +988,31 @@ export default function ReportDetail() {
               {report.purok}
             </p>
           )}
+
+          {report.locationSource ===
+            'gps' &&
+            report.locationAccuracy !==
+              null &&
+            report.locationAccuracy !==
+              undefined && (
+              <div className="mt-2 pt-2 border-t border-resqnow-border-soft">
+                <p className="text-[11px] text-resqnow-muted">
+                  GPS accuracy: approximately ±{Math.round(
+                    Number(
+                      report.locationAccuracy
+                    )
+                  )} m
+                </p>
+
+                {Number(
+                  report.locationAccuracy
+                ) > 100 && (
+                  <p className="text-[11px] text-resqnow-caution mt-1 leading-relaxed">
+                    GPS accuracy is limited. A nearby landmark can help responders locate the incident faster.
+                  </p>
+                )}
+              </div>
+            )}
         </div>
       </section>
 

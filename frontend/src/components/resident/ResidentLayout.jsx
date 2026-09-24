@@ -1,16 +1,12 @@
+import { useCallback, useEffect, useState } from 'react';
 // src/components/resident/ResidentLayout.jsx
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Home, MapPin, CirclePlus, Bell, Phone, Shield, ShieldCheck } from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext';
-import { mockAnnouncements, mockNotifications } from '../../data/mockData';
+import { getNotifications } from '../../services/notificationService';
 
-// ============ UNREAD COUNT ============
-// Count unread notifications and announcements
-const unreadCount =
-  mockNotifications.filter((item) => !item.isRead).length +
-  mockAnnouncements.filter((item) => !item.isRead).length;
 
 // ============ RESIDENT LAYOUT ============
 // Main layout used by all resident pages
@@ -20,6 +16,46 @@ export default function ResidentLayout() {
 
   const navigate = useNavigate();
   const location = useLocation();
+
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const refreshUnreadCount = useCallback(async () => {
+    try {
+      const result = await getNotifications();
+      setUnreadCount(result.unreadCount || 0);
+    } catch {
+      // Keep the last confirmed badge count on temporary failures.
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshUnreadCount();
+
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        refreshUnreadCount();
+      }
+    }, 30000);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        refreshUnreadCount();
+      }
+    };
+
+    const handleNotificationsChanged = () => {
+      refreshUnreadCount();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('resqnow:notifications-changed', handleNotificationsChanged);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('resqnow:notifications-changed', handleNotificationsChanged);
+    };
+  }, [refreshUnreadCount]);
 
   // Get first letter for profile avatar
   const firstLetter = (

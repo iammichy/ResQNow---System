@@ -223,6 +223,21 @@ class ReportController extends Controller
                             'longitude'
                         ] ?? null,
 
+                    'location_source' =>
+                        $data[
+                            'locationSource'
+                        ] ?? null,
+
+                    'location_accuracy' =>
+                        $data[
+                            'locationAccuracy'
+                        ] ?? null,
+
+                    'location_captured_at' =>
+                        $data[
+                            'locationCapturedAt'
+                        ] ?? null,
+
                     'description' =>
                         $data[
                             'description'

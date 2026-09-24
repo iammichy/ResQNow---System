@@ -49,6 +49,10 @@ class ReportWorkflow
         Report $report,
         ?int $userId = null
     ): array {
+        /*
+         * Closed reports cannot receive any
+         * further responder actions.
+         */
         if (
             in_array(
                 $report->status,
@@ -62,6 +66,9 @@ class ReportWorkflow
             return [];
         }
 
+        /*
+         * Find the responder's active assignment.
+         */
         $assignment =
             $report
                 ->activeAssignments()
@@ -75,51 +82,70 @@ class ReportWorkflow
                 )
                 ->first();
 
+        /*
+         * No active assignment means the user
+         * cannot perform responder actions.
+         */
         if (!$assignment) {
             return [];
         }
 
         /*
-         * Assignment acknowledgement is separate
-         * from the incident lifecycle status.
+         * The responder must acknowledge the
+         * assignment before performing any
+         * operational action.
          */
         if (
             !$assignment->acknowledged_at
         ) {
-            $nextActions = [
-                'acknowledge',
+            return [
+                [
+                    'value' =>
+                        'acknowledge',
+
+                    'label' =>
+                        self::ACTIONS[
+                            'acknowledge'
+                        ],
+                ],
             ];
-        } else {
-            $nextActions =
-                match ($report->status) {
-                    'Assigned' => [
-                        'start',
-                    ],
-
-                    'In Progress' =>
-                        $report->report_type ===
-                        'Emergency'
-                            ? [
-                                'en-route',
-                                'arrived',
-                            ]
-                            : [
-                                'arrived',
-                            ],
-
-                    'Responders En Route' => [
-                        'arrived',
-                    ],
-
-                    'Responded' => [
-                        'resolve',
-                    ],
-
-                    default => [],
-                };
         }
 
         /*
+         * Primary lifecycle actions.
+         */
+        $nextActions =
+            match ($report->status) {
+                'Assigned' => [
+                    'start',
+                ],
+
+                'In Progress' =>
+                    $report->report_type ===
+                    'Emergency'
+                        ? [
+                            'en-route',
+                            'arrived',
+                        ]
+                        : [
+                            'arrived',
+                        ],
+
+                'Responders En Route' => [
+                    'arrived',
+                ],
+
+                'Responded' => [
+                    'resolve',
+                ],
+
+                default => [],
+            };
+
+        /*
+         * Secondary operational actions become
+         * available only after acknowledgement.
+         *
          * These actions do not directly advance
          * the report lifecycle.
          */

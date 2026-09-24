@@ -51,14 +51,43 @@ class StoreEmergencyReportRequest extends FormRequest
             // Optional map coordinates
             'latitude' => [
                 'nullable',
+                'required_if:locationSource,gps',
                 'numeric',
                 'between:-90,90',
             ],
 
             'longitude' => [
                 'nullable',
+                'required_if:locationSource,gps',
                 'numeric',
                 'between:-180,180',
+            ],
+
+            // How the incident location was selected.
+            'locationSource' => [
+                'nullable',
+                'string',
+                Rule::in([
+                    'gps',
+                    'saved',
+                    'manual',
+                ]),
+            ],
+
+            // Browser-reported GPS accuracy in meters.
+            'locationAccuracy' => [
+                'nullable',
+                'required_if:locationSource,gps',
+                'numeric',
+                'min:0',
+                'max:100000',
+            ],
+
+            // Time the GPS fix was captured on the device.
+            'locationCapturedAt' => [
+                'nullable',
+                'required_if:locationSource,gps',
+                'date',
             ],
 
             // Whether the resident is reporting
@@ -120,6 +149,21 @@ class StoreEmergencyReportRequest extends FormRequest
 
             'longitude.between' =>
                 'The longitude is invalid.',
+
+            'latitude.required_if' =>
+                'Current GPS latitude is missing. Please capture your location again.',
+
+            'longitude.required_if' =>
+                'Current GPS longitude is missing. Please capture your location again.',
+
+            'locationSource.in' =>
+                'The selected location method is invalid.',
+
+            'locationAccuracy.required_if' =>
+                'GPS accuracy is missing. Please capture your location again.',
+
+            'locationCapturedAt.required_if' =>
+                'GPS capture time is missing. Please capture your location again.',
 
             'reportingForOther.boolean' =>
                 'The reporting option is invalid.',

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\EnsureVerifiedAccount;
@@ -142,6 +143,48 @@ Route::middleware([
         )->where(
             'reportCode',
             '^(EM|NE)-[0-9]{6}$'
+        );
+
+
+        // Resident in-app notifications.
+        Route::get(
+            '/notifications',
+            [
+                NotificationController::class,
+                'index',
+            ]
+        );
+
+        Route::patch(
+            '/notifications/read-all',
+            [
+                NotificationController::class,
+                'markAllRead',
+            ]
+        )->middleware(
+            'throttle:30,1'
+        );
+
+        Route::get(
+            '/notifications/{notificationId}',
+            [
+                NotificationController::class,
+                'show',
+            ]
+        )->whereNumber(
+            'notificationId'
+        );
+
+        Route::patch(
+            '/notifications/{notificationId}/read',
+            [
+                NotificationController::class,
+                'markRead',
+            ]
+        )->whereNumber(
+            'notificationId'
+        )->middleware(
+            'throttle:60,1'
         );
     });
 });

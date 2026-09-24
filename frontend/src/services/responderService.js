@@ -33,3 +33,34 @@ export async function getAssignedReport(reportCode) {
 
   return unwrapResource(payload);
 }
+
+export async function acknowledgeAssignment(reportCode, expectedVersion) {
+  const payload = await apiRequest(
+    `/api/responder/reports/${encodeURIComponent(reportCode)}/acknowledge`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ expectedVersion }),
+    }
+  );
+
+  return unwrapResource(payload);
+}
+
+export async function performResponderAction(
+  reportCode,
+  { action, remarks = null, expectedVersion }
+) {
+  const payload = await apiRequest(
+    `/api/responder/reports/${encodeURIComponent(reportCode)}/actions`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        action,
+        remarks,
+        expectedVersion,
+      }),
+    }
+  );
+
+  return unwrapResource(payload);
+}
