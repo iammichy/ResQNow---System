@@ -1,46 +1,14 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-const initialAnnouncements = [
-  {
-    id: "ANN-2026-001",
-    title: "Flood Warning Advisory",
-    message:
-      "Residents living near low-lying areas are advised to monitor water levels and prepare for possible evacuation.",
-    category: "Weather Advisory",
-    priority: "Critical",
-    startDate: "2026-09-05",
-    endDate: "2026-09-07",
-    status: "Published",
-    createdAt: "Sep 5, 2026",
-    updatedAt: "Sep 5, 2026",
-  },
-  {
-    id: "ANN-2026-002",
-    title: "Barangay Clean-Up Drive",
-    message:
-      "All residents are encouraged to participate in the community clean-up activity this weekend.",
-    category: "Community Announcement",
-    priority: "Low",
-    startDate: "2026-09-06",
-    endDate: "2026-09-08",
-    status: "Published",
-    createdAt: "Sep 4, 2026",
-    updatedAt: "Sep 4, 2026",
-  },
-  {
-    id: "ANN-2026-003",
-    title: "Health and Safety Reminder",
-    message:
-      "Residents are reminded to maintain proper sanitation and immediately report possible health concerns.",
-    category: "Health Advisory",
-    priority: "Medium",
-    startDate: "2026-09-06",
-    endDate: "",
-    status: "Draft",
-    createdAt: "Sep 4, 2026",
-    updatedAt: "Sep 4, 2026",
-  },
-];
+import {
+  getAllAnnouncements,
+  createAnnouncement,
+  updateAnnouncement,
+  updateAnnouncementStatus,
+  deleteAnnouncement,
+} from "../../services/reportsService";
+
+import { useLanguage } from "../../hooks/useLanguage";
 
 const categories = [
   "Weather Advisory",
@@ -51,7 +19,7 @@ const categories = [
   "Public Safety Advisory",
 ];
 
-const priorities = ["Critical", "High", "Medium", "Low"];
+const priorities = ["Critical", "High", "Moderate", "Low"];
 
 const statuses = ["Draft", "Published", "Archived", "Expired"];
 
@@ -59,7 +27,7 @@ const emptyForm = {
   title: "",
   message: "",
   category: "Community Announcement",
-  priority: "Medium",
+  priority: "Moderate",
   startDate: "",
   endDate: "",
   status: "Draft",
@@ -75,16 +43,18 @@ const statusStyles = {
 const priorityStyles = {
   Critical: "bg-[#FEF3F2] text-[#D92D20] border-[#FECDCA]",
   High: "bg-[#FFF4E5] text-[#B54708] border-[#FEDF89]",
-  Medium: "bg-[#FFFAEB] text-[#A15C00] border-[#FDE68A]",
+  Moderate: "bg-[#FFFAEB] text-[#A15C00] border-[#FDE68A]",
   Low: "bg-[#F2F4F7] text-[#667085] border-[#E4E7EC]",
 };
 
 function AnnouncementsPage({ onAddAuditLog }) {
-  const [announcements, setAnnouncements] = useState(initialAnnouncements);
+  const { t } = useLanguage();
 
-  const [selectedAnnouncementId, setSelectedAnnouncementId] = useState(
-    initialAnnouncements[0].id,
-  );
+  const [announcements, setAnnouncements] = useState([]);
+  const [selectedAnnouncementId, setSelectedAnnouncementId] = useState(null);
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -96,32 +66,148 @@ function AnnouncementsPage({ onAddAuditLog }) {
 
   const [formData, setFormData] = useState(emptyForm);
 
+  const displayStatus = (status) => {
+    const statusMap = {
+      Published: t("published"),
+      Draft: t("drafts"),
+      Archived: "Archived",
+      Expired: "Expired",
+    };
+
+    return statusMap[status] || status;
+  };
+
+  const displayPriority = (priority) => {
+    const priorityMap = {
+      Critical: t("criticalAlerts"),
+      High: "High",
+      Moderate: "Moderate",
+      Low: "Low",
+    };
+
+    return priorityMap[priority] || priority;
+  };
+
+  /* =========================
+     FORMAT ANNOUNCEMENT
+  ========================= */
+
+  const formatAnnouncement = (announcement) => {
+    const formatDateForInput = (dateValue) => {
+      if (!dateValue) return "";
+
+      return new Date(dateValue).toISOString().split("T")[0];
+    };
+
+    const formatDisplayDate = (dateValue) => {
+      if (!dateValue) return "—";
+
+      return new Intl.DateTimeFormat("en-PH", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }).format(new Date(dateValue));
+    };
+
+    return {
+      id: announcement.id,
+      databaseId: announcement.id,
+
+      title: announcement.title || "",
+      message: announcement.content || "",
+
+      category: announcement.category || "Community Announcement",
+
+      priority: announcement.priority || "Moderate",
+
+      startDate: formatDateForInput(announcement.published_at),
+
+      endDate: formatDateForInput(announcement.expires_at),
+
+      status: announcement.status || "Draft",
+
+      createdAt: formatDisplayDate(announcement.created_at),
+
+      updatedAt: formatDisplayDate(
+        announcement.updated_at || announcement.created_at,
+      ),
+    };
+  };
+
+  /* =========================
+     LOAD ANNOUNCEMENTS
+  ========================= */
+
+  const loadAnnouncements = async () => {
+    try {
+      setIsLoading(true);
+      setError("");
+
+      const data = await getAllAnnouncements();
+
+      const formattedAnnouncements = data.map(formatAnnouncement);
+
+      setAnnouncements(formattedAnnouncements);
+
+      setSelectedAnnouncementId((currentId) => {
+        const stillExists = formattedAnnouncements.some(
+          (announcement) => announcement.id === currentId,
+        );
+
+        if (stillExists) {
+          return currentId;
+        }
+
+        return formattedAnnouncements.length > 0
+          ? formattedAnnouncements[0].id
+          : null;
+      });
+    } catch (err) {
+      console.error("Failed to load announcements:", err);
+
+      setError(err.message || t("failedToLoadAnnouncements"));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /* =========================
+     LOAD ON PAGE OPEN
+  ========================= */
+
+  useEffect(() => {
+    const load = async () => {
+      await loadAnnouncements();
+    };
+
+    load();
+  }, []);
+  /* =========================
+     EFFECTIVE STATUS
+  ========================= */
+
+  const getEffectiveStatus = (announcement) => {
+    if (announcement.status === "Published" && announcement.endDate) {
+      const today = new Date().toISOString().split("T")[0];
+
+      if (announcement.endDate < today) {
+        return "Expired";
+      }
+    }
+
+    return announcement.status;
+  };
+
   /* =========================
      SORT ANNOUNCEMENTS
   ========================= */
 
   const sortedAnnouncements = useMemo(() => {
-    const today = new Date().toISOString().split("T")[0];
-
     const priorityOrder = {
       Critical: 1,
       High: 2,
-      Medium: 3,
+      Moderate: 3,
       Low: 4,
-    };
-
-    const getEffectiveStatus = (announcement) => {
-      // Automatically consider Published announcements expired
-      // when their expiration date has already passed.
-      if (
-        announcement.status === "Published" &&
-        announcement.endDate &&
-        announcement.endDate < today
-      ) {
-        return "Expired";
-      }
-
-      return announcement.status;
     };
 
     const statusOrder = {
@@ -137,24 +223,22 @@ function AnnouncementsPage({ onAddAuditLog }) {
         effectiveStatus: getEffectiveStatus(announcement),
       }))
       .sort((a, b) => {
-        // First: Active status
         const statusDifference =
-          statusOrder[a.effectiveStatus] - statusOrder[b.effectiveStatus];
+          (statusOrder[a.effectiveStatus] || 99) -
+          (statusOrder[b.effectiveStatus] || 99);
 
         if (statusDifference !== 0) {
           return statusDifference;
         }
 
-        // Second: Priority
         const priorityDifference =
-          priorityOrder[a.priority] - priorityOrder[b.priority];
+          (priorityOrder[a.priority] || 99) - (priorityOrder[b.priority] || 99);
 
         if (priorityDifference !== 0) {
           return priorityDifference;
         }
 
-        // Third: Newest updated announcement first
-        return new Date(b.updatedAt) - new Date(a.updatedAt);
+        return 0;
       });
   }, [announcements]);
 
@@ -173,8 +257,7 @@ function AnnouncementsPage({ onAddAuditLog }) {
         announcement.message.toLowerCase().includes(search);
 
       const matchesStatus =
-        statusFilter === "All" ||
-        (announcement.effectiveStatus || announcement.status) === statusFilter;
+        statusFilter === "All" || announcement.effectiveStatus === statusFilter;
 
       return matchesSearch && matchesStatus;
     });
@@ -185,7 +268,7 @@ function AnnouncementsPage({ onAddAuditLog }) {
   ========================= */
 
   const selectedAnnouncement =
-    announcements.find(
+    sortedAnnouncements.find(
       (announcement) => announcement.id === selectedAnnouncementId,
     ) || null;
 
@@ -194,7 +277,7 @@ function AnnouncementsPage({ onAddAuditLog }) {
   ========================= */
 
   const publishedCount = announcements.filter(
-    (announcement) => announcement.status === "Published",
+    (announcement) => getEffectiveStatus(announcement) === "Published",
   ).length;
 
   const draftCount = announcements.filter(
@@ -259,7 +342,7 @@ function AnnouncementsPage({ onAddAuditLog }) {
      SAVE ANNOUNCEMENT
   ========================= */
 
-  const handleSaveAnnouncement = (event) => {
+  const handleSaveAnnouncement = async (event) => {
     event.preventDefault();
 
     if (!formData.title.trim() || !formData.message.trim()) {
@@ -267,153 +350,148 @@ function AnnouncementsPage({ onAddAuditLog }) {
       return;
     }
 
-    const now = new Date();
+    try {
+      const announcementData = {
+        title: formData.title.trim(),
+        content: formData.message.trim(),
+        category: formData.category,
+        priority: formData.priority,
+        status: formData.status,
+        published_at: formData.startDate || null,
+        expires_at: formData.endDate || null,
+      };
 
-    const formattedDate = new Intl.DateTimeFormat("en-PH", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    }).format(now);
+      if (editingAnnouncement) {
+        const oldAnnouncement = editingAnnouncement;
 
-    /* =========================
-     EDIT ANNOUNCEMENT
+        await updateAnnouncement(
+          editingAnnouncement.databaseId || editingAnnouncement.id,
+          announcementData,
+        );
+
+        const fieldsToTrack = [
+          {
+            key: "title",
+            label: "Announcement Title",
+          },
+          {
+            key: "message",
+            label: "Announcement Message",
+          },
+          {
+            key: "category",
+            label: "Category",
+          },
+          {
+            key: "priority",
+            label: "Priority",
+          },
+          {
+            key: "startDate",
+            label: "Start Date",
+          },
+          {
+            key: "endDate",
+            label: "End Date / Expiration",
+          },
+          {
+            key: "status",
+            label: "Announcement Status",
+          },
+        ];
+
+        fieldsToTrack.forEach(({ key, label }) => {
+          const oldValue = oldAnnouncement[key] || "—";
+
+          const newValue = formData[key] || "—";
+
+          if (String(oldValue) !== String(newValue)) {
+            onAddAuditLog?.({
+              action: "Announcement Updated",
+              category: "System Action",
+              target: `ANN-${editingAnnouncement.id}`,
+              field: label,
+              oldValue,
+              newValue,
+              remarks: `${label} was updated for "${formData.title}".`,
+            });
+          }
+        });
+
+        setSelectedAnnouncementId(editingAnnouncement.id);
+      } else {
+        const result = await createAnnouncement(announcementData);
+
+        const newAnnouncement = formatAnnouncement(result.data);
+
+        onAddAuditLog?.({
+          action: "Announcement Created",
+          category: "System Action",
+          target: `ANN-${newAnnouncement.id}`,
+          field: "Announcement",
+          oldValue: "—",
+          newValue: formData.title,
+          remarks: `New ${formData.category} announcement "${formData.title}" was created.`,
+        });
+
+        setSelectedAnnouncementId(newAnnouncement.id);
+      }
+
+      setIsFormOpen(false);
+      setEditingAnnouncement(null);
+      setFormData(emptyForm);
+
+      await loadAnnouncements();
+    } catch (err) {
+      console.error("Failed to save announcement:", err);
+
+      alert(err.message || "Failed to save announcement.");
+    }
+  };
+
+  /* =========================
+     DELETE ANNOUNCEMENT
   ========================= */
 
-    if (editingAnnouncement) {
-      const oldAnnouncement = editingAnnouncement;
+  const handleDeleteAnnouncement = async () => {
+    if (!selectedAnnouncement) return;
 
-      const updatedAnnouncement = {
-        ...oldAnnouncement,
-        ...formData,
-        updatedAt: formattedDate,
-      };
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${selectedAnnouncement.title}"?`,
+    );
 
-      setAnnouncements((current) =>
-        current.map((announcement) =>
-          announcement.id === editingAnnouncement.id
-            ? updatedAnnouncement
-            : announcement,
-        ),
+    if (!confirmed) return;
+
+    try {
+      await deleteAnnouncement(
+        selectedAnnouncement.databaseId || selectedAnnouncement.id,
       );
 
-      setSelectedAnnouncementId(editingAnnouncement.id);
-
-      /* =========================
-       AUDIT EVERY FIELD CHANGE
-    ========================= */
-
-      const fieldsToTrack = [
-        {
-          key: "title",
-          label: "Announcement Title",
-        },
-        {
-          key: "message",
-          label: "Announcement Message",
-        },
-        {
-          key: "category",
-          label: "Category",
-        },
-        {
-          key: "priority",
-          label: "Priority",
-        },
-        {
-          key: "startDate",
-          label: "Start Date",
-        },
-        {
-          key: "endDate",
-          label: "End Date / Expiration",
-        },
-        {
-          key: "status",
-          label: "Announcement Status",
-        },
-      ];
-
-      fieldsToTrack.forEach(({ key, label }) => {
-        const oldValue = oldAnnouncement[key] || "—";
-        const newValue = formData[key] || "—";
-
-        if (String(oldValue) !== String(newValue)) {
-          let action = "Announcement Updated";
-
-          if (key === "status") {
-            if (newValue === "Published") {
-              action = "Announcement Published";
-            } else if (newValue === "Archived") {
-              action = "Announcement Archived";
-            } else if (newValue === "Draft") {
-              action = "Announcement Saved as Draft";
-            } else if (newValue === "Expired") {
-              action = "Announcement Expired";
-            }
-          }
-
-          onAddAuditLog?.({
-            action,
-            category: "System Action",
-            target: editingAnnouncement.id,
-            field: label,
-            oldValue,
-            newValue,
-            remarks: `${label} was changed from "${oldValue}" to "${newValue}".`,
-          });
-        }
-      });
-    } else {
-      /* =========================
-       CREATE ANNOUNCEMENT
-    ========================= */
-
-      const newId = `ANN-${Date.now()}`;
-
-      const newAnnouncement = {
-        id: newId,
-        ...formData,
-        createdAt: formattedDate,
-        updatedAt: formattedDate,
-      };
-
-      setAnnouncements((current) => [newAnnouncement, ...current]);
-
-      setSelectedAnnouncementId(newId);
-
       onAddAuditLog?.({
-        action: "Announcement Created",
+        action: "Announcement Deleted",
         category: "System Action",
-        target: newId,
+        target: `ANN-${selectedAnnouncement.id}`,
         field: "Announcement",
-        oldValue: "—",
-        newValue: formData.title,
-        remarks: `New ${formData.category} announcement "${formData.title}" was created.`,
+        oldValue: selectedAnnouncement.title,
+        newValue: "Deleted",
+        remarks: `Announcement "${selectedAnnouncement.title}" was deleted.`,
       });
 
-      if (formData.status === "Published") {
-        onAddAuditLog?.({
-          action: "Announcement Published",
-          category: "System Action",
-          target: newId,
-          field: "Announcement Status",
-          oldValue: "Draft",
-          newValue: "Published",
-          remarks: `Announcement "${formData.title}" was published.`,
-        });
-      }
-    }
+      setSelectedAnnouncementId(null);
 
-    setIsFormOpen(false);
-    setEditingAnnouncement(null);
-    setFormData(emptyForm);
+      await loadAnnouncements();
+    } catch (err) {
+      console.error("Failed to delete announcement:", err);
+
+      alert(err.message || "Failed to delete announcement.");
+    }
   };
 
   /* =========================
      MANAGE STATUS
   ========================= */
 
-  const handleStatusChange = (newStatus) => {
+  const handleStatusChange = async (newStatus) => {
     if (!selectedAnnouncement) return;
 
     const oldStatus = selectedAnnouncement.status;
@@ -423,53 +501,42 @@ function AnnouncementsPage({ onAddAuditLog }) {
       return;
     }
 
-    const updatedAnnouncement = {
-      ...selectedAnnouncement,
-      status: newStatus,
-      updatedAt: new Intl.DateTimeFormat("en-PH", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      }).format(new Date()),
-    };
+    try {
+      await updateAnnouncementStatus(
+        selectedAnnouncement.databaseId || selectedAnnouncement.id,
+        newStatus,
+      );
 
-    setAnnouncements((current) =>
-      current.map((announcement) =>
-        announcement.id === selectedAnnouncement.id
-          ? updatedAnnouncement
-          : announcement,
-      ),
-    );
+      let action = "Announcement Status Updated";
 
-    let action = "Announcement Status Updated";
+      if (newStatus === "Published") {
+        action = "Announcement Published";
+      } else if (newStatus === "Archived") {
+        action = "Announcement Archived";
+      } else if (newStatus === "Expired") {
+        action = "Announcement Expired";
+      } else if (newStatus === "Draft") {
+        action = "Announcement Saved as Draft";
+      }
 
-    if (newStatus === "Published") {
-      action = "Announcement Published";
+      onAddAuditLog?.({
+        action,
+        category: "System Action",
+        target: `ANN-${selectedAnnouncement.id}`,
+        field: "Announcement Status",
+        oldValue: oldStatus,
+        newValue: newStatus,
+        remarks: `Announcement "${selectedAnnouncement.title}" status changed from ${oldStatus} to ${newStatus}.`,
+      });
+
+      setIsManageOpen(false);
+
+      await loadAnnouncements();
+    } catch (err) {
+      console.error("Failed to update announcement status:", err);
+
+      alert(err.message || "Failed to update announcement status.");
     }
-
-    if (newStatus === "Archived") {
-      action = "Announcement Archived";
-    }
-
-    if (newStatus === "Expired") {
-      action = "Announcement Expired";
-    }
-
-    if (newStatus === "Draft") {
-      action = "Announcement Saved as Draft";
-    }
-
-    onAddAuditLog?.({
-      action,
-      category: "System Action",
-      target: selectedAnnouncement.id,
-      field: "Announcement Status",
-      oldValue: oldStatus,
-      newValue: newStatus,
-      remarks: `Announcement "${selectedAnnouncement.title}" status changed from ${oldStatus} to ${newStatus}.`,
-    });
-
-    setIsManageOpen(false);
   };
 
   return (
@@ -480,15 +547,15 @@ function AnnouncementsPage({ onAddAuditLog }) {
         <div className="flex shrink-0 items-start justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#8346F2]">
-              MANAGEMENT
+              {t("management")}
             </p>
 
             <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[#1F1D47]">
-              Announcements
+              {t("announcementsPageTitle")}
             </h1>
 
             <p className="mt-1 text-sm text-[#667085]">
-              Create and manage emergency advisories and barangay announcements.
+              {t("announcementsPageDescription")}
             </p>
           </div>
 
@@ -497,7 +564,7 @@ function AnnouncementsPage({ onAddAuditLog }) {
             onClick={handleNewAnnouncement}
             className="rounded-xl bg-[#8346F2] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#7335E6]"
           >
-            + New Announcement
+            + {t("newAnnouncement")}
           </button>
         </div>
 
@@ -505,27 +572,27 @@ function AnnouncementsPage({ onAddAuditLog }) {
 
         <div className="grid shrink-0 grid-cols-2 gap-3 xl:grid-cols-4">
           <SummaryCard
-            label="Total Announcements"
+            label={t("totalAnnouncements")}
             value={announcements.length}
-            description="All announcement records"
+            description={t("allAnnouncementRecords")}
           />
 
           <SummaryCard
-            label="Published"
+            label={t("published")}
             value={publishedCount}
-            description="Visible to residents"
+            description={t("visibleToResidents")}
           />
 
           <SummaryCard
-            label="Drafts"
+            label={t("drafts")}
             value={draftCount}
-            description="Pending publication"
+            description={t("pendingPublication")}
           />
 
           <SummaryCard
-            label="Critical Alerts"
+            label={t("criticalAlerts")}
             value={criticalCount}
-            description="High-priority communication"
+            description={t("highPriorityCommunication")}
           />
         </div>
 
@@ -540,11 +607,11 @@ function AnnouncementsPage({ onAddAuditLog }) {
             <div className="flex shrink-0 flex-col gap-3 border-b border-[#E4E7EC] p-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <h2 className="text-sm font-bold text-[#1F1D47]">
-                  Announcement List
+                  {t("announcementList")}
                 </h2>
 
                 <p className="mt-0.5 text-xs text-[#667085]">
-                  Critical announcements appear first.
+                  {t("criticalAnnouncementsFirst")}
                 </p>
               </div>
 
@@ -553,7 +620,7 @@ function AnnouncementsPage({ onAddAuditLog }) {
                   type="text"
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="Search announcements..."
+                  placeholder={t("searchAnnouncements")}
                   className="h-9 w-full rounded-lg border border-[#E4E7EC] bg-[#FCFCFD] px-3 text-xs outline-none focus:border-[#8346F2]"
                 />
 
@@ -562,10 +629,10 @@ function AnnouncementsPage({ onAddAuditLog }) {
                   onChange={(event) => setStatusFilter(event.target.value)}
                   className="h-9 rounded-lg border border-[#E4E7EC] bg-[#FCFCFD] px-3 text-xs font-medium text-[#475467] outline-none"
                 >
-                  <option value="All">All</option>
+                  <option value="All">{t("all")}</option>
 
                   {statuses.map((status) => (
-                    <option key={status}>{status}</option>
+                    <option key={status}>{displayStatus(status)}</option>
                   ))}
                 </select>
               </div>
@@ -574,78 +641,111 @@ function AnnouncementsPage({ onAddAuditLog }) {
             {/* ANNOUNCEMENT LIST */}
 
             <div className="min-h-0 flex-1 overflow-auto p-3">
-              <div className="space-y-2">
-                {filteredAnnouncements.map((announcement) => {
-                  const isSelected = selectedAnnouncementId === announcement.id;
+              {isLoading ? (
+                <div className="py-12 text-center">
+                  <p className="text-sm font-bold text-[#344054]">
+                    {t("loadingAnnouncements")}
+                  </p>
 
-                  return (
-                    <button
-                      key={announcement.id}
-                      type="button"
-                      onClick={() => setSelectedAnnouncementId(announcement.id)}
-                      className={`w-full rounded-xl border p-4 text-left transition ${
-                        isSelected
-                          ? "border-[#8346F2] bg-[#F7F3FF]"
-                          : "border-[#E4E7EC] bg-white hover:bg-[#FCFCFD]"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span
-                              className={`rounded-full border px-2 py-1 text-[10px] font-bold ${
-                                priorityStyles[announcement.priority]
-                              }`}
-                            >
-                              {announcement.priority}
-                            </span>
+                  <p className="mt-1 text-xs text-[#98A2B3]">
+                    {t("retrievingAnnouncementRecords")}
+                  </p>
+                </div>
+              ) : error ? (
+                <div className="py-12 text-center">
+                  <p className="text-sm font-bold text-[#D92D20]">
+                    {t("failedToLoadAnnouncements")}
+                  </p>
 
-                            <span
-                              className={`rounded-full px-2 py-1 text-[10px] font-bold ${
-                                statusStyles[
+                  <p className="mt-1 text-xs text-[#667085]">{error}</p>
+
+                  <button
+                    type="button"
+                    onClick={loadAnnouncements}
+                    className="mt-4 rounded-lg bg-[#8346F2] px-4 py-2 text-xs font-bold text-white"
+                  >
+                    {t("retry")}
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {filteredAnnouncements.map((announcement) => {
+                    const isSelected =
+                      selectedAnnouncementId === announcement.id;
+
+                    return (
+                      <button
+                        key={announcement.id}
+                        type="button"
+                        onClick={() =>
+                          setSelectedAnnouncementId(announcement.id)
+                        }
+                        className={`w-full rounded-xl border p-4 text-left transition ${
+                          isSelected
+                            ? "border-[#8346F2] bg-[#F7F3FF]"
+                            : "border-[#E4E7EC] bg-white hover:bg-[#FCFCFD]"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span
+                                className={`rounded-full border px-2 py-1 text-[10px] font-bold ${
+                                  priorityStyles[announcement.priority]
+                                }`}
+                              >
+                                {displayPriority(announcement.priority)}
+                              </span>
+
+                              <span
+                                className={`rounded-full px-2 py-1 text-[10px] font-bold ${
+                                  statusStyles[
+                                    announcement.effectiveStatus ||
+                                      announcement.status
+                                  ]
+                                }`}
+                              >
+                                {displayStatus(
                                   announcement.effectiveStatus ||
-                                    announcement.status
-                                ]
-                              }`}
-                            >
-                              {announcement.effectiveStatus ||
-                                announcement.status}
-                            </span>
+                                    announcement.status,
+                                )}
+                              </span>
+                            </div>
+
+                            <h3 className="mt-2 text-sm font-extrabold text-[#1F1D47]">
+                              {announcement.title}
+                            </h3>
+
+                            <p className="mt-1 text-xs text-[#667085]">
+                              {announcement.category}
+                            </p>
+
+                            <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#475467]">
+                              {announcement.message}
+                            </p>
                           </div>
 
-                          <h3 className="mt-2 text-sm font-extrabold text-[#1F1D47]">
-                            {announcement.title}
-                          </h3>
-
-                          <p className="mt-1 text-xs text-[#667085]">
-                            {announcement.category}
-                          </p>
-
-                          <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#475467]">
-                            {announcement.message}
-                          </p>
+                          <span className="text-[10px] font-semibold text-[#98A2B3]">
+                            {announcement.id}
+                          </span>
                         </div>
+                      </button>
+                    );
+                  })}
 
-                        <span className="text-[10px] font-semibold text-[#98A2B3]">
-                          {announcement.id}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
+                  {filteredAnnouncements.length === 0 && (
+                    <div className="py-12 text-center">
+                      <p className="text-sm font-bold text-[#344054]">
+                        {t("noAnnouncementsFound")}
+                      </p>
 
-                {filteredAnnouncements.length === 0 && (
-                  <div className="py-12 text-center">
-                    <p className="text-sm font-bold text-[#344054]">
-                      No announcements found
-                    </p>
-
-                    <p className="mt-1 text-xs text-[#98A2B3]">
-                      Try changing your search or filter.
-                    </p>
-                  </div>
-                )}
-              </div>
+                      <p className="mt-1 text-xs text-[#98A2B3]">
+                        {t("changeSearchOrFilter")}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </section>
 
@@ -658,7 +758,7 @@ function AnnouncementsPage({ onAddAuditLog }) {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#8346F2]">
-                        Announcement Details
+                        {t("announcementDetails")}
                       </p>
 
                       <h2 className="mt-1 text-lg font-extrabold leading-6 text-[#1F1D47]">
@@ -668,10 +768,16 @@ function AnnouncementsPage({ onAddAuditLog }) {
 
                     <span
                       className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold ${
-                        statusStyles[selectedAnnouncement.status]
+                        statusStyles[
+                          selectedAnnouncement.effectiveStatus ||
+                            selectedAnnouncement.status
+                        ]
                       }`}
                     >
-                      {selectedAnnouncement.status}
+                      {displayStatus(
+                        selectedAnnouncement.effectiveStatus ||
+                          selectedAnnouncement.status,
+                      )}
                     </span>
                   </div>
 
@@ -684,29 +790,31 @@ function AnnouncementsPage({ onAddAuditLog }) {
                   <div className="space-y-5">
                     <div className="grid grid-cols-2 gap-3">
                       <InfoBox
-                        label="Category"
+                        label={t("category")}
                         value={selectedAnnouncement.category}
                       />
 
                       <InfoBox
-                        label="Priority"
-                        value={selectedAnnouncement.priority}
+                        label={t("priority")}
+                        value={displayPriority(selectedAnnouncement.priority)}
                       />
 
                       <InfoBox
-                        label="Start Date"
+                        label={t("startDate")}
                         value={selectedAnnouncement.startDate || "—"}
                       />
 
                       <InfoBox
-                        label="Expiration"
-                        value={selectedAnnouncement.endDate || "No expiration"}
+                        label={t("expiration")}
+                        value={
+                          selectedAnnouncement.endDate || t("noExpiration")
+                        }
                       />
                     </div>
 
                     <div className="border-t border-[#E4E7EC] pt-5">
                       <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#8346F2]">
-                        Announcement Message
+                        {t("announcementMessage")}
                       </p>
 
                       <div className="mt-3 rounded-xl border border-[#E4E7EC] bg-[#F8FAFC] p-4">
@@ -718,7 +826,7 @@ function AnnouncementsPage({ onAddAuditLog }) {
 
                     <div>
                       <p className="text-[10px] text-[#98A2B3]">
-                        Last updated: {selectedAnnouncement.updatedAt}
+                        {t("lastUpdated")}: {selectedAnnouncement.updatedAt}
                       </p>
                     </div>
                   </div>
@@ -730,7 +838,7 @@ function AnnouncementsPage({ onAddAuditLog }) {
                     onClick={handleEditAnnouncement}
                     className="flex-1 rounded-xl border border-[#8346F2] bg-white px-4 py-2.5 text-xs font-bold text-[#8346F2] transition hover:bg-[#F5F3FF]"
                   >
-                    Edit
+                    {t("edit")}
                   </button>
 
                   <button
@@ -738,7 +846,15 @@ function AnnouncementsPage({ onAddAuditLog }) {
                     onClick={() => setIsManageOpen(true)}
                     className="flex-1 rounded-xl bg-[#8346F2] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#7335E6]"
                   >
-                    Manage
+                    {t("manage")}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleDeleteAnnouncement}
+                    className="rounded-xl border border-[#FECDCA] bg-white px-4 py-2.5 text-xs font-bold text-[#D92D20] transition hover:bg-[#FEF3F2]"
+                  >
+                    {t("delete")}
                   </button>
                 </div>
               </>
@@ -746,11 +862,11 @@ function AnnouncementsPage({ onAddAuditLog }) {
               <div className="flex h-full items-center justify-center p-6 text-center">
                 <div>
                   <p className="text-sm font-bold text-[#1F1D47]">
-                    No announcement selected
+                    {t("noAnnouncementSelected")}
                   </p>
 
                   <p className="mt-1 text-xs text-[#667085]">
-                    Select an announcement from the list.
+                    {t("selectAnnouncementFromList")}
                   </p>
                 </div>
               </div>
@@ -769,13 +885,13 @@ function AnnouncementsPage({ onAddAuditLog }) {
             <div className="flex items-center justify-between border-b border-[#E4E7EC] p-5">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8346F2]">
-                  Announcement Management
+                  {t("announcementManagement")}
                 </p>
 
                 <h2 className="mt-1 text-lg font-extrabold text-[#1F1D47]">
                   {editingAnnouncement
-                    ? "Edit Announcement"
-                    : "New Announcement"}
+                    ? t("editAnnouncement")
+                    : t("newAnnouncement")}
                 </h2>
               </div>
 
@@ -791,16 +907,16 @@ function AnnouncementsPage({ onAddAuditLog }) {
             <form onSubmit={handleSaveAnnouncement} className="p-5">
               <div className="space-y-4">
                 <FormField
-                  label="Announcement Title"
+                  label={t("announcementTitle")}
                   name="title"
                   value={formData.title}
                   onChange={handleFormChange}
-                  placeholder="Enter announcement title"
+                  placeholder={t("enterAnnouncementTitle")}
                 />
 
                 <div>
                   <label className="mb-1.5 block text-xs font-bold text-[#344054]">
-                    Message
+                    {t("message")}
                   </label>
 
                   <textarea
@@ -808,14 +924,14 @@ function AnnouncementsPage({ onAddAuditLog }) {
                     value={formData.message}
                     onChange={handleFormChange}
                     rows="5"
-                    placeholder="Enter announcement message..."
+                    placeholder={t("enterAnnouncementMessage")}
                     className="w-full rounded-xl border border-[#E4E7EC] bg-[#FCFCFD] px-3 py-3 text-sm outline-none focus:border-[#8346F2]"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <SelectField
-                    label="Category"
+                    label={t("category")}
                     name="category"
                     value={formData.category}
                     onChange={handleFormChange}
@@ -823,7 +939,7 @@ function AnnouncementsPage({ onAddAuditLog }) {
                   />
 
                   <SelectField
-                    label="Priority"
+                    label={t("priority")}
                     name="priority"
                     value={formData.priority}
                     onChange={handleFormChange}
@@ -831,7 +947,7 @@ function AnnouncementsPage({ onAddAuditLog }) {
                   />
 
                   <FormField
-                    label="Start Date"
+                    label={t("startDate")}
                     name="startDate"
                     type="date"
                     value={formData.startDate}
@@ -839,7 +955,7 @@ function AnnouncementsPage({ onAddAuditLog }) {
                   />
 
                   <FormField
-                    label="End Date / Expiration"
+                    label={t("endDateExpiration")}
                     name="endDate"
                     type="date"
                     value={formData.endDate}
@@ -848,7 +964,7 @@ function AnnouncementsPage({ onAddAuditLog }) {
 
                   <div className="sm:col-span-2">
                     <SelectField
-                      label="Status"
+                      label={t("status")}
                       name="status"
                       value={formData.status}
                       onChange={handleFormChange}
@@ -864,14 +980,16 @@ function AnnouncementsPage({ onAddAuditLog }) {
                   onClick={() => setIsFormOpen(false)}
                   className="rounded-xl border border-[#E4E7EC] px-4 py-2.5 text-xs font-bold text-[#475467]"
                 >
-                  Cancel
+                  {t("cancel")}
                 </button>
 
                 <button
                   type="submit"
                   className="rounded-xl bg-[#8346F2] px-5 py-2.5 text-xs font-bold text-white transition hover:bg-[#7335E6]"
                 >
-                  {editingAnnouncement ? "Save Changes" : "Create Announcement"}
+                  {editingAnnouncement
+                    ? t("saveChanges")
+                    : t("createAnnouncement")}
                 </button>
               </div>
             </form>
@@ -888,15 +1006,15 @@ function AnnouncementsPage({ onAddAuditLog }) {
           <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl">
             <div className="border-b border-[#E4E7EC] p-5">
               <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8346F2]">
-                Manage Announcement
+                {t("manageAnnouncement")}
               </p>
 
               <h2 className="mt-1 text-lg font-extrabold text-[#1F1D47]">
-                Change Announcement Status
+                {t("changeAnnouncementStatus")}
               </h2>
 
               <p className="mt-2 text-xs leading-5 text-[#667085]">
-                Select the appropriate status for this announcement.
+                {t("selectAppropriateStatus")}
               </p>
             </div>
 
@@ -913,10 +1031,12 @@ function AnnouncementsPage({ onAddAuditLog }) {
                   }`}
                 >
                   <div>
-                    <p className="text-sm font-bold text-[#1F1D47]">{status}</p>
+                    <p className="text-sm font-bold text-[#1F1D47]">
+                      {displayStatus(status)}
+                    </p>
 
                     <p className="mt-1 text-[11px] text-[#667085]">
-                      {getStatusDescription(status)}
+                      {getStatusDescription(status, t)}
                     </p>
                   </div>
 
@@ -933,7 +1053,7 @@ function AnnouncementsPage({ onAddAuditLog }) {
                 onClick={() => setIsManageOpen(false)}
                 className="w-full rounded-xl border border-[#E4E7EC] py-2.5 text-xs font-bold text-[#475467]"
               >
-                Cancel
+                {t("cancel")}
               </button>
             </div>
           </div>
@@ -1018,12 +1138,12 @@ function SelectField({ label, name, value, onChange, options }) {
   );
 }
 
-function getStatusDescription(status) {
+function getStatusDescription(status, t) {
   const descriptions = {
-    Draft: "Saved internally and not yet visible to residents.",
-    Published: "Currently active and visible to residents.",
-    Archived: "Stored for record purposes and no longer active.",
-    Expired: "Automatically or manually marked as no longer valid.",
+    Draft: t("draftDescription"),
+    Published: t("publishedDescription"),
+    Archived: t("archivedDescription"),
+    Expired: t("expiredDescription"),
   };
 
   return descriptions[status];

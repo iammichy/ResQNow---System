@@ -1,247 +1,31 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-const defaultReportDetails = {
-  id: "RPT-2026-001",
-  type: "Flooding",
-  category: "Hazard-Related",
-  priority: "Critical",
-  status: "Responding",
-  verification: "Verified",
-
-  reporter: "Juan Dela Cruz",
-  contact: "0917 123 4567",
-  location: "Purok 3, Camunatan",
-  submitted: "Sep 4, 2026 • 09:42 AM",
-
-  description:
-    "Flood water has entered several residential areas following continuous rainfall. Residents are requesting immediate assistance and monitoring of the water level.",
-
-  triage: {
-    threatToLife: "Present",
-    assistanceNeed: "Immediate",
-    peopleAffected: "Approximately 35 people",
-    vulnerablePersons: "Children and senior citizens",
-    accessImpact: "Partially affected",
-    locationRisk: "Flood-prone area",
-    hazardSeverity: "Severe",
-    rateOfWorsening: "Increasing",
-    waterLevel: "Waist level",
-    roadPassability: "Passable with caution",
-    evacuationNeed: "Recommended",
-  },
-
-  evidence: [
-    { id: 1, label: "Flooded residential area" },
-    { id: 2, label: "Road condition" },
-    { id: 3, label: "Water level" },
-  ],
-
-  assignment: {
-    team: "Emergency Response Team A",
-    personnel: "Carlos Mendoza",
-    assignedAt: "Sep 4, 2026 • 09:55 AM",
-  },
-
-  history: [
-    {
-      status: "Report Submitted",
-      detail: "Submitted through Resident Mobile App",
-      time: "09:42 AM",
-    },
-    {
-      status: "Verified",
-      detail: "Verified by Barangay Personnel",
-      time: "09:49 AM",
-    },
-    {
-      status: "Prioritized",
-      detail: "Classified as Critical Priority",
-      time: "09:51 AM",
-    },
-    {
-      status: "Team Assigned",
-      detail: "Emergency Response Team A assigned",
-      time: "09:55 AM",
-    },
-    {
-      status: "Responding",
-      detail: "Response team dispatched",
-      time: "10:02 AM",
-    },
-  ],
-};
-
-const reportDetails = {
-  "RPT-2026-001": defaultReportDetails,
-
-  "RPT-2026-002": {
-    id: "RPT-2026-002",
-    type: "Road Obstruction",
-    category: "Incident-Related",
-    priority: "High",
-    status: "For Verification",
-    verification: "Pending",
-
-    reporter: "Maria Santos",
-    contact: "0917 234 5678",
-    location: "National Highway",
-    submitted: "Sep 4, 2026 • 09:18 AM",
-
-    description:
-      "A large obstruction is blocking part of the roadway and may affect vehicle access.",
-
-    triage: {
-      threatToLife: "Potential",
-      assistanceNeed: "Standard",
-      peopleAffected: "Estimated 15–20 people",
-      vulnerablePersons: "None reported",
-      accessImpact: "Partially affected",
-      locationRisk: "High-traffic area",
-      hazardSeverity: "Moderate",
-      rateOfWorsening: "Stable",
-      waterLevel: "Not applicable",
-      roadPassability: "Partially blocked",
-      evacuationNeed: "Not required",
-    },
-
-    evidence: [
-      { id: 1, label: "Road obstruction" },
-      { id: 2, label: "Blocked roadway" },
-    ],
-
-    assignment: {
-      team: "Unassigned",
-      personnel: "Unassigned",
-      assignedAt: "Not yet assigned",
-    },
-
-    history: [
-      {
-        status: "Report Submitted",
-        detail: "Submitted through Resident Mobile App",
-        time: "09:18 AM",
-      },
-    ],
-  },
-
-  "RPT-2026-005": {
-    id: "RPT-2026-005",
-    type: "Fallen Tree",
-    category: "Incident-Related",
-    priority: "Medium",
-    status: "For Verification",
-    verification: "Pending",
-
-    reporter: "Carlos Mendoza",
-    contact: "0917 567 8901",
-    location: "Camunatan Main Road",
-    submitted: "Sep 4, 2026 • 07:46 AM",
-
-    description:
-      "A fallen tree was reported along the main road and may obstruct local traffic.",
-
-    triage: {
-      threatToLife: "Potential",
-      assistanceNeed: "Standard",
-      peopleAffected: "Estimated 8–10 people",
-      vulnerablePersons: "None reported",
-      accessImpact: "Partially affected",
-      locationRisk: "Main road",
-      hazardSeverity: "Moderate",
-      rateOfWorsening: "Stable",
-      waterLevel: "Not applicable",
-      roadPassability: "Partially blocked",
-      evacuationNeed: "Not required",
-    },
-
-    evidence: [{ id: 1, label: "Fallen tree" }],
-
-    assignment: {
-      team: "Unassigned",
-      personnel: "Unassigned",
-      assignedAt: "Not yet assigned",
-    },
-
-    history: [
-      {
-        status: "Report Submitted",
-        detail: "Submitted through Resident Mobile App",
-        time: "07:46 AM",
-      },
-    ],
-  },
-
-  "RPT-2026-010": {
-    id: "RPT-2026-010",
-    type: "Medical Assistance",
-    category: "Assistance-Related",
-    priority: "Critical",
-    status: "For Verification",
-    verification: "Pending",
-
-    reporter: "Liza Bautista",
-    contact: "0917 012 3456",
-    location: "Purok 2, Camunatan",
-    submitted: "Sep 4, 2026 • 06:34 AM",
-
-    description:
-      "A resident is requesting immediate medical assistance due to an emergency condition.",
-
-    triage: {
-      threatToLife: "Present",
-      assistanceNeed: "Immediate",
-      peopleAffected: "1 person",
-      vulnerablePersons: "Senior citizen",
-      accessImpact: "No access impact",
-      locationRisk: "Residential area",
-      hazardSeverity: "Severe",
-      rateOfWorsening: "Unknown",
-      waterLevel: "Not applicable",
-      roadPassability: "Passable",
-      evacuationNeed: "Not required",
-    },
-
-    evidence: [],
-
-    assignment: {
-      team: "Unassigned",
-      personnel: "Unassigned",
-      assignedAt: "Not yet assigned",
-    },
-
-    history: [
-      {
-        status: "Report Submitted",
-        detail: "Submitted through Resident Mobile App",
-        time: "06:34 AM",
-      },
-    ],
-  },
-};
+import {
+  getAllIncidents,
+  getAllPersonnel,
+  getAllAuditLogs,
+  assignIncidentPersonnel,
+  updateIncidentStatus,
+  assignReportPriority,
+  createIncidentFromReport,
+} from "../../services/reportsService";
 
 const priorityStyles = {
   Critical: "border-[#FECDCA] bg-[#FEF3F2] text-[#D92D20]",
   High: "border-[#FEDF89] bg-[#FFF4E5] text-[#B54708]",
-  Medium: "border-[#FDE68A] bg-[#FFFAEB] text-[#A15C00]",
+  Moderate: "border-[#FDE68A] bg-[#FFFAEB] text-[#A15C00]",
   Low: "border-[#E4E7EC] bg-[#F2F4F7] text-[#667085]",
 };
 
 const statusStyles = {
   "For Verification": "bg-[#FFF7ED] text-[#B54708]",
-
-  "Pending Prioritization": "bg-[#FFF4E5] text-[#B54708]",
-
-  "Ready for Response": "bg-[#F4F3FF] text-[#6941C6]",
-
-  Assigned: "bg-[#F4F3FF] text-[#6941C6]",
-
-  Responding: "bg-[#EEF4FF] text-[#3538CD]",
-
-  Monitoring: "bg-[#ECFDF3] text-[#027A48]",
-
-  Resolved: "bg-[#F2F4F7] text-[#475467]",
+  "Pending Response": "bg-[#F4F3FF] text-[#6941C6]",
+  Dispatched: "bg-[#EEF4FF] text-[#3538CD]",
+  "In Progress": "bg-[#EEF4FF] text-[#3538CD]",
+  Resolved: "bg-[#ECFDF3] text-[#027A48]",
+  Closed: "bg-[#F2F4F7] text-[#475467]",
 };
 
 function InfoItem({ label, value }) {
@@ -256,60 +40,222 @@ function InfoItem({ label, value }) {
   );
 }
 
-function TriageItem({ label, value, critical = false }) {
-  return (
-    <div className="rounded-xl border border-[#E4E7EC] bg-white p-3.5">
-      <p className="text-[10px] font-bold uppercase tracking-[0.07em] text-[#98A2B3]">
-        {label}
-      </p>
+function formatTriageValue(value) {
+  if (value === null || value === undefined || value === "") {
+    return "Not assessed";
+  }
 
-      <p
-        className={`mt-1.5 text-sm font-bold ${
-          critical ? "text-[#D92D20]" : "text-[#344054]"
-        }`}
-      >
-        {value}
-      </p>
+  return String(value);
+}
+
+function getRecommendationStyle(priority) {
+  switch (priority) {
+    case "Critical":
+      return {
+        container: "border-[#FECDCA] bg-[#FEF3F2]",
+        badge: "bg-[#FEE4E2] text-[#B42318]",
+        text: "text-[#B42318]",
+      };
+
+    case "High":
+      return {
+        container: "border-[#FEDF89] bg-[#FFF4E5]",
+        badge: "bg-[#FEF0C7] text-[#B54708]",
+        text: "text-[#B54708]",
+      };
+
+    case "Moderate":
+      return {
+        container: "border-[#FDE68A] bg-[#FFFAEB]",
+        badge: "bg-[#FEF0C7] text-[#A15C00]",
+        text: "text-[#A15C00]",
+      };
+
+    default:
+      return {
+        container: "border-[#E4E7EC] bg-[#F8FAFC]",
+        badge: "bg-[#F2F4F7] text-[#475467]",
+        text: "text-[#475467]",
+      };
+  }
+}
+
+function AutomatedRiskItem({ label, value, score, highlighted = false }) {
+  return (
+    <div
+      className={`rounded-xl border p-3.5 ${
+        highlighted
+          ? "border-[#C7D7FE] bg-[#F5F8FF]"
+          : "border-[#E4E7EC] bg-white"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-[0.07em] text-[#98A2B3]">
+            {label}
+          </p>
+
+          <p className="mt-1.5 text-sm font-bold text-[#344054]">
+            {formatTriageValue(value)}
+          </p>
+        </div>
+
+        {score !== null && score !== undefined && (
+          <span className="shrink-0 rounded-lg bg-[#EEF2FF] px-2 py-1 text-[10px] font-extrabold text-[#4F46E5]">
+            +{score}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
+function formatDisplayDate(value) {
+  if (!value) return "Not available";
 
-function ReportDetails({
-  report: selectedReport,
-  onBack,
-  onReportUpdate,
-  onAddAuditLog,
-}) {
-  const reportDetailsData =
-    reportDetails[selectedReport?.id] ?? defaultReportDetails;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
 
+  return date.toLocaleString([], {
+    month: "numeric",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function formatHistoryTime(value) {
+  if (!value) return "Not available";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+
+  return date.toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
   const report = {
-    ...reportDetailsData,
-    ...selectedReport,
-
+    ...(selectedReport || {}),
+    id: selectedReport?.id || "Not available",
+    type:
+      selectedReport?.type || selectedReport?.report_type || "Not available",
+    category: selectedReport?.category || "Not available",
+    priority: selectedReport?.priority || "Not Prioritized",
+    status:
+      selectedReport?.status ||
+      selectedReport?.verification_status ||
+      "For Verification",
+    verification:
+      selectedReport?.verification ||
+      selectedReport?.verification_status ||
+      "Pending",
+    reporter:
+      selectedReport?.reporter ||
+      selectedReport?.reporter_name ||
+      selectedReport?.user?.name ||
+      "Unknown Resident",
+    contact:
+      selectedReport?.contact ||
+      selectedReport?.contact_number ||
+      selectedReport?.user?.contact_number ||
+      "Not provided",
+    location: selectedReport?.location || "Not provided",
+    submitted: formatDisplayDate(
+      selectedReport?.created_at || selectedReport?.submitted,
+    ),
+    description: selectedReport?.description || "No description provided.",
     triage: {
-      ...reportDetailsData.triage,
-      ...(selectedReport?.triage || {}),
-    },
+      threatToLife:
+        selectedReport?.threat_to_life ??
+        selectedReport?.triage?.threatToLife ??
+        "Not assessed",
+      assistanceNeed:
+        selectedReport?.assistance_need ??
+        selectedReport?.triage?.assistanceNeed ??
+        "Not assessed",
+      peopleAffected:
+        selectedReport?.affected_residents ??
+        selectedReport?.people_affected ??
+        selectedReport?.triage?.peopleAffected ??
+        null,
+      vulnerablePersons:
+        selectedReport?.vulnerable_persons ??
+        selectedReport?.triage?.vulnerablePersons ??
+        "Not assessed",
+      accessImpact:
+        selectedReport?.triage?.accessImpact ??
+        selectedReport?.road_passability ??
+        "Not assessed",
+      locationRisk:
+        selectedReport?.location_risk ??
+        selectedReport?.triage?.locationRisk ??
+        "Not assessed",
+      hazardSeverity:
+        selectedReport?.hazard_severity ??
+        selectedReport?.triage?.hazardSeverity ??
+        "Not assessed",
+      rateOfWorsening:
+        selectedReport?.rate_of_worsening ??
+        selectedReport?.triage?.rateOfWorsening ??
+        "Not assessed",
+      waterLevel:
+        selectedReport?.waterLevel ??
+        selectedReport?.triage?.waterLevel ??
+        "Not assessed",
 
-    assignment: {
-      ...reportDetailsData.assignment,
-      ...(selectedReport?.assignment || {}),
-    },
+      roadPassability:
+        selectedReport?.roadPassability ??
+        selectedReport?.triage?.roadPassability ??
+        "Not assessed",
 
+      evacuationNeed:
+        selectedReport?.evacuationNeed ??
+        selectedReport?.triage?.evacuationNeed ??
+        selectedReport?.assistanceEvacuationNeed ??
+        "Not assessed",
+
+      affectedResidents:
+        selectedReport?.affectedResidents ??
+        selectedReport?.triage?.affectedResidents ??
+        null,
+
+      assistanceEvacuationNeed:
+        selectedReport?.assistanceEvacuationNeed ??
+        selectedReport?.triage?.assistanceEvacuationNeed ??
+        "Not assessed",
+
+      score:
+        selectedReport?.triageScore ?? selectedReport?.triage?.score ?? null,
+
+      recommendation:
+        selectedReport?.triageRecommendation ??
+        selectedReport?.triage?.recommendation ??
+        null,
+
+      remarks:
+        selectedReport?.triageRemarks ?? selectedReport?.triage?.remarks ?? "",
+
+      assessedAt:
+        selectedReport?.triageAssessedAt ??
+        selectedReport?.triage?.assessedAt ??
+        null,
+    },
+    assignment: selectedReport?.assignment || {},
     evidence: Array.isArray(selectedReport?.evidence)
       ? selectedReport.evidence
-      : reportDetailsData.evidence || [],
-
+      : [],
     history: Array.isArray(selectedReport?.history)
       ? selectedReport.history
-      : reportDetailsData.history || [],
+      : [],
   };
 
-  const [status, setStatus] = useState(
-    () => report.status || "For Verification",
-  );
-
+  const [status, setStatus] = useState(report.status);
   const [assignment, setAssignment] = useState(() => ({
     ...(report.assignment || {}),
   }));
@@ -324,129 +270,367 @@ function ReportDetails({
     () => report.assignment?.team || "",
   );
 
-  const [selectedPersonnel, setSelectedPersonnel] = useState(
-    () => report.assignment?.personnel || "",
+  const [selectedPersonnel, setSelectedPersonnel] = useState("");
+
+  const [personnelList, setPersonnelList] = useState([]);
+  const [incident, setIncident] = useState(null);
+  const [assignmentLoading, setAssignmentLoading] = useState(false);
+  const [assignmentError, setAssignmentError] = useState("");
+  const [selectedPriority, setSelectedPriority] = useState(
+    selectedReport?.priority || "",
   );
+  const [priorityLoading, setPriorityLoading] = useState(false);
+  const [priorityError, setPriorityError] = useState("");
 
-  const getCurrentTime = () => {
-    return new Date().toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+  useEffect(() => {
+    const loadAssignmentData = async () => {
+      setStatus(report.status);
+      setSelectedPriority(
+        report.priority !== "Not Prioritized" ? report.priority : "",
+      );
+      setAssignment({
+        team: report.assignment?.team || "Unassigned",
+        personnel: report.assignment?.personnel || "Unassigned",
+        assignedAt: report.assignment?.assignedAt || "Not yet assigned",
+      });
+      setHistory(report.history || []);
+      setIncident(null);
+      setSelectedPersonnel("");
+      setSelectedTeam("");
 
-  const updateSharedReport = (updates) => {
-    onReportUpdate?.({
-      id: report.id,
-      ...updates,
-    });
-  };
-  const handleStatusChange = (newStatus) => {
-    if (newStatus === status) return;
+      try {
+        const [personnelData, incidentsData, auditLogsData] = await Promise.all(
+          [getAllPersonnel(), getAllIncidents(), getAllAuditLogs()],
+        );
 
-    const newHistoryItem = {
-      status: newStatus,
-      detail: `Report status updated to ${newStatus} by Barangay Personnel`,
-      time: getCurrentTime(),
+        setPersonnelList(personnelData || []);
+        const auditLogs = Array.isArray(auditLogsData) ? auditLogsData : [];
+
+        const reportIdMatch = String(selectedReport?.id || "").match(/\d+$/);
+        const reportDatabaseId =
+          selectedReport?.databaseId ??
+          (reportIdMatch ? Number(reportIdMatch[0]) : null);
+
+        const matchedIncident = (incidentsData || []).find(
+          (item) =>
+            item.report_id === reportDatabaseId ||
+            item.report?.id === reportDatabaseId ||
+            item.incident_code ===
+              `INC-${String(reportDatabaseId || "").padStart(4, "0")}`,
+        );
+
+        setIncident(matchedIncident || null);
+
+        if (matchedIncident) {
+          setStatus(matchedIncident.status);
+
+          const assignedPersonnelId = matchedIncident.assigned_personnel_id;
+          const assignedPersonnel = matchedIncident.personnel;
+
+          setSelectedPersonnel(
+            assignedPersonnelId ? String(assignedPersonnelId) : "",
+          );
+          setSelectedTeam(assignedPersonnel?.team || "");
+
+          setAssignment({
+            team: assignedPersonnel?.team || "Unassigned",
+            personnel: assignedPersonnel?.name || "Unassigned",
+            assignedAt: assignedPersonnel
+              ? "Currently assigned"
+              : "Not yet assigned",
+          });
+
+          const incidentHistory = [];
+
+          if (selectedReport?.created_at) {
+            incidentHistory.push({
+              status: "Report Submitted",
+              detail: "Report recorded in ResQNow.",
+              time: formatHistoryTime(selectedReport.created_at),
+            });
+          }
+
+          if (matchedIncident.created_at) {
+            incidentHistory.push({
+              status: "Incident Created",
+              detail: `${matchedIncident.incident_code} created from prioritized report.`,
+              time: formatHistoryTime(matchedIncident.created_at),
+            });
+          }
+
+          const incidentAuditLogs = auditLogs.filter((log) => {
+            return (
+              log.category === "Incident" &&
+              log.target === matchedIncident.incident_code
+            );
+          });
+
+          incidentAuditLogs.forEach((log) => {
+            if (log.action === "Incident Status Updated") {
+              incidentHistory.push({
+                status: log.new_value,
+                detail: log.remarks,
+                time: formatHistoryTime(log.created_at),
+              });
+            }
+
+            if (log.action === "Incident Personnel Assigned") {
+              incidentHistory.push({
+                status: "Personnel Assigned",
+                detail: log.remarks,
+                time: formatHistoryTime(log.created_at),
+              });
+            }
+          });
+
+          if (incidentHistory.length > 0) {
+            setHistory(incidentHistory);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load incident data:", error);
+        setAssignmentError("Failed to load incident and personnel data.");
+      }
     };
 
-    const updatedHistory = [...history, newHistoryItem];
+    loadAssignmentData();
+  }, [selectedReport?.id]);
 
-    setStatus(newStatus);
-    setHistory(updatedHistory);
+  const handleStatusChange = async (newStatus) => {
+    if (!incident || newStatus === status) return;
 
-    updateSharedReport({
-      status: newStatus,
-      history: updatedHistory,
-    });
+    try {
+      const updatedIncident = await updateIncidentStatus(
+        incident.id,
+        newStatus,
+      );
+
+      setIncident(updatedIncident);
+      setStatus(updatedIncident.status);
+
+      const newHistoryItem = {
+        status: updatedIncident.status,
+        detail: `Incident status updated to ${updatedIncident.status} by Barangay Personnel`,
+        time: "Just now",
+      };
+
+      setHistory((current) => [...current, newHistoryItem]);
+    } catch (error) {
+      console.error("Failed to update incident status:", error);
+      alert(error.message || "Failed to update incident status.");
+    }
   };
-  const handleSaveAssignment = () => {
-    if (selectedTeam === "Unassigned" || selectedPersonnel === "Unassigned") {
+  const handleConfirmPriority = async () => {
+    if (!selectedPriority) {
+      setPriorityError("Please select a priority.");
       return;
     }
 
-    const assignedAt = new Date().toLocaleString([], {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    const reportIdMatch = String(selectedReport?.id || "").match(/\d+$/);
+    const reportDatabaseId =
+      selectedReport?.databaseId ??
+      (reportIdMatch ? Number(reportIdMatch[0]) : null);
 
-    const newAssignment = {
-      team: selectedTeam,
-      personnel: selectedPersonnel,
-      assignedAt,
-    };
-
-    const assignmentHistoryItem = {
-      status: "Team Assigned",
-      detail: `${selectedTeam} assigned with ${selectedPersonnel}`,
-      time: getCurrentTime(),
-    };
-
-    let updatedStatus = status;
-
-    const updatedHistory = [...history];
-
-    if (status === "For Verification") {
-      updatedStatus = "Assigned";
-
-      updatedHistory.push({
-        status: "Assigned",
-        detail: "Report moved to Assigned status after team assignment",
-        time: getCurrentTime(),
-      });
+    if (!reportDatabaseId) {
+      setPriorityError("The report database ID could not be determined.");
+      return;
     }
 
-    updatedHistory.push(assignmentHistoryItem);
+    try {
+      setPriorityLoading(true);
+      setPriorityError("");
 
-    setAssignment(newAssignment);
-    setStatus(updatedStatus);
-    setHistory(updatedHistory);
+      const updatedReport = await assignReportPriority(
+        reportDatabaseId,
+        selectedPriority,
+      );
 
-    updateSharedReport({
-      status: updatedStatus,
-      assignment: newAssignment,
-      history: updatedHistory,
-    });
+      const finalPriority = updatedReport?.priority || selectedPriority;
 
-    setShowAssignmentModal(false);
+      setSelectedPriority(finalPriority);
+      setStatus(updatedReport?.status || "Prioritized");
+
+      onReportUpdate?.({
+        id: report.id,
+        ...updatedReport,
+        priority: finalPriority,
+        status: updatedReport?.status || "Prioritized",
+      });
+    } catch (error) {
+      console.error("Failed to assign report priority:", error);
+      setPriorityError(error.message || "Failed to assign report priority.");
+    } finally {
+      setPriorityLoading(false);
+    }
   };
 
-  const handleMarkResolved = () => {
-    if (status === "Resolved") return;
+  const handleCreateIncident = async () => {
+    const reportIdMatch = String(selectedReport?.id || "").match(/\d+$/);
+    const reportDatabaseId =
+      selectedReport?.databaseId ??
+      (reportIdMatch ? Number(reportIdMatch[0]) : null);
 
-    const oldStatus = status;
-    const newStatus = "Resolved";
+    if (!reportDatabaseId) {
+      setAssignmentError("The report database ID could not be determined.");
+      return;
+    }
 
-    const resolvedHistoryItem = {
-      status: "Resolved",
-      detail: "Incident marked as resolved by Barangay Personnel",
-      time: getCurrentTime(),
-    };
+    try {
+      setAssignmentLoading(true);
+      setAssignmentError("");
 
-    const updatedHistory = [...history, resolvedHistoryItem];
+      const createdIncident = await createIncidentFromReport(reportDatabaseId);
 
-    setStatus(newStatus);
-    setHistory(updatedHistory);
+      setIncident(createdIncident);
+      setStatus(createdIncident.status);
 
-    updateSharedReport({
-      status: newStatus,
-      history: updatedHistory,
-    });
+      setAssignment({
+        team: "Unassigned",
+        personnel: "Unassigned",
+        assignedAt: "Not yet assigned",
+      });
 
-    onAddAuditLog?.({
-      action: "Report Status Updated",
-      category: "Report Action",
-      target: report.id,
-      field: "Status",
-      oldValue: oldStatus,
-      newValue: newStatus,
-      remarks: "Incident was marked as resolved by Barangay Personnel.",
-      status: "Success",
-    });
+      onReportUpdate?.({
+        id: report.id,
+        incident: createdIncident,
+      });
+    } catch (error) {
+      console.error("Failed to create incident:", error);
+      setAssignmentError(
+        error.message || "Failed to create incident from report.",
+      );
+    } finally {
+      setAssignmentLoading(false);
+    }
   };
+  const handleSaveAssignment = async () => {
+    if (!incident) {
+      setAssignmentError("This report does not have an incident record yet.");
+      return;
+    }
+
+    if (!selectedPersonnel || selectedPersonnel === "Unassigned") {
+      setAssignmentError("Please select personnel.");
+      return;
+    }
+
+    const selectedPerson = personnelList.find(
+      (person) =>
+        person.id === Number(selectedPersonnel) ||
+        person.databaseId === Number(selectedPersonnel),
+    );
+
+    if (!selectedPerson) {
+      setAssignmentError("Selected personnel was not found.");
+      return;
+    }
+
+    try {
+      setAssignmentLoading(true);
+      setAssignmentError("");
+
+      const updatedIncident = await assignIncidentPersonnel(
+        incident.id,
+        selectedPerson.id || selectedPerson.databaseId,
+      );
+
+      setIncident(updatedIncident);
+
+      const personnelName =
+        updatedIncident?.personnel?.name ||
+        selectedPerson.name ||
+        "Assigned Personnel";
+
+      const assignedAt = new Date().toLocaleString([], {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      const newAssignment = {
+        team: selectedTeam,
+        personnel: personnelName,
+        assignedAt,
+      };
+
+      setAssignment(newAssignment);
+
+      const auditLogsData = await getAllAuditLogs();
+      const auditLogs = Array.isArray(auditLogsData) ? auditLogsData : [];
+
+      const incidentAuditLogs = auditLogs.filter(
+        (log) =>
+          log.category === "Incident" &&
+          log.target === updatedIncident.incident_code,
+      );
+
+      const refreshedHistory = [];
+
+      if (selectedReport?.created_at) {
+        refreshedHistory.push({
+          status: "Report Submitted",
+          detail: "Report recorded in ResQNow.",
+          time: formatHistoryTime(selectedReport.created_at),
+        });
+      }
+
+      if (updatedIncident.created_at) {
+        refreshedHistory.push({
+          status: "Incident Created",
+          detail: `${updatedIncident.incident_code} created from prioritized report.`,
+          time: formatHistoryTime(updatedIncident.created_at),
+        });
+      }
+
+      incidentAuditLogs.forEach((log) => {
+        if (log.action === "Incident Status Updated") {
+          refreshedHistory.push({
+            status: log.new_value,
+            detail: log.remarks,
+            time: formatHistoryTime(log.created_at),
+          });
+        }
+
+        if (log.action === "Incident Personnel Assigned") {
+          refreshedHistory.push({
+            status: "Personnel Assigned",
+            detail: log.remarks,
+            time: formatHistoryTime(log.created_at),
+          });
+        }
+      });
+
+      if (refreshedHistory.length > 0) {
+        setHistory(refreshedHistory);
+      }
+
+      onReportUpdate?.({
+        id: report.id,
+        assignment: newAssignment,
+      });
+
+      setShowAssignmentModal(false);
+    } catch (error) {
+      console.error("Failed to assign personnel:", error);
+      setAssignmentError(error.message || "Failed to assign personnel.");
+    } finally {
+      setAssignmentLoading(false);
+    }
+  };
+
+  const nextStatusMap = {
+    "Pending Response": "Dispatched",
+    Dispatched: "In Progress",
+    "In Progress": "Resolved",
+    Resolved: "Closed",
+    Closed: null,
+  };
+
+  const nextIncidentStatus = nextStatusMap[status] || null;
+  const canAssignPriority = !incident && report.status === "For Prioritization";
+
   const handleExportPDF = () => {
     const doc = new jsPDF();
 
@@ -646,24 +830,20 @@ function ReportDetails({
 
   const visibleHistory = showMoreHistory ? history : history.slice(-4);
 
-  const riskLabel = `${report.priority} Risk`;
-
   const statusDescription =
     status === "For Verification"
       ? "This report is awaiting verification before entering the response workflow."
-      : status === "Pending Prioritization"
-        ? "This verified report is awaiting priority assessment."
-        : status === "Ready for Response"
-          ? "Priority has been confirmed and this report is ready for response assignment."
-          : status === "Assigned"
-            ? "A response team has been assigned and is preparing to handle the incident."
-            : status === "Monitoring"
-              ? "The incident is currently being monitored by barangay personnel."
-              : status === "Responding"
-                ? "Response personnel are currently handling this incident."
-                : status === "Resolved"
-                  ? "This incident has been resolved."
-                  : "The current response status is being reviewed.";
+      : status === "Pending Response"
+        ? "The incident is ready for response dispatch."
+        : status === "Dispatched"
+          ? "Response personnel have been dispatched to the incident."
+          : status === "In Progress"
+            ? "Response personnel are actively handling the incident."
+            : status === "Resolved"
+              ? "The incident has been resolved and is ready for closure."
+              : status === "Closed"
+                ? "The incident response has been completed and closed."
+                : "The current response status is being reviewed.";
 
   const verificationDescription =
     report.verification === "Pending"
@@ -772,91 +952,173 @@ function ReportDetails({
                 </p>
               </div>
             </section>
-
-            {/* TRIAGE */}
+            {/* AUTOMATED RISK ASSESSMENT */}
             <section className="rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
               <div className="border-b border-[#E4E7EC] px-5 py-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <h2 className="text-sm font-bold text-[#1F1D47]">
-                      Triage Assessment
-                    </h2>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F0EBFF] text-[#8346F2]">
+                      <svg
+                        className="h-5 w-5"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                      >
+                        <path d="M12 3l8 4v5c0 4.8-3.4 7.8-8 9-4.6-1.2-8-4.2-8-9V7l8-4z" />
+                        <path d="M9 12l2 2 4-4" />
+                      </svg>
+                    </div>
 
-                    <p className="mt-0.5 text-xs text-[#667085]">
-                      Assessment indicators used for emergency prioritization.
-                    </p>
+                    <div>
+                      <h2 className="text-sm font-bold text-[#1F1D47]">
+                        Automated Risk Assessment
+                      </h2>
+
+                      <p className="mt-0.5 text-xs text-[#667085]">
+                        System-generated assessment based on resident-submitted
+                        information.
+                      </p>
+                    </div>
                   </div>
 
-                  <span
-                    className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
-                      priorityStyles[report.priority]
-                    }`}
-                  >
-                    {riskLabel}
-                  </span>
+                  {report.triage.recommendation ? (
+                    <div
+                      className={`rounded-xl border px-4 py-2.5 ${
+                        getRecommendationStyle(report.triage.recommendation)
+                          .container
+                      }`}
+                    >
+                      <p className="text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
+                        Assessment Status
+                      </p>
+
+                      <div className="mt-1 flex items-center justify-between gap-4">
+                        <span
+                          className={`text-sm font-extrabold ${
+                            getRecommendationStyle(report.triage.recommendation)
+                              .text
+                          }`}
+                        >
+                          {report.triage.recommendation}
+                        </span>
+
+                        {report.triage.score !== null && (
+                          <span className="text-xs font-bold text-[#667085]">
+                            Risk Score: {report.triage.score} / 20
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="rounded-full bg-[#F2F4F7] px-3 py-1.5 text-[10px] font-bold text-[#667085]">
+                      Assessment Pending
+                    </span>
+                  )}
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 p-5 lg:grid-cols-3">
-                <TriageItem
-                  label="Threat to Life"
-                  value={report.triage.threatToLife}
-                  critical={report.priority === "Critical"}
-                />
+              {report.triage.recommendation ? (
+                <>
+                  <div className="grid grid-cols-1 gap-3 p-5 md:grid-cols-2">
+                    <AutomatedRiskItem
+                      label="Water Level"
+                      value={report.triage.waterLevel}
+                      score={null}
+                    />
 
-                <TriageItem
-                  label="Assistance Need"
-                  value={report.triage.assistanceNeed}
-                  critical={report.priority === "Critical"}
-                />
+                    <AutomatedRiskItem
+                      label="Affected Residents"
+                      value={
+                        report.triage.affectedResidents !== null
+                          ? `${report.triage.affectedResidents} residents`
+                          : "Not reported"
+                      }
+                      score={null}
+                    />
 
-                <TriageItem
-                  label="People Affected"
-                  value={report.triage.peopleAffected}
-                />
+                    <AutomatedRiskItem
+                      label="Road Passability"
+                      value={report.triage.roadPassability}
+                      score={null}
+                    />
 
-                <TriageItem
-                  label="Vulnerable Persons"
-                  value={report.triage.vulnerablePersons}
-                />
+                    <AutomatedRiskItem
+                      label="Location Risk"
+                      value={report.triage.locationRisk}
+                      score={null}
+                      highlighted={["High", "Critical"].includes(
+                        report.triage.locationRisk,
+                      )}
+                    />
 
-                <TriageItem
-                  label="Access Impact"
-                  value={report.triage.accessImpact}
-                />
+                    <AutomatedRiskItem
+                      label="Assistance / Evacuation Need"
+                      value={report.triage.assistanceEvacuationNeed}
+                      score={null}
+                      highlighted={
+                        report.triage.assistanceEvacuationNeed ===
+                          "Immediate evacuation required" ||
+                        report.triage.assistanceEvacuationNeed ===
+                          "Evacuation recommended"
+                      }
+                    />
 
-                <TriageItem
-                  label="Location Risk"
-                  value={report.triage.locationRisk}
-                />
+                    <AutomatedRiskItem
+                      label="Assessment Status"
+                      value="System Generated"
+                      score={null}
+                      highlighted
+                    />
+                  </div>
 
-                <TriageItem
-                  label="Hazard Severity"
-                  value={report.triage.hazardSeverity}
-                  critical={report.priority === "Critical"}
-                />
+                  {report.triage.remarks && (
+                    <div className="mx-5 mb-5 rounded-xl border border-[#E4E7EC] bg-[#F8FAFC] p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
+                        Assessment Remarks
+                      </p>
 
-                <TriageItem
-                  label="Rate of Worsening"
-                  value={report.triage.rateOfWorsening}
-                />
+                      <p className="mt-2 text-sm leading-6 text-[#475467]">
+                        {report.triage.remarks}
+                      </p>
+                    </div>
+                  )}
 
-                <TriageItem
-                  label="Water Level"
-                  value={report.triage.waterLevel}
-                />
+                  <div className="mx-5 mb-5 rounded-xl border border-[#FEDF89] bg-[#FFFCF5] p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#FEF0C7] text-[#B54708]">
+                        !
+                      </div>
 
-                <TriageItem
-                  label="Road Passability"
-                  value={report.triage.roadPassability}
-                />
+                      <div>
+                        <p className="text-xs font-extrabold text-[#7A2E0E]">
+                          Automated recommendation
+                        </p>
 
-                <TriageItem
-                  label="Evacuation Need"
-                  value={report.triage.evacuationNeed}
-                  critical={report.priority === "Critical"}
-                />
-              </div>
+                        <p className="mt-1 text-xs leading-5 text-[#8A4B08]">
+                          The system generated this recommendation from the
+                          information submitted with the report. Barangay
+                          personnel must review the assessment before confirming
+                          the final priority.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="p-5">
+                  <div className="rounded-xl border border-dashed border-[#D0D5DD] bg-[#F8FAFC] px-5 py-8 text-center">
+                    <p className="text-sm font-bold text-[#344054]">
+                      Risk assessment not yet available
+                    </p>
+
+                    <p className="mt-1 text-xs leading-5 text-[#667085]">
+                      Assessment data is not available for this report yet. Only
+                      information recorded in the report database is displayed.
+                    </p>
+                  </div>
+                </div>
+              )}
             </section>
 
             {/* EVIDENCE */}
@@ -942,27 +1204,131 @@ function ReportDetails({
                     id="report-status"
                     value={status}
                     onChange={(event) => handleStatusChange(event.target.value)}
-                    className="mt-2 h-10 w-full rounded-xl border border-[#E4E7EC] bg-white px-3 text-sm font-medium text-[#344054] outline-none transition focus:border-[#8346F2]"
+                    disabled={!incident || !nextIncidentStatus}
+                    className="mt-2 h-10 w-full rounded-xl border border-[#E4E7EC] bg-white px-3 text-sm font-medium text-[#344054] outline-none transition focus:border-[#8346F2] disabled:cursor-not-allowed disabled:bg-[#F8FAFC]"
                   >
-                    <option value="For Verification">For Verification</option>
-
-                    <option value="Pending Prioritization">
-                      Pending Prioritization
-                    </option>
-
-                    <option value="Ready for Response">
-                      Ready for Response
-                    </option>
-
-                    <option value="Assigned">Assigned</option>
-
-                    <option value="Responding">Responding</option>
-
-                    <option value="Monitoring">Monitoring</option>
-
-                    <option value="Resolved">Resolved</option>
+                    <option value={status}>{status}</option>
+                    {nextIncidentStatus && (
+                      <option value={nextIncidentStatus}>
+                        {nextIncidentStatus}
+                      </option>
+                    )}
                   </select>
+
+                  {incident && nextIncidentStatus ? (
+                    <p className="mt-2 text-[11px] text-[#667085]">
+                      Next allowed status: {nextIncidentStatus}
+                    </p>
+                  ) : incident ? (
+                    <p className="mt-2 text-[11px] font-semibold text-[#667085]">
+                      This incident has completed its response workflow.
+                    </p>
+                  ) : (
+                    <p className="mt-2 text-[11px] text-[#667085]">
+                      This report does not have an incident record yet.
+                    </p>
+                  )}
                 </div>
+              </div>
+            </section>
+
+            {/* PRIORITY ASSIGNMENT */}
+            <section className="rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
+              <div className="border-b border-[#E4E7EC] px-5 py-4">
+                <h2 className="text-sm font-bold text-[#1F1D47]">
+                  Priority Assignment
+                </h2>
+
+                <p className="mt-0.5 text-xs text-[#667085]">
+                  Review the system recommendation and confirm the final
+                  priority.
+                </p>
+              </div>
+
+              <div className="space-y-4 p-5">
+                <div
+                  className={`rounded-xl border p-4 ${
+                    report.triage.recommendation
+                      ? getRecommendationStyle(report.triage.recommendation)
+                          .container
+                      : "border-[#E4E7EC] bg-[#F8FAFC]"
+                  }`}
+                >
+                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#667085]">
+                    Assessment Status
+                  </p>
+
+                  <div className="mt-1 flex items-center justify-between gap-3">
+                    <p className="text-lg font-extrabold text-[#1F1D47]">
+                      {report.triage.recommendation || "Not assessed"}
+                    </p>
+
+                    {report.triage.score !== null &&
+                      report.triage.score !== undefined && (
+                        <span className="text-xs font-bold text-[#667085]">
+                          {report.triage.score}
+                        </span>
+                      )}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
+                    Final Priority
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    {["Low", "Moderate", "High", "Critical"].map((priority) => (
+                      <button
+                        key={priority}
+                        type="button"
+                        disabled={priorityLoading || !canAssignPriority}
+                        onClick={() => {
+                          setSelectedPriority(priority);
+                          setPriorityError("");
+                        }}
+                        className={`rounded-xl border px-3 py-2.5 text-xs font-bold transition ${
+                          selectedPriority === priority
+                            ? priorityStyles[priority]
+                            : "border-[#E4E7EC] bg-white text-[#667085] hover:border-[#8346F2] hover:text-[#8346F2]"
+                        } disabled:cursor-not-allowed disabled:opacity-50`}
+                      >
+                        {priority}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
+                    Decision
+                  </p>
+
+                  <div className="mt-2 rounded-xl border border-[#E4E7EC] bg-[#F8FAFC] px-3 py-3">
+                    <p className="text-xs font-semibold text-[#344054]">
+                      {selectedPriority
+                        ? "Priority selected for confirmation"
+                        : "Awaiting final priority"}
+                    </p>
+                  </div>
+                </div>
+
+                {priorityError && (
+                  <p className="rounded-xl border border-[#FECDCA] bg-[#FEF3F2] px-3 py-2 text-xs font-semibold text-[#B42318]">
+                    {priorityError}
+                  </p>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleConfirmPriority}
+                  disabled={
+                    priorityLoading || !canAssignPriority || !selectedPriority
+                  }
+                  className="w-full rounded-xl bg-[#8346F2] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#7138DB] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {priorityLoading ? "Saving Priority..." : "Confirm Priority"}
+                </button>
               </div>
             </section>
 
@@ -984,13 +1350,30 @@ function ReportDetails({
 
                 <InfoItem label="Assigned At" value={assignment.assignedAt} />
 
-                <button
-                  type="button"
-                  onClick={() => setShowAssignmentModal(true)}
-                  className="w-full rounded-xl border border-[#8346F2] bg-white px-4 py-2.5 text-sm font-semibold text-[#8346F2] transition hover:bg-[#F5F3FF]"
-                >
-                  Change Assignment
-                </button>
+                {!incident && status === "Prioritized" ? (
+                  <button
+                    type="button"
+                    onClick={handleCreateIncident}
+                    disabled={assignmentLoading}
+                    className="w-full rounded-xl bg-[#8346F2] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#7138DB] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {assignmentLoading
+                      ? "Creating Incident..."
+                      : "Create Incident"}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAssignmentError("");
+                      setShowAssignmentModal(true);
+                    }}
+                    disabled={!incident}
+                    className="w-full rounded-xl border border-[#8346F2] bg-white px-4 py-2.5 text-sm font-semibold text-[#8346F2] transition hover:bg-[#F5F3FF] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Change Assignment
+                  </button>
+                )}
               </div>
             </section>
 
@@ -1046,49 +1429,61 @@ function ReportDetails({
               </div>
 
               <div className="p-5">
-                <div className="space-y-4">
-                  {visibleHistory.map((item, index) => (
-                    <div
-                      key={`${item.status}-${item.time}-${index}`}
-                      className="flex gap-3"
-                    >
-                      <div className="flex flex-col items-center">
-                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#F4F3FF] text-xs font-bold text-[#8346F2]">
-                          ✓
-                        </span>
+                {visibleHistory.length > 0 ? (
+                  <div className="space-y-4">
+                    {visibleHistory.map((item, index) => (
+                      <div
+                        key={`${item.status}-${item.time}-${index}`}
+                        className="flex gap-3"
+                      >
+                        <div className="flex flex-col items-center">
+                          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#F4F3FF] text-xs font-bold text-[#8346F2]">
+                            ✓
+                          </span>
 
-                        {index !== visibleHistory.length - 1 && (
-                          <span className="mt-1 h-full w-px bg-[#E4E7EC]" />
-                        )}
+                          {index !== visibleHistory.length - 1 && (
+                            <span className="mt-1 h-full w-px bg-[#E4E7EC]" />
+                          )}
+                        </div>
+
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-[#344054]">
+                            {item.status}
+                          </p>
+
+                          <p className="mt-0.5 text-[11px] leading-4 text-[#667085]">
+                            {item.detail}
+                          </p>
+
+                          <p className="mt-1 text-[10px] font-semibold text-[#98A2B3]">
+                            {item.time}
+                          </p>
+                        </div>
                       </div>
-
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-[#344054]">
-                          {item.status}
-                        </p>
-
-                        <p className="mt-0.5 text-[11px] leading-4 text-[#667085]">
-                          {item.detail}
-                        </p>
-
-                        <p className="mt-1 text-[10px] font-semibold text-[#98A2B3]">
-                          {item.time}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-[#667085]">
+                    No status history is available for this report yet.
+                  </p>
+                )}
               </div>
             </section>
 
-            {/* RESOLVE */}
-            {status !== "Resolved" && status !== "For Verification" && (
+            {/* NEXT RESPONSE ACTION */}
+            {incident && nextIncidentStatus && (
               <button
                 type="button"
-                onClick={handleMarkResolved}
-                className="w-full rounded-xl bg-[#2ED47A] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#24BE69]"
+                onClick={() => handleStatusChange(nextIncidentStatus)}
+                className="w-full rounded-xl bg-[#8346F2] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#7138DB]"
               >
-                ✓ Mark as Resolved
+                {nextIncidentStatus === "Dispatched"
+                  ? "Dispatch Incident"
+                  : nextIncidentStatus === "In Progress"
+                    ? "Start Response"
+                    : nextIncidentStatus === "Resolved"
+                      ? "Mark as Resolved"
+                      : "Close Incident"}
               </button>
             )}
           </div>
@@ -1112,7 +1507,10 @@ function ReportDetails({
 
               <button
                 type="button"
-                onClick={() => setShowAssignmentModal(false)}
+                onClick={() => {
+                  setAssignmentError("");
+                  setShowAssignmentModal(false);
+                }}
                 className="text-lg font-bold text-[#98A2B3] hover:text-[#344054]"
               >
                 ×
@@ -1127,23 +1525,16 @@ function ReportDetails({
 
                 <select
                   value={selectedTeam}
-                  onChange={(event) => setSelectedTeam(event.target.value)}
-                  className="mt-2 h-11 w-full rounded-xl border border-[#E4E7EC] px-3 text-sm outline-none focus:border-[#8346F2]"
+                  disabled
+                  className="mt-2 h-11 w-full rounded-xl border border-[#E4E7EC] bg-[#F8FAFC] px-3 text-sm text-[#475467] outline-none disabled:cursor-not-allowed"
                 >
-                  <option value="Unassigned">Select a team</option>
-
-                  <option value="Emergency Response Team A">
-                    Emergency Response Team A
-                  </option>
-
-                  <option value="Emergency Response Team B">
-                    Emergency Response Team B
-                  </option>
-
-                  <option value="Barangay Disaster Response Team">
-                    Barangay Disaster Response Team
+                  <option value={selectedTeam}>
+                    {selectedTeam || "Select personnel first"}
                   </option>
                 </select>
+                <p className="mt-1 text-[11px] text-[#98A2B3]">
+                  Team is based on the selected personnel record.
+                </p>
               </div>
 
               <div>
@@ -1153,20 +1544,40 @@ function ReportDetails({
 
                 <select
                   value={selectedPersonnel}
-                  onChange={(event) => setSelectedPersonnel(event.target.value)}
+                  onChange={(event) => {
+                    const personnelId = event.target.value;
+                    setSelectedPersonnel(personnelId);
+
+                    const person = personnelList.find(
+                      (item) => String(item.id) === personnelId,
+                    );
+
+                    setSelectedTeam(person?.team || "");
+                  }}
                   className="mt-2 h-11 w-full rounded-xl border border-[#E4E7EC] px-3 text-sm outline-none focus:border-[#8346F2]"
                 >
-                  <option value="Unassigned">Select personnel</option>
+                  <option value="">Select personnel</option>
 
-                  <option value="Carlos Mendoza">Carlos Mendoza</option>
-
-                  <option value="Maria Reyes">Maria Reyes</option>
-
-                  <option value="Jose Santos">Jose Santos</option>
-
-                  <option value="Ana Bautista">Ana Bautista</option>
+                  {personnelList
+                    .filter(
+                      (person) =>
+                        person.status === "Active" &&
+                        (person.availability === "Available" ||
+                          String(person.id) === selectedPersonnel),
+                    )
+                    .map((person) => (
+                      <option key={person.id} value={person.id}>
+                        {person.name} — {person.team || "No team"}
+                      </option>
+                    ))}
                 </select>
               </div>
+
+              {assignmentError && (
+                <p className="rounded-xl border border-[#FECDCA] bg-[#FEF3F2] px-3 py-2 text-xs font-semibold text-[#B42318]">
+                  {assignmentError}
+                </p>
+              )}
             </div>
 
             <div className="flex justify-end gap-3 border-t border-[#E4E7EC] px-6 py-4">
@@ -1181,9 +1592,10 @@ function ReportDetails({
               <button
                 type="button"
                 onClick={handleSaveAssignment}
-                className="rounded-xl bg-[#8346F2] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#7335E6]"
+                disabled={assignmentLoading || !selectedPersonnel}
+                className="rounded-xl bg-[#8346F2] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#7335E6] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Save Assignment
+                {assignmentLoading ? "Saving..." : "Save Assignment"}
               </button>
             </div>
           </div>

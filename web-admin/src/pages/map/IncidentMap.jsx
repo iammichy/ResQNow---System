@@ -1,94 +1,416 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  CircleMarker,
+  MapContainer,
+  Popup,
+  TileLayer,
+  useMap,
+} from "react-leaflet";
+import "leaflet/dist/leaflet.css";
 
-const incidents = [
-  {
-    id: "RPT-2026-001",
-    type: "Flooding",
-    category: "Hazard-Related",
-    location: "Purok 3, Camunatan",
-    priority: "Critical",
-    status: "Responding",
-    peopleAffected: "Approximately 35 people",
-    x: "42%",
-    y: "32%",
-  },
-  {
-    id: "RPT-2026-002",
-    type: "Road Obstruction",
-    category: "Incident-Related",
-    location: "National Highway",
-    priority: "High",
-    status: "For Verification",
-    peopleAffected: "Estimated 15–20 people",
-    x: "68%",
-    y: "24%",
-  },
-  {
-    id: "RPT-2026-003",
-    type: "Medical Assistance",
-    category: "Assistance-Related",
-    location: "Purok 1, Camunatan",
-    priority: "High",
-    status: "Assigned",
-    peopleAffected: "1 person",
-    x: "28%",
-    y: "56%",
-  },
-  {
-    id: "RPT-2026-004",
-    type: "Rising Water Level",
-    category: "Hazard-Related",
-    location: "Purok 5, Riverside",
-    priority: "Medium",
-    status: "Monitoring",
-    peopleAffected: "Estimated 8–10 people",
-    x: "76%",
-    y: "66%",
-  },
-  {
-    id: "RPT-2026-006",
-    type: "Evacuation Assistance",
-    category: "Assistance-Related",
-    location: "Purok 4, Camunatan",
-    priority: "Critical",
-    status: "Responding",
-    peopleAffected: "Estimated 20 people",
-    x: "55%",
-    y: "72%",
-  },
-];
+import { getAllIncidents } from "../../services/reportsService";
+import { useLanguage } from "../../hooks/useLanguage";
+
+/* =========================================
+   PRIORITY STYLES
+========================================= */
 
 const priorityStyles = {
   Critical: "bg-[#FEF3F2] text-[#D92D20] border-[#FECDCA]",
   High: "bg-[#FFF4E5] text-[#B54708] border-[#FEDF89]",
-  Medium: "bg-[#FFFAEB] text-[#A15C00] border-[#FDE68A]",
+  Moderate: "bg-[#FFFAEB] text-[#A15C00] border-[#FDE68A]",
   Low: "bg-[#F2F4F7] text-[#667085] border-[#E4E7EC]",
 };
 
+/* =========================================
+   STATUS STYLES
+========================================= */
+
 const statusStyles = {
+  "Pending Response": "bg-[#FFF4E5] text-[#B54708]",
+  Dispatched: "bg-[#EEF4FF] text-[#3538CD]",
+  "In Progress": "bg-[#F4F3FF] text-[#6941C6]",
+  Resolved: "bg-[#ECFDF3] text-[#027A48]",
+  Closed: "bg-[#F2F4F7] text-[#667085]",
+
+  // Legacy statuses kept for display compatibility
   Responding: "bg-[#EEF4FF] text-[#3538CD]",
-  "For Verification": "bg-[#FFF4E5] text-[#B54708]",
   Assigned: "bg-[#F4F3FF] text-[#6941C6]",
   Monitoring: "bg-[#ECFDF3] text-[#027A48]",
 };
 
-function IncidentMap() {
-  const [selectedIncidentId, setSelectedIncidentId] = useState(incidents[0].id);
+/* =========================================
+   BARANGAY CONTACTS
+========================================= */
 
+const barangayContacts = [
+  {
+    name: "Barangay Emergency Hotline",
+    number: "0997 692 0615",
+    note: "Main barangay number",
+  },
+  {
+    name: "Barangay Captain",
+    number: "0997 692 0615",
+    note: "Shared barangay number; Captain name not supplied",
+  },
+  {
+    name: "Kag. Eva P. Sabado",
+    number: "0926 907 4243",
+    note: "Kagawad",
+  },
+  {
+    name: "Kag. Florina M. Pagulayan",
+    number: "0967 550 0540",
+    note: "Kagawad",
+  },
+  {
+    name: "Kag. Solita M. Noriega",
+    number: null,
+    note: "Kagawad",
+  },
+  {
+    name: "Kag. Rosseller G. Casasola",
+    number: "0906 740 2510",
+    note: "Kagawad",
+  },
+  {
+    name: "Kag. Remedios C. Fugaban",
+    number: "0915 540 8153",
+    note: "Kagawad",
+  },
+  {
+    name: "Kag. Ricardo C. Zipagan",
+    number: "0952 562 5876",
+    note: "Kagawad",
+  },
+  {
+    name: "Kag. Albert A. Maramag",
+    number: "0945 366 5695",
+    note: "Kagawad",
+  },
+  {
+    name: "Sec. Gloria D. Candelaria",
+    number: "0965 709 2802",
+    note: "Barangay Secretary",
+  },
+  {
+    name: "Treas. Shirley M. Aganinta",
+    number: null,
+    note: "Treasurer",
+  },
+  {
+    name: "SK Jomel Evans P. Sabado",
+    number: "0975 887 4427",
+    note: "SK Chairperson",
+  },
+  {
+    name: "Barangay Emergency Response",
+    number: "0906 740 2510",
+    note: "Shared response contact",
+  },
+  {
+    name: "Camunatan / City Evacuation Contact",
+    number: "0906 740 2510",
+    note: "Exact center name/location still needs clarification",
+  },
+];
+
+/* =========================================
+   EMERGENCY CONTACTS
+========================================= */
+
+const emergencyContacts = [
+  {
+    name: "Philippine Emergency Hotline",
+    numbers: ["911"],
+  },
+  {
+    name: "Ilagan Emergency Hotline",
+    numbers: ["624 1124"],
+  },
+  {
+    name: "Ilagan Central Command Center",
+    numbers: ["0915 233 1124", "0919 844 3346"],
+  },
+  {
+    name: "CDRRMO / Rescue 1124",
+    numbers: [
+      "PLDT (078) 624 0203",
+      "Globe 0915 234 1124",
+      "Smart 0919 844 3346",
+    ],
+  },
+  {
+    name: "City Police Station - Main",
+    numbers: ["0917 145 5432"],
+  },
+  {
+    name: "Isabela Police Provincial Office",
+    numbers: ["0977 803 7506", "0917 501 8212"],
+  },
+  {
+    name: "PNP SOCO",
+    numbers: ["0955 256 3162"],
+  },
+  {
+    name: "BFP - Ilagan Fire Station",
+    numbers: ["0953 056 3939", "911"],
+  },
+  {
+    name: "Ilagan Fire-Rescue Volunteers",
+    numbers: ["0917 579 7778"],
+  },
+  {
+    name: "Ilagan Mayor's Action Center",
+    numbers: ["0915 167 0129"],
+  },
+  {
+    name: "City Health Office 1",
+    numbers: ["0977 463 8785"],
+  },
+  {
+    name: "City Health Office 2",
+    numbers: ["0917 874 8988"],
+  },
+  {
+    name: "City of Ilagan Medical Center",
+    numbers: ["0999 993 2534"],
+  },
+  {
+    name: "San Antonio City of Ilagan Hospital",
+    numbers: ["0955 236 1000"],
+  },
+  {
+    name: "Gov. Faustino N. Dy Sr. Memorial Hospital",
+    numbers: ["624 1295", "0915 400 8661"],
+  },
+  {
+    name: "Isabela Doctors General Hospital",
+    numbers: ["(078) 624 2071", "0965 807 248"],
+  },
+  {
+    name: "Dr. Victor S. Villamor Memorial Hospital",
+    numbers: ["0917 100 8061"],
+  },
+  {
+    name: "ISELCO II - Head Office",
+    numbers: ["0956 994 6994", "0929 663 4511"],
+  },
+  {
+    name: "ISELCO II - Centro Poblacion Branch",
+    numbers: ["0953 305 1460"],
+  },
+  {
+    name: "City General Services Office - Streetlights",
+    numbers: ["0955 413 3899", "(078) 624 0742"],
+  },
+  {
+    name: "City of Ilagan Water District",
+    numbers: ["(078) 624 0097", "(078) 624 2083"],
+  },
+  {
+    name: "City Social Welfare & Development Office",
+    numbers: ["0927 703 6910", "0939 714 0342"],
+  },
+  {
+    name: "City Environment & Natural Resources Office",
+    numbers: ["0926 926 2960"],
+  },
+  {
+    name: "City Veterinary Office",
+    numbers: ["0927 134 0664"],
+  },
+];
+
+/* =========================================
+   FORMAT INCIDENT DATA
+========================================= */
+
+function formatIncident(incident) {
+  return {
+    id: incident.id,
+
+    incidentCode:
+      incident.incident_code ||
+      `INC-${String(incident.id).padStart(4, "0")}`,
+
+    type: incident.title || incident.type || "Unknown Incident",
+
+    category: incident.category || "Uncategorized",
+
+    description:
+      incident.description || "No incident description provided.",
+
+    location: incident.location || "Location not specified",
+
+    priority: incident.priority || "Moderate",
+
+    status: incident.status || "Pending Response",
+
+    latitude:
+      incident.latitude !== null && incident.latitude !== undefined
+        ? Number(incident.latitude)
+        : null,
+
+    longitude:
+      incident.longitude !== null && incident.longitude !== undefined
+        ? Number(incident.longitude)
+        : null,
+
+    peopleAffected: "Not specified",
+
+    createdAt: incident.created_at,
+
+    reportId: incident.report_id,
+  };
+}
+
+/* =========================================
+   MAP VIEWPORT
+========================================= */
+
+function MapViewport({ incidents }) {
+  const map = useMap();
+
+  useEffect(() => {
+    const validCoordinates = incidents
+      .filter(
+        (incident) =>
+          Number.isFinite(incident.latitude) &&
+          Number.isFinite(incident.longitude),
+      )
+      .map((incident) => [incident.latitude, incident.longitude]);
+
+    if (validCoordinates.length === 0) {
+      return;
+    }
+
+    if (validCoordinates.length === 1) {
+      map.setView(validCoordinates[0], 16);
+      return;
+    }
+
+    map.fitBounds(validCoordinates, {
+      padding: [40, 40],
+      maxZoom: 17,
+    });
+  }, [incidents, map]);
+
+  return null;
+}
+
+/* =========================================
+   INCIDENT MAP
+========================================= */
+
+function IncidentMap({ autoRefresh = true }) {
+  const { t } = useLanguage();
+
+  const [incidents, setIncidents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [selectedIncidentId, setSelectedIncidentId] = useState(null);
   const [priorityFilter, setPriorityFilter] = useState("All");
+
+  /* =========================
+     LOAD INCIDENTS
+  ========================= */
+
+  const loadIncidents = async (showLoading = false) => {
+    try {
+      if (showLoading) {
+        setLoading(true);
+      }
+      setError("");
+
+      const data = await getAllIncidents();
+
+      const formattedIncidents = data.map((incident) =>
+        formatIncident(incident),
+      );
+
+      setIncidents(formattedIncidents);
+
+      setSelectedIncidentId((currentSelectedId) => {
+        const selectedStillExists = formattedIncidents.some(
+          (incident) => incident.id === currentSelectedId,
+        );
+
+        if (selectedStillExists) {
+          return currentSelectedId;
+        }
+
+        return formattedIncidents.length > 0
+          ? formattedIncidents[0].id
+          : null;
+      });
+    } catch (loadError) {
+      console.error("Failed to load incidents:", loadError);
+
+      setError(
+        loadError?.message ||
+          "Unable to load incident data. Please try again.",
+      );
+    } finally {
+      if (showLoading) {
+        setLoading(false);
+      }
+    }
+  };
+
+useEffect(() => {
+  const load = async () => {
+    await loadIncidents(true);
+  };
+
+  load();
+
+  if (!autoRefresh) {
+    return undefined;
+  }
+
+  const refreshInterval = setInterval(() => {
+    loadIncidents(false);
+  }, 15000);
+
+  return () => {
+    clearInterval(refreshInterval);
+  };
+}, [autoRefresh]);
+
+  /* =========================
+     FILTER INCIDENTS
+  ========================= */
 
   const filteredIncidents = useMemo(() => {
     if (priorityFilter === "All") {
       return incidents;
     }
 
-    return incidents.filter((incident) => incident.priority === priorityFilter);
-  }, [priorityFilter]);
+    return incidents.filter(
+      (incident) => incident.priority === priorityFilter,
+    );
+  }, [incidents, priorityFilter]);
+
+  /* =========================
+     SELECTED INCIDENT
+  ========================= */
 
   const selectedIncident =
-    filteredIncidents.find((incident) => incident.id === selectedIncidentId) ??
+    filteredIncidents.find(
+      (incident) => incident.id === selectedIncidentId,
+    ) ??
     filteredIncidents[0] ??
     null;
+
+  /* =========================
+     SUMMARY COUNTS
+  ========================= */
+
+  const activeIncidentCount = incidents.filter(
+    (incident) => !["Resolved", "Closed"].includes(incident.status),
+  ).length;
 
   const criticalCount = incidents.filter(
     (incident) => incident.priority === "Critical",
@@ -98,26 +420,74 @@ function IncidentMap() {
     (incident) => incident.priority === "High",
   ).length;
 
-  const mediumCount = incidents.filter(
-    (incident) => incident.priority === "Medium",
+  const moderateCount = incidents.filter(
+    (incident) => incident.priority === "Moderate",
   ).length;
 
+  /* =========================
+     LOADING STATE
+  ========================= */
+
+  if (loading) {
+    return (
+      <div className="flex h-full min-h-[500px] items-center justify-center">
+        <div className="text-center">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-[#E9D7FE] border-t-[#8346F2]" />
+
+          <p className="mt-4 text-sm font-semibold text-[#667085]">
+            {t("loadingIncident")}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  /* =========================
+     ERROR STATE
+  ========================= */
+
+  if (error) {
+    return (
+      <div className="flex h-full min-h-[500px] items-center justify-center">
+        <div className="rounded-2xl border border-[#FECDCA] bg-white p-8 text-center shadow-sm">
+          <p className="text-lg font-bold text-[#D92D20]">
+            {t("unableToLoadIncidents")}
+          </p>
+
+          <p className="mt-2 text-sm text-[#667085]">{error}</p>
+
+          <button
+            type="button"
+            onClick={loadIncidents}
+            className="mt-5 rounded-xl bg-[#8346F2] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#6D35D8]"
+          >
+            {t("tryAgain")}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  /* =========================
+     MAIN UI
+  ========================= */
+
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4">
-      {/* PAGE HEADER */}
+    <div className="flex min-h-full flex-col gap-4 pb-6">
+      {/* ================= PAGE HEADER ================= */}
+
       <div className="flex shrink-0 items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#8346F2]">
-            OPERATIONS
+            {t("operationsLabel")}
           </p>
 
           <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[#1F1D47]">
-            Incident Map
+            {t("incidentMapTitle")}
           </h1>
 
           <p className="mt-1 text-sm text-[#667085]">
-            Monitor reported incidents, hazard-prone areas, and active response
-            locations.
+            {t("incidentMapDescription")}
           </p>
         </div>
 
@@ -125,214 +495,246 @@ function IncidentMap() {
           <span className="h-2 w-2 rounded-full bg-[#2ED47A]" />
 
           <span className="text-xs font-semibold text-[#027A48]">
-            Live Incident Monitoring
+            {t("liveIncidentMonitoring")}
           </span>
         </div>
       </div>
 
-      {/* SUMMARY */}
+      {/* ================= SUMMARY ================= */}
+
       <div className="grid shrink-0 grid-cols-2 gap-3 xl:grid-cols-4">
+        {/* ACTIVE */}
+
         <div className="rounded-2xl border border-[#E4E7EC] bg-white p-4 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
-            Active Incidents
+            {t("activeIncidents")}
           </p>
 
           <p className="mt-1 text-2xl font-extrabold text-[#1F1D47]">
-            {incidents.length}
+            {activeIncidentCount}
           </p>
 
-          <p className="mt-1 text-xs text-[#667085]">Currently on the map</p>
+          <p className="mt-1 text-xs text-[#667085]">
+            {t("requiresMonitoring")}
+          </p>
         </div>
 
+        {/* CRITICAL */}
+
         <div className="rounded-2xl border border-[#FECDCA] bg-white p-4 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
-            Critical
+          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#D92D20]">
+            {t("critical")}
           </p>
 
           <p className="mt-1 text-2xl font-extrabold text-[#D92D20]">
             {criticalCount}
           </p>
 
-          <p className="mt-1 text-xs text-[#667085]">Immediate attention</p>
+          <p className="mt-1 text-xs text-[#667085]">
+            {t("immediateAttention")}
+          </p>
         </div>
 
+        {/* HIGH */}
+
         <div className="rounded-2xl border border-[#FEDF89] bg-white p-4 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
-            High
+          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#B54708]">
+            {t("highPriority")}
           </p>
 
           <p className="mt-1 text-2xl font-extrabold text-[#B54708]">
             {highCount}
           </p>
 
-          <p className="mt-1 text-xs text-[#667085]">Priority response</p>
+          <p className="mt-1 text-xs text-[#667085]">
+            {t("priorityResponse")}
+          </p>
         </div>
 
+        {/* MODERATE */}
+
         <div className="rounded-2xl border border-[#FDE68A] bg-white p-4 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
-            Medium
+          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#A15C00]">
+            {t("moderate")}
           </p>
 
           <p className="mt-1 text-2xl font-extrabold text-[#A15C00]">
-            {mediumCount}
+            {moderateCount}
           </p>
 
-          <p className="mt-1 text-xs text-[#667085]">Routine monitoring</p>
+          <p className="mt-1 text-xs text-[#667085]">
+            {t("routineMonitoring")}
+          </p>
         </div>
       </div>
 
-      {/* MAP WORKSPACE */}
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(300px,0.75fr)]">
-        {/* MAP */}
-        <section className="relative min-h-0 overflow-hidden rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
+      {/* ================= MAIN CONTENT ================= */}
+
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        {/* ================= MAP ================= */}
+
+        <section className="flex h-[620px] min-w-0 flex-col overflow-hidden rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
           {/* MAP HEADER */}
-          <div className="absolute left-4 right-4 top-4 z-20 flex items-center justify-between gap-3">
-            <div className="rounded-xl border border-[#E4E7EC] bg-white/95 px-3 py-2 shadow-sm backdrop-blur">
-              <p className="text-xs font-bold text-[#1F1D47]">
-                Barangay Camunatan
-              </p>
+
+          <div className="flex shrink-0 items-center justify-between gap-4 border-b border-[#E4E7EC] px-5 py-4">
+            <div>
+              <h2 className="text-sm font-bold text-[#1F1D47]">
+                {t("barangayIncidentOverview")}
+              </h2>
 
               <p className="mt-0.5 text-[10px] text-[#667085]">
-                City of Ilagan
+                Barangay Camunatan, City of Ilagan
               </p>
             </div>
 
             <select
               value={priorityFilter}
-              onChange={(event) => setPriorityFilter(event.target.value)}
-              className="h-9 rounded-xl border border-[#E4E7EC] bg-white/95 px-3 text-xs font-semibold text-[#344054] shadow-sm outline-none focus:border-[#8346F2]"
+              onChange={(event) => {
+                setPriorityFilter(event.target.value);
+                setSelectedIncidentId(null);
+              }}
+              className="h-9 rounded-xl border border-[#E4E7EC] bg-white px-3 text-xs font-semibold text-[#344054] shadow-sm outline-none focus:border-[#8346F2]"
             >
-              <option value="All">All Priorities</option>
-              <option value="Critical">Critical</option>
-              <option value="High">High</option>
-              <option value="Medium">Medium</option>
-              <option value="Low">Low</option>
+              <option value="All">{t("allPriorities")}</option>
+              <option value="Critical">{t("critical")}</option>
+              <option value="High">{t("high")}</option>
+              <option value="Moderate">{t("moderate")}</option>
+              <option value="Low">{t("low")}</option>
             </select>
           </div>
 
-          {/* MAP CANVAS */}
-          <div className="relative h-full min-h-[420px] overflow-hidden bg-[#EEF2F6]">
-            {/* MAP GRID */}
-            <div className="absolute inset-0 opacity-70">
-              <div className="absolute left-[12%] top-0 h-full w-px bg-white" />
-              <div className="absolute left-[30%] top-0 h-full w-px bg-white" />
-              <div className="absolute left-[50%] top-0 h-full w-px bg-white" />
-              <div className="absolute left-[70%] top-0 h-full w-px bg-white" />
-              <div className="absolute left-[88%] top-0 h-full w-px bg-white" />
+          {/* REAL LEAFLET MAP */}
 
-              <div className="absolute left-0 top-[18%] h-px w-full bg-white" />
-              <div className="absolute left-0 top-[38%] h-px w-full bg-white" />
-              <div className="absolute left-0 top-[58%] h-px w-full bg-white" />
-              <div className="absolute left-0 top-[78%] h-px w-full bg-white" />
-            </div>
+          <div className="relative min-h-[520px] flex-1 overflow-hidden">
+            <MapContainer
+              center={[17.15, 121.89]}
+              zoom={14}
+              scrollWheelZoom={true}
+              className="h-full w-full"
+            >
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
 
-            {/* ROAD NETWORK */}
-            <div className="absolute left-[-5%] top-[46%] h-5 w-[110%] rotate-[-12deg] bg-white shadow-sm" />
+              <MapViewport incidents={filteredIncidents} />
 
-            <div className="absolute left-[18%] top-[-10%] h-[120%] w-4 rotate-[22deg] bg-white shadow-sm" />
+              {filteredIncidents
+                .filter(
+                  (incident) =>
+                    Number.isFinite(incident.latitude) &&
+                    Number.isFinite(incident.longitude),
+                )
+                .map((incident) => {
+                  const isSelected = selectedIncident?.id === incident.id;
 
-            <div className="absolute left-[60%] top-[-10%] h-[120%] w-3 rotate-[-32deg] bg-white shadow-sm" />
-
-            <div className="absolute left-[-5%] top-[72%] h-3 w-[110%] rotate-[8deg] bg-white shadow-sm" />
-
-            {/* HAZARD-PRONE AREA */}
-            <div className="absolute left-[30%] top-[48%] h-32 w-40 rounded-[45%] border-2 border-dashed border-[#38BDF8]/60 bg-[#BAE6FD]/30" />
-
-            <div className="absolute left-[31%] top-[52%] rounded-lg bg-white/90 px-2 py-1 text-[9px] font-bold text-[#0369A1] shadow-sm">
-              Flood-prone area
-            </div>
-
-            {/* INCIDENT MARKERS */}
-            {filteredIncidents.map((incident) => {
-              const isSelected = selectedIncident?.id === incident.id;
-
-              const markerClass =
-                incident.priority === "Critical"
-                  ? "bg-[#EF4444]"
-                  : incident.priority === "High"
-                    ? "bg-[#F59E0B]"
-                    : "bg-[#8346F2]";
-
-              return (
-                <button
-                  key={incident.id}
-                  type="button"
-                  onClick={() => setSelectedIncidentId(incident.id)}
-                  className="absolute z-10 -translate-x-1/2 -translate-y-1/2"
-                  style={{
-                    left: incident.x,
-                    top: incident.y,
-                  }}
-                  aria-label={`View ${incident.id}`}
-                >
-                  <span
-                    className={`relative flex h-9 w-9 items-center justify-center rounded-full border-4 border-white text-xs font-extrabold text-white shadow-lg transition-transform ${
-                      markerClass
-                    } ${isSelected ? "scale-125" : "hover:scale-110"}`}
-                  >
-                    {incident.priority === "Critical"
-                      ? "!"
+                  const markerColor =
+                    incident.priority === "Critical"
+                      ? "#EF4444"
                       : incident.priority === "High"
-                        ? "!"
-                        : "•"}
-                  </span>
+                        ? "#F59E0B"
+                        : incident.priority === "Moderate"
+                          ? "#8346F2"
+                          : "#64748B";
 
-                  {isSelected && (
-                    <span className="absolute left-1/2 top-1/2 -z-10 h-14 w-14 -translate-x-1/2 -translate-y-1/2 animate-pulse rounded-full bg-[#8346F2]/20" />
-                  )}
-                </button>
-              );
-            })}
+                  return (
+                    <CircleMarker
+                      key={incident.id}
+                      center={[incident.latitude, incident.longitude]}
+                      radius={isSelected ? 12 : 9}
+                      pathOptions={{
+                        color: "#FFFFFF",
+                        weight: 3,
+                        fillColor: markerColor,
+                        fillOpacity: 1,
+                      }}
+                      eventHandlers={{
+                        click: () => setSelectedIncidentId(incident.id),
+                      }}
+                    >
+                      <Popup>
+                        <div className="min-w-[180px]">
+                          <p className="text-xs font-bold text-[#8346F2]">
+                            {incident.incidentCode}
+                          </p>
 
-            {/* MAP LABELS */}
-            <span className="absolute left-[12%] top-[20%] text-[10px] font-semibold text-[#667085]/70">
-              Purok 1
-            </span>
+                          <p className="mt-1 text-sm font-bold text-[#1F1D47]">
+                            {incident.type}
+                          </p>
 
-            <span className="absolute left-[43%] top-[18%] text-[10px] font-semibold text-[#667085]/70">
-              Purok 3
-            </span>
+                          <p className="mt-1 text-xs text-[#667085]">
+                            {incident.location}
+                          </p>
 
-            <span className="absolute left-[72%] top-[42%] text-[10px] font-semibold text-[#667085]/70">
-              Purok 5
-            </span>
+                          <div className="mt-2 text-xs">
+                            <span className="font-semibold">Priority:</span>{" "}
+                            {incident.priority}
+                          </div>
 
-            <span className="absolute left-[55%] top-[78%] text-[10px] font-semibold text-[#667085]/70">
-              Purok 4
-            </span>
+                          <div className="mt-1 text-xs">
+                            <span className="font-semibold">Status:</span>{" "}
+                            {incident.status}
+                          </div>
+                        </div>
+                      </Popup>
+                    </CircleMarker>
+                  );
+                })}
+            </MapContainer>
 
-            {/* LEGEND */}
-            <div className="absolute bottom-4 left-4 z-20 rounded-xl border border-[#E4E7EC] bg-white/95 p-3 shadow-sm backdrop-blur">
-              <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
-                Map Legend
+            {/* EMPTY MAP STATE */}
+
+            {filteredIncidents.length === 0 && (
+              <div className="pointer-events-none absolute inset-0 z-[1000] flex items-center justify-center">
+                <div className="rounded-xl bg-white px-5 py-4 text-center shadow-sm">
+                  <p className="text-sm font-bold text-[#344054]">
+                    {t("noIncidentsFound")}
+                  </p>
+
+                  <p className="mt-1 text-xs text-[#667085]">
+                    {t("noIncidentsMatchPriority")}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* MAP LEGEND */}
+
+            <div className="absolute bottom-4 left-4 z-[1000] rounded-xl border border-[#E4E7EC] bg-white/95 p-3 shadow-sm backdrop-blur">
+              <p className="mb-2 text-[9px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
+                {t("mapLegend")}
               </p>
 
-              <div className="mt-2 flex flex-wrap gap-3">
+              <div className="space-y-2">
                 <div className="flex items-center gap-1.5">
                   <span className="h-2.5 w-2.5 rounded-full bg-[#EF4444]" />
+
                   <span className="text-[10px] font-medium text-[#667085]">
-                    Critical
+                    {t("critical")}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-1.5">
                   <span className="h-2.5 w-2.5 rounded-full bg-[#F59E0B]" />
+
                   <span className="text-[10px] font-medium text-[#667085]">
-                    High
+                    {t("high")}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-1.5">
                   <span className="h-2.5 w-2.5 rounded-full bg-[#8346F2]" />
+
                   <span className="text-[10px] font-medium text-[#667085]">
-                    Medium / Other
+                    {t("moderate")}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-1.5">
-                  <span className="h-3 w-3 rounded border border-dashed border-[#38BDF8] bg-[#BAE6FD]/50" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#64748B]" />
+
                   <span className="text-[10px] font-medium text-[#667085]">
-                    Hazard Zone
+                    {t("low")}
                   </span>
                 </div>
               </div>
@@ -340,17 +742,18 @@ function IncidentMap() {
           </div>
         </section>
 
-        {/* INCIDENT LIST */}
-        <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
+        {/* ================= INCIDENT LIST ================= */}
+
+      <section className="flex h-[620px] min-w-0 flex-col overflow-hidden rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
           <div className="shrink-0 border-b border-[#E4E7EC] p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-sm font-bold text-[#1F1D47]">
-                  Active Incidents
+                  {t("incidents")}
                 </h2>
 
                 <p className="mt-0.5 text-xs text-[#667085]">
-                  Select an incident to inspect
+                  {t("selectIncidentToInspect")}
                 </p>
               </div>
 
@@ -376,7 +779,7 @@ function IncidentMap() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-[10px] font-bold text-[#8346F2]">
-                        {incident.id}
+                        {incident.incidentCode}
                       </p>
 
                       <p className="mt-1 truncate text-sm font-bold text-[#1F1D47]">
@@ -390,36 +793,55 @@ function IncidentMap() {
 
                     <span
                       className={`shrink-0 rounded-full border px-2 py-1 text-[10px] font-bold ${
-                        priorityStyles[incident.priority]
+                        priorityStyles[incident.priority] ||
+                        priorityStyles.Moderate
                       }`}
                     >
-                      {incident.priority}
+                      {incident.priority === "Critical"
+                        ? t("critical")
+                        : incident.priority === "High"
+                          ? t("high")
+                          : incident.priority === "Moderate"
+                            ? t("moderate")
+                            : incident.priority === "Low"
+                              ? t("low")
+                              : incident.priority}
                     </span>
                   </div>
 
                   <div className="mt-3 flex items-center justify-between gap-2">
                     <span
                       className={`rounded-full px-2 py-1 text-[10px] font-bold ${
-                        statusStyles[incident.status]
+                        statusStyles[incident.status] ||
+                        "bg-[#F2F4F7] text-[#667085]"
                       }`}
                     >
                       {incident.status}
                     </span>
 
                     <span className="text-[10px] text-[#98A2B3]">
-                      {incident.peopleAffected}
+                      {incident.category}
                     </span>
                   </div>
                 </button>
               );
             })}
+
+            {filteredIncidents.length === 0 && (
+              <div className="p-6 text-center">
+                <p className="text-sm font-semibold text-[#667085]">
+                  {t("noIncidentsFound")}
+                </p>
+              </div>
+            )}
           </div>
 
-          {/* SELECTED INCIDENT */}
+          {/* ================= SELECTED INCIDENT ================= */}
+
           {selectedIncident && (
             <div className="shrink-0 border-t border-[#E4E7EC] bg-[#F8FAFC] p-4">
               <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
-                Selected Incident
+                {t("selectedIncident")}
               </p>
 
               <p className="mt-1 text-sm font-extrabold text-[#1F1D47]">
@@ -433,17 +855,25 @@ function IncidentMap() {
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <div className="rounded-lg border border-[#E4E7EC] bg-white p-2.5">
                   <p className="text-[9px] font-bold uppercase text-[#98A2B3]">
-                    Priority
+                    {t("priority")}
                   </p>
 
                   <p className="mt-1 text-xs font-bold text-[#344054]">
-                    {selectedIncident.priority}
+                    {selectedIncident.priority === "Critical"
+                      ? t("critical")
+                      : selectedIncident.priority === "High"
+                        ? t("high")
+                        : selectedIncident.priority === "Moderate"
+                          ? t("moderate")
+                          : selectedIncident.priority === "Low"
+                            ? t("low")
+                            : selectedIncident.priority}
                   </p>
                 </div>
 
                 <div className="rounded-lg border border-[#E4E7EC] bg-white p-2.5">
                   <p className="text-[9px] font-bold uppercase text-[#98A2B3]">
-                    Status
+                    {t("status")}
                   </p>
 
                   <p className="mt-1 text-xs font-bold text-[#344054]">
@@ -451,10 +881,330 @@ function IncidentMap() {
                   </p>
                 </div>
               </div>
+
+              <div className="mt-2 rounded-lg border border-[#E4E7EC] bg-white p-2.5">
+                <p className="text-[9px] font-bold uppercase text-[#98A2B3]">
+                  {t("description")}
+                </p>
+
+                <p className="mt-1 text-xs leading-relaxed text-[#667085]">
+                  {selectedIncident.description}
+                </p>
+              </div>
+
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <div className="rounded-lg border border-[#E4E7EC] bg-white p-2.5">
+                  <p className="text-[9px] font-bold uppercase text-[#98A2B3]">
+                    {t("latitude")}
+                  </p>
+
+                  <p className="mt-1 text-xs font-bold text-[#344054]">
+                    {selectedIncident.latitude ?? "N/A"}
+                  </p>
+                </div>
+
+                <div className="rounded-lg border border-[#E4E7EC] bg-white p-2.5">
+                  <p className="text-[9px] font-bold uppercase text-[#98A2B3]">
+                    {t("longitude")}
+                  </p>
+
+                  <p className="mt-1 text-xs font-bold text-[#344054]">
+                    {selectedIncident.longitude ?? "N/A"}
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </section>
       </div>
+
+           {/* ================= HOTLINE DIRECTORY ================= */}
+
+      <section className="shrink-0 rounded-2xl border border-[#E4E7EC] bg-white p-5 shadow-sm">
+        {/* HEADER */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8346F2]">
+              Emergency Contacts
+            </p>
+
+            <h2 className="mt-1 text-xl font-extrabold tracking-tight text-[#1F1D47]">
+              Hotline Directory
+            </h2>
+
+            <p className="mt-1 text-xs text-[#667085]">
+              Barangay contacts and emergency services for operational response.
+            </p>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-2 rounded-full bg-[#F4F3FF] px-3 py-2 text-[10px] font-bold text-[#6941C6]">
+            <span>☎</span>
+            <span>
+              {barangayContacts.length + emergencyContacts.length} contacts
+            </span>
+          </div>
+        </div>
+
+        {/* ================= BARANGAY CONTACTS ================= */}
+
+        <div className="mt-5 overflow-hidden rounded-2xl border border-[#E4E7EC]">
+          {/* Section Header */}
+          <div className="flex items-center gap-3 border-b border-[#E4E7EC] bg-[#F7F5FF] px-4 py-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#E9D7FE] text-base text-[#6941C6]">
+              👥
+            </div>
+
+            <div className="min-w-0">
+              <h3 className="text-sm font-extrabold text-[#1F1D47]">
+                Barangay Camunatan Contacts
+              </h3>
+
+              <p className="mt-0.5 text-[10px] text-[#667085]">
+                Barangay officials and local response contacts
+              </p>
+            </div>
+          </div>
+
+          {/* Contact Grid */}
+          <div className="grid md:grid-cols-2">
+            {barangayContacts.map((contact, index) => (
+              <div
+                key={contact.name}
+                className={`flex min-w-0 items-center gap-3 px-4 py-3.5 transition hover:bg-[#FAF9FF] ${
+                  index % 2 === 0
+                    ? "md:border-r md:border-[#E4E7EC]"
+                    : ""
+                } ${
+                  index < barangayContacts.length - 2
+                    ? "border-b border-[#E4E7EC]"
+                    : index === barangayContacts.length - 2
+                      ? "border-b border-[#E4E7EC] md:border-b-0"
+                      : ""
+                }`}
+              >
+                {/* Avatar */}
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F4F3FF] text-sm text-[#6941C6]">
+                  👤
+                </div>
+
+                {/* Details */}
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold leading-5 text-[#344054]">
+                    {contact.name}
+                  </p>
+
+                  <p className="text-[10px] leading-4 text-[#667085]">
+                    {contact.note}
+                  </p>
+                </div>
+
+                {/* Phone */}
+                {contact.number ? (
+                  <a
+                    href={`tel:${contact.number.replace(/\D/g, "")}`}
+                    className="flex shrink-0 items-center gap-1.5 rounded-lg bg-[#F4F3FF] px-3 py-2 text-[10px] font-extrabold text-[#6941C6] transition hover:bg-[#E9D7FE]"
+                  >
+                    <span>☎</span>
+                    <span>{contact.number}</span>
+                  </a>
+                ) : (
+                  <span className="shrink-0 rounded-lg bg-[#F2F4F7] px-3 py-2 text-[10px] font-semibold text-[#98A2B3]">
+                    Not provided
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ================= EMERGENCY & CITY SERVICES ================= */}
+
+        <div className="mt-6">
+          {/* Section Header */}
+          <div className="flex items-center gap-3 rounded-xl border border-[#FECDCA] bg-[#FFF8F7] px-4 py-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#FEE4E2] text-base text-[#D92D20]">
+              ☎
+            </div>
+
+            <div className="min-w-0">
+              <h3 className="text-sm font-extrabold text-[#1F1D47]">
+                Emergency & City Services
+              </h3>
+
+              <p className="mt-0.5 text-[10px] text-[#667085]">
+                Emergency, security, medical, government, and utility contacts
+              </p>
+            </div>
+          </div>
+
+          {/* Service Cards */}
+          <div className="mt-3 grid gap-3 lg:grid-cols-2">
+            {[
+              {
+                title: "Emergency & Rescue",
+                icon: "🚨",
+                names: [
+                  "Philippine Emergency Hotline",
+                  "Ilagan Emergency Hotline",
+                  "Ilagan Central Command Center",
+                  "CDRRMO / Rescue 1124",
+                  "BFP - Ilagan Fire Station",
+                  "Ilagan Fire-Rescue Volunteers",
+                ],
+                cardClass: "border-[#FECDCA]",
+                headerClass: "bg-[#FFF5F4]",
+                iconClass: "bg-[#FEE4E2] text-[#D92D20]",
+                countClass: "bg-white text-[#D92D20]",
+                buttonClass:
+                  "bg-[#FFF0EE] text-[#D92D20] hover:bg-[#FEE4E2]",
+              },
+              {
+                title: "Police & Security",
+                icon: "🛡️",
+                names: [
+                  "City Police Station - Main",
+                  "Isabela Police Provincial Office",
+                  "PNP SOCO",
+                ],
+                cardClass: "border-[#C7D7FE]",
+                headerClass: "bg-[#F3F7FF]",
+                iconClass: "bg-[#E0EAFF] text-[#3538CD]",
+                countClass: "bg-white text-[#3538CD]",
+                buttonClass:
+                  "bg-[#EEF4FF] text-[#3538CD] hover:bg-[#E0EAFF]",
+              },
+              {
+                title: "Medical & Health",
+                icon: "✚",
+                names: [
+                  "City Health Office 1",
+                  "City Health Office 2",
+                  "City of Ilagan Medical Center",
+                  "San Antonio City of Ilagan Hospital",
+                  "Gov. Faustino N. Dy Sr. Memorial Hospital",
+                  "Isabela Doctors General Hospital",
+                  "Dr. Victor S. Villamor Memorial Hospital",
+                ],
+                cardClass: "border-[#ABEFC6]",
+                headerClass: "bg-[#F0FDF7]",
+                iconClass: "bg-[#D1FADF] text-[#027A48]",
+                countClass: "bg-white text-[#027A48]",
+                buttonClass:
+                  "bg-[#ECFDF3] text-[#027A48] hover:bg-[#D1FADF]",
+              },
+              {
+                title: "Government & Utilities",
+                icon: "🏛️",
+                names: [
+                  "Ilagan Mayor's Action Center",
+                  "ISELCO II - Head Office",
+                  "ISELCO II - Centro Poblacion Branch",
+                  "City General Services Office - Streetlights",
+                  "City of Ilagan Water District",
+                  "City Social Welfare & Development Office",
+                  "City Environment & Natural Resources Office",
+                  "City Veterinary Office",
+                ],
+                cardClass: "border-[#FDE68A]",
+                headerClass: "bg-[#FFFBEB]",
+                iconClass: "bg-[#FEF0C7] text-[#A15C00]",
+                countClass: "bg-white text-[#A15C00]",
+                buttonClass:
+                  "bg-[#FFFAEB] text-[#A15C00] hover:bg-[#FEF0C7]",
+              },
+            ].map((group) => (
+              <div
+                key={group.title}
+                className={`overflow-hidden rounded-2xl border bg-white ${group.cardClass}`}
+              >
+                {/* Card Header */}
+                <div
+                  className={`flex items-center justify-between gap-3 border-b border-inherit px-4 py-3 ${group.headerClass}`}
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-base ${group.iconClass}`}
+                    >
+                      {group.icon}
+                    </div>
+
+                    <div className="min-w-0">
+                      <h4 className="text-sm font-extrabold uppercase tracking-[0.03em] text-[#1F1D47]">
+                        {group.title}
+                      </h4>
+
+                      <p className="mt-0.5 text-[10px] text-[#667085]">
+                        {group.title}
+                      </p>
+                    </div>
+                  </div>
+
+                  <span
+                    className={`flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full px-2 text-[10px] font-extrabold ${group.countClass}`}
+                  >
+                    {group.names.length}
+                  </span>
+                </div>
+
+                {/* Contacts */}
+                <div className="grid sm:grid-cols-2">
+                  {group.names.map((name, index) => {
+                    const contact = emergencyContacts.find(
+                      (item) => item.name === name,
+                    );
+
+                    if (!contact) return null;
+
+                    return (
+                      <div
+                        key={contact.name}
+                        className={`min-w-0 px-4 py-4 transition hover:bg-[#FCFCFD] ${
+                          index % 2 === 0
+                            ? "sm:border-r sm:border-[#E4E7EC]"
+                            : ""
+                        } ${
+                          index < group.names.length - 2
+                            ? "border-b border-[#E4E7EC]"
+                            : index === group.names.length - 2
+                              ? "border-b border-[#E4E7EC] sm:border-b-0"
+                              : ""
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          {/* Contact Details */}
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-bold leading-5 text-[#344054]">
+                              {contact.name}
+                            </p>
+
+                            <p className="mt-0.5 text-[10px] text-[#98A2B3]">
+                              Emergency contact
+                            </p>
+                          </div>
+
+                          {/* Phone Buttons */}
+                          <div className="flex shrink-0 flex-col items-end gap-1.5">
+                            {contact.numbers.map((number) => (
+                              <a
+                                key={`${contact.name}-${number}`}
+                                href={`tel:${number.replace(/\D/g, "")}`}
+                                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-[10px] font-extrabold transition ${group.buttonClass}`}
+                              >
+                                <span>☎</span>
+                                <span>{number}</span>
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

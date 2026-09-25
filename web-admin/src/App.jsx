@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import AdminLogin from "./auth/AdminLogin";
 
@@ -32,7 +32,16 @@ import PersonnelPage from "./pages/personnel/PersonnelPage";
 
 import LanguageProvider from "./context/LanguageProvider";
 
-import { ROLES, hasPermission } from "./data/roles";
+import { ROLES, hasPermission, normalizeRole } from "./data/roles";
+
+import { createAuditLog, getAllAuditLogs } from "./services/reportsService";
+
+import {
+  getCurrentUser,
+  getStoredUser,
+  isAuthenticated as hasAuthToken,
+  logout as logoutUser,
+} from "./services/authService";
 
 function App() {
   /* =========================
@@ -40,27 +49,26 @@ function App() {
   ========================= */
 
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return sessionStorage.getItem("resqnow_admin_session") === "true";
+    return hasAuthToken();
+  });
+
+  const [currentUser, setCurrentUser] = useState(() => {
+    return getStoredUser();
   });
 
   /* =========================
-     NAVIGATION
+     NAVIGATION / RBAC
   ========================= */
-  /* =========================
-   NAVIGATION / RBAC
-========================= */
 
   const [activePage, setActivePage] = useState("dashboard");
-
-  const [currentUser] = useState({
-    id: "ADM-2026-001",
-    name: "Administrator",
-    role: ROLES.ADMIN,
-  });
-
   const can = (permission) => {
+    if (!currentUser) {
+      return false;
+    }
+
     return hasPermission(currentUser.role, permission);
   };
+
   const [selectedReport, setSelectedReport] = useState(null);
 
   const [selectedResident, setSelectedResident] = useState(null);
@@ -80,6 +88,7 @@ function App() {
   /* =========================
      GLOBAL SYSTEM SETTINGS
   ========================= */
+
   const [systemSettings, setSystemSettings] = useState({
     systemName: "ResQNow",
     barangayName: "Barangay Camunatan",
@@ -91,33 +100,87 @@ function App() {
     announcementAlerts: true,
     autoRefresh: true,
   });
-  /* ========================= ()
+
+  /* =========================
      AUTHENTICATION HANDLERS
   ========================= */
 
-  const handleLogin = (adminData) => {
-    sessionStorage.setItem("resqnow_admin_session", "true");
+  const handleLogin = (user) => {
+    const normalizedUser = {
+      ...user,
+      role: normalizeRole(user.role),
+    };
 
-    sessionStorage.setItem("resqnow_admin_user", JSON.stringify(adminData));
+    setCurrentUser(normalizedUser);
 
     setIsAuthenticated(true);
 
     setActivePage("dashboard");
   };
 
-  const handleLogout = () => {
-    sessionStorage.removeItem("resqnow_admin_session");
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      setCurrentUser(null);
 
-    sessionStorage.removeItem("resqnow_admin_user");
+      setIsAuthenticated(false);
 
-    setIsAuthenticated(false);
+      setActivePage("dashboard");
 
-    setActivePage("dashboard");
+      setSelectedReport(null);
 
-    setSelectedReport(null);
-
-    setSelectedResident(null);
+      setSelectedResident(null);
+    }
   };
+  /* =========================
+   VERIFY AUTHENTICATION
+========================= */
+
+  useEffect(() => {
+    const verifyAuthentication = async () => {
+      if (!hasAuthToken()) {
+        return;
+      }
+
+      try {
+        const user = await getCurrentUser();
+
+        const normalizedUser = {
+          ...user,
+          role: normalizeRole(user.role),
+        };
+
+        /*
+         * The Web Admin is limited to defined operational roles.
+         */
+        if (!Object.values(ROLES).includes(normalizedUser.role)) {
+          localStorage.removeItem("resqnow_token");
+          localStorage.removeItem("resqnow_user");
+
+          setCurrentUser(null);
+          setIsAuthenticated(false);
+
+          return;
+        }
+
+        setCurrentUser(normalizedUser);
+        setIsAuthenticated(true);
+      } catch (error) {
+        console.error("Authentication verification failed:", error);
+
+        localStorage.removeItem("resqnow_token");
+        localStorage.removeItem("resqnow_user");
+
+        setCurrentUser(null);
+        setIsAuthenticated(false);
+      }
+    };
+
+    verifyAuthentication();
+  }, []);
 
   /* =========================
      NAVIGATION
@@ -191,68 +254,149 @@ function App() {
   };
 
   /* =========================
+     LOAD AUDIT LOGS
+  ========================= */
+
+  useEffect(() => {
+    const loadAuditLogs = async () => {
+      try {
+        const data = await getAllAuditLogs();
+
+        const formattedLogs = data.map((log) => ({
+          id: `LOG-${log.id}`,
+
+          action: log.action,
+
+          category: log.category,
+
+          target: log.target || "—",
+
+          field: log.field || "—",
+
+          oldValue:
+            log.old_value === null ||
+            log.old_value === undefined ||
+            log.old_value === ""
+              ? "—"
+              : String(log.old_value),
+
+          newValue:
+            log.new_value === null ||
+            log.new_value === undefined ||
+            log.new_value === ""
+              ? "—"
+              : String(log.new_value),
+
+          remarks: log.remarks || "No remarks provided.",
+
+          user: log.user_name || "Administrator",
+
+          role: log.user_role || "Barangay Administrator",
+
+          dateTime: log.created_at,
+
+          status: log.status || "Success",
+        }));
+
+        setAuditLogs(formattedLogs);
+      } catch (error) {
+        console.error("Failed to load audit logs:", error);
+      }
+    };
+
+    if (isAuthenticated) {
+      loadAuditLogs();
+    }
+  }, [isAuthenticated]);
+
+  /* =========================
      AUDIT LOG MANAGEMENT
   ========================= */
 
-  const addAuditLog = ({
+  const addAuditLog = async ({
     action,
-
     category = "Report Action",
-
     target,
-
     field,
-
     oldValue,
-
     newValue,
-
     remarks = "",
-
     status = "Success",
   }) => {
     const adminData = JSON.parse(
       sessionStorage.getItem("resqnow_admin_user") || "{}",
     );
 
-    const uniqueId =
-      typeof crypto !== "undefined" && crypto.randomUUID
-        ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-
-    const newLog = {
-      id: `LOG-${uniqueId}`,
-
+    const auditLogData = {
       action,
-
       category,
+      target: target || null,
+      field: field || null,
 
-      target,
-
-      field: field || "—",
-
-      oldValue:
+      old_value:
         oldValue === undefined || oldValue === null || oldValue === ""
-          ? "—"
+          ? null
           : String(oldValue),
 
-      newValue:
+      new_value:
         newValue === undefined || newValue === null || newValue === ""
-          ? "—"
+          ? null
           : String(newValue),
 
-      remarks: remarks || "No remarks provided.",
+      remarks: remarks || null,
 
-      user: adminData.username || adminData.name || "Administrator",
+      user_name: adminData.username || adminData.name || "Administrator",
 
-      role: adminData.role || "Barangay Administrator",
-
-      dateTime: new Date().toISOString(),
+      user_role: adminData.role || "Barangay Administrator",
 
       status,
     };
 
-    setAuditLogs((currentLogs) => [newLog, ...currentLogs]);
+    try {
+      const result = await createAuditLog(auditLogData);
+
+      const savedLog = result.data;
+
+      const newLog = {
+        id: `LOG-${savedLog.id}`,
+
+        action: savedLog.action,
+
+        category: savedLog.category,
+
+        target: savedLog.target || "—",
+
+        field: savedLog.field || "—",
+
+        oldValue:
+          savedLog.old_value === null ||
+          savedLog.old_value === undefined ||
+          savedLog.old_value === ""
+            ? "—"
+            : String(savedLog.old_value),
+
+        newValue:
+          savedLog.new_value === null ||
+          savedLog.new_value === undefined ||
+          savedLog.new_value === ""
+            ? "—"
+            : String(savedLog.new_value),
+
+        remarks: savedLog.remarks || "No remarks provided.",
+
+        user: savedLog.user_name || "Administrator",
+
+        role: savedLog.user_role || "Barangay Administrator",
+
+        dateTime: savedLog.created_at || new Date().toISOString(),
+
+        status: savedLog.status || "Success",
+      };
+
+      setAuditLogs((currentLogs) => [newLog, ...currentLogs]);
+    } catch (error) {
+      console.error("Failed to create audit log:", error);
+    }
   };
 
   /* =========================
@@ -298,6 +442,7 @@ function App() {
             onOpenReport={handleOpenReport}
             onNavigate={handleNavigate}
             reportUpdates={reportUpdates}
+            autoRefresh={systemSettings.autoRefresh}
           />
         );
 
@@ -332,10 +477,15 @@ function App() {
         );
 
       case "map":
-        return <IncidentMap />;
+        return <IncidentMap autoRefresh={systemSettings.autoRefresh} />;
 
       case "live-updates":
-        return <LiveUpdates onBack={() => handleNavigate("dashboard")} />;
+        return (
+          <LiveUpdates
+            onBack={() => handleNavigate("dashboard")}
+            autoRefresh={systemSettings.autoRefresh}
+          />
+        );
 
       case "residents":
         return (
@@ -425,6 +575,7 @@ function App() {
         onAddManualReport={() => handleNavigate("manual-report")}
         currentUser={currentUser}
         can={can}
+        systemSettings={systemSettings}
       >
         {renderPage()}
       </AdminLayout>

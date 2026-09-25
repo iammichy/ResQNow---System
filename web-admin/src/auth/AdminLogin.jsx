@@ -7,6 +7,7 @@ import {
   AlertCircle,
   Loader2,
 } from "lucide-react";
+import { login } from "../services/authService";
 
 import camunatanEntrance from "../assets/camunatan-entrance.png";
 import salamatpo from "../assets/salamatpo.png";
@@ -35,15 +36,6 @@ function AdminLogin({ onLogin }) {
   useEffect(() => {
     usernameRef.current?.focus();
   }, []);
-
-    const rememberedUsername = localStorage.getItem(
-      "resqnow_admin_remembered_username"
-    );
-
-    if (rememberedUsername) {
-      setUsername(rememberedUsername);
-      setRememberMe(true);
-    }
 
   const handleFocus = (field) => {
     setFocusedField(field);
@@ -74,46 +66,69 @@ function AdminLogin({ onLogin }) {
     setFocusedField(null);
   };
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
+const handleSubmit = async (event) => {
+  event.preventDefault();
 
-    setError("");
+  setError("");
 
-    const errors = {
-      username: !username.trim() ? "Username is required" : "",
-      password: !password.trim() ? "Password is required" : "",
-    };
-
-    setFieldErrors(errors);
-
-    if (errors.username || errors.password) {
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    setTimeout(() => {
-      if (rememberMe) {
-        localStorage.setItem(
-          "resqnow_admin_remembered_username",
-          username.trim()
-        );
-      } else {
-        localStorage.removeItem(
-          "resqnow_admin_remembered_username"
-        );
-      }
-
-      if (onLogin) {
-        onLogin({
-          username: username.trim(),
-        });
-      }
-
-      setIsSubmitting(false);
-    }, 700);
+  const errors = {
+    username: !username.trim() ? "Username is required" : "",
+    password: !password.trim() ? "Password is required" : "",
   };
 
+  setFieldErrors(errors);
+
+  if (errors.username || errors.password) {
+    return;
+  }
+
+  setIsSubmitting(true);
+
+  try {
+    /*
+     * The backend currently authenticates using email.
+     * The existing UI still calls this field "Username",
+     * so we send the entered value as the email.
+     */
+  const result = await login(
+  username.trim(),
+  password,
+  rememberMe,
+);
+
+    /*
+     * Only remember the username/email locally.
+     * Never store the password.
+     */
+    if (rememberMe) {
+      localStorage.setItem(
+        "resqnow_admin_remembered_username",
+        username.trim(),
+      );
+    } else {
+      localStorage.removeItem(
+        "resqnow_admin_remembered_username",
+      );
+    }
+
+    /*
+     * Pass the authenticated backend user
+     * back to App.jsx.
+     */
+    if (onLogin) {
+      onLogin(result.user);
+    }
+  } catch (error) {
+    console.error("Login failed:", error);
+
+    setError(
+      error.message ||
+        "Unable to sign in. Please check your credentials.",
+    );
+  } finally {
+    setIsSubmitting(false);
+  }
+};
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#1F1D47] p-4 sm:p-6">
       

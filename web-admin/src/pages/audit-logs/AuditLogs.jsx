@@ -1,65 +1,6 @@
 import { useMemo, useState } from "react";
 import { useLanguage } from "../../hooks/useLanguage";
 
-const initialLogs = [
-  {
-    id: "LOG-2026-001",
-    dateTime: "2026-09-05T21:42:00",
-    user: "Administrator",
-    role: "Barangay Personnel",
-    action: "Report Verified",
-    category: "Report Action",
-    target: "RPT-2026-001",
-    field: "Verification Status",
-    oldValue: "Pending",
-    newValue: "Verified",
-    remarks: "Flooding report was verified and marked as valid.",
-    status: "Success",
-  },
-  {
-    id: "LOG-2026-002",
-    dateTime: "2026-09-05T21:35:00",
-    user: "Carlos Mendoza",
-    role: "Response Team Leader",
-    action: "Personnel Assigned",
-    category: "Report Action",
-    target: "RPT-2026-003",
-    field: "Assigned Personnel",
-    oldValue: "Unassigned",
-    newValue: "Emergency Response Team A",
-    remarks: "Response team assigned to handle the incident.",
-    status: "Success",
-  },
-  {
-    id: "LOG-2026-003",
-    dateTime: "2026-09-05T21:18:00",
-    user: "Administrator",
-    role: "Barangay Personnel",
-    action: "Priority Confirmed",
-    category: "Report Action",
-    target: "RPT-2026-002",
-    field: "Priority Status",
-    oldValue: "Pending",
-    newValue: "Confirmed",
-    remarks: "Priority was reviewed and confirmed.",
-    status: "Success",
-  },
-  {
-    id: "LOG-2026-004",
-    dateTime: "2026-09-05T20:55:00",
-    user: "Administrator",
-    role: "Barangay Personnel",
-    action: "Announcement Published",
-    category: "System Action",
-    target: "ANN-2026-001",
-    field: "Announcement Status",
-    oldValue: "Draft",
-    newValue: "Published",
-    remarks: "Flood warning advisory was published.",
-    status: "Success",
-  },
-];
-
 const categoryOptions = [
   "All Categories",
   "Report Action",
@@ -118,6 +59,11 @@ const actionStyles = {
     dot: "bg-[#667085]",
   },
 
+  "Announcement Deleted": {
+    badge: "bg-[#FEF0F0] text-[#C53030]",
+    dot: "bg-[#EF4444]",
+  },
+
   "Manual Report Added": {
     badge: "bg-[#E8F8F4] text-[#008F78]",
     dot: "bg-[#00C9A7]",
@@ -127,110 +73,52 @@ const actionStyles = {
 function AuditLogs({ logs = [] }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All Categories");
+  const [selectedLogId, setSelectedLogId] = useState(null);
+
   const { t } = useLanguage();
 
   /*
-    Combine LIVE audit logs from App.jsx
-    with the existing sample logs.
+    LOG DATA
 
-    Live logs are given priority when
-    timestamps are the same.
+    The logs prop now comes from App.jsx.
+
+    App.jsx loads the records from:
+    MySQL → Laravel API → React
+
+    There are NO mock/sample logs here.
   */
-const allLogs = useMemo(() => {
-  /*
-    LIVE LOGS
+  const allLogs = useMemo(() => {
+    return [...logs].sort((a, b) => {
+      const dateA = a.dateTime
+        ? new Date(a.dateTime).getTime()
+        : 0;
 
-    App.jsx already adds the newest activity
-    at the beginning of the auditLogs array:
+      const dateB = b.dateTime
+        ? new Date(b.dateTime).getTime()
+        : 0;
 
-    setAuditLogs((currentLogs) => [newLog, ...currentLogs]);
-
-    Therefore, sourceIndex 0 is always the newest
-    live activity.
-  */
-
-  const liveLogs = logs.map((log, index) => ({
-    ...log,
-    source: "live",
-    sourcePriority: 1,
-    sourceIndex: index,
-  }));
-
-  /*
-    SAMPLE LOGS
-
-    These are only fallback/mock records.
-  */
-
-  const sampleLogs = initialLogs.map((log, index) => ({
-    ...log,
-    source: "sample",
-    sourcePriority: 0,
-    sourceIndex: index,
-  }));
-
-  return [...liveLogs, ...sampleLogs].sort((a, b) => {
-    /*
-      Get valid timestamps.
-
-      Live logs use dateTime.
-      Sample logs may use dateTime as well.
-    */
-
-    const dateA = a.dateTime
-      ? new Date(a.dateTime).getTime()
-      : 0;
-
-    const dateB = b.dateTime
-      ? new Date(b.dateTime).getTime()
-      : 0;
-
-    /*
-      1. NEWEST DATE/TIME FIRST
-    */
-
-    if (dateB !== dateA) {
       return dateB - dateA;
-    }
-
-    /*
-      2. LIVE SYSTEM ACTIVITIES
-         COME BEFORE SAMPLE LOGS
-    */
-
-    if (b.sourcePriority !== a.sourcePriority) {
-      return b.sourcePriority - a.sourcePriority;
-    }
-
-    /*
-      3. FOR LIVE LOGS WITH THE SAME TIME,
-         KEEP THE ORIGINAL ORDER.
-
-         Since App.jsx inserts:
-
-         [newLog, ...currentLogs]
-
-         index 0 is the newest activity.
-    */
-
-    return a.sourceIndex - b.sourceIndex;
-  });
-}, [logs]);
+    });
+  }, [logs]);
 
   /*
-    Automatically select the newest log.
-  */
-  const [selectedLogId, setSelectedLogId] = useState(null);
+    Automatically display the selected log.
 
+    If no log has been manually selected,
+    the newest log is displayed.
+  */
   const selectedLog =
-    allLogs.find((log) => log.id === selectedLogId) || allLogs[0] || null;
+    allLogs.find((log) => log.id === selectedLogId) ||
+    allLogs[0] ||
+    null;
 
   const filteredLogs = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
 
     return allLogs.filter((log) => {
       const matchesCategory =
-        categoryFilter === "All Categories" || log.category === categoryFilter;
+        categoryFilter === "All Categories" ||
+        log.category === categoryFilter;
 
       const searchableText = [
         log.id,
@@ -248,7 +136,8 @@ const allLogs = useMemo(() => {
         .join(" ")
         .toLowerCase();
 
-      const matchesSearch = !query || searchableText.includes(query);
+      const matchesSearch =
+        !query || searchableText.includes(query);
 
       return matchesCategory && matchesSearch;
     });
@@ -339,7 +228,7 @@ const allLogs = useMemo(() => {
           <div className="flex shrink-0 flex-col gap-3 border-b border-[#E4E7EC] p-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h2 className="text-sm font-bold text-[#1F1D47]">
-                 {t("activityHistory")}
+                {t("activityHistory")}
               </h2>
 
               <p className="mt-0.5 text-xs text-[#667085]">
@@ -355,7 +244,9 @@ const allLogs = useMemo(() => {
                 <input
                   type="text"
                   value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
+                  onChange={(event) =>
+                    setSearchTerm(event.target.value)
+                  }
                   placeholder="Search activities..."
                   className="h-9 w-full rounded-lg border border-[#E4E7EC] bg-[#FCFCFD] pl-9 pr-3 text-xs text-[#1F1D47] outline-none transition focus:border-[#8346F2] focus:ring-2 focus:ring-[#8346F2]/10"
                 />
@@ -364,7 +255,9 @@ const allLogs = useMemo(() => {
               {/* CATEGORY FILTER */}
               <select
                 value={categoryFilter}
-                onChange={(event) => setCategoryFilter(event.target.value)}
+                onChange={(event) =>
+                  setCategoryFilter(event.target.value)
+                }
                 className="h-9 rounded-lg border border-[#E4E7EC] bg-[#FCFCFD] px-3 text-xs font-medium text-[#475467] outline-none focus:border-[#8346F2] focus:ring-2 focus:ring-[#8346F2]/10"
               >
                 {categoryOptions.map((option) => (
@@ -405,14 +298,19 @@ const allLogs = useMemo(() => {
                 {filteredLogs.map((log) => {
                   const style = getActionStyle(log.action);
 
-                  const isSelected = selectedLog?.id === log.id;
+                  const isSelected =
+                    selectedLog?.id === log.id;
 
                   return (
                     <tr
                       key={log.id}
-                      onClick={() => setSelectedLogId(log.id)}
+                      onClick={() =>
+                        setSelectedLogId(log.id)
+                      }
                       className={`cursor-pointer border-b border-[#F0F1F3] transition hover:bg-[#F9F7FF] ${
-                        isSelected ? "bg-[#F7F3FF]" : "bg-white"
+                        isSelected
+                          ? "bg-[#F7F3FF]"
+                          : "bg-white"
                       }`}
                     >
                       {/* DATE */}
@@ -430,16 +328,21 @@ const allLogs = useMemo(() => {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2.5">
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#EDE9FE] text-[10px] font-extrabold text-[#6D28D9]">
-                            {getInitials(log.user || "Administrator")}
+                            {getInitials(
+                              log.user ||
+                                "Administrator",
+                            )}
                           </div>
 
                           <div className="min-w-0">
                             <p className="truncate text-xs font-bold text-[#344054]">
-                              {log.user || "Administrator"}
+                              {log.user ||
+                                "Administrator"}
                             </p>
 
                             <p className="truncate text-[10px] text-[#98A2B3]">
-                              {log.role || "Barangay Administrator"}
+                              {log.role ||
+                                "Barangay Administrator"}
                             </p>
                           </div>
                         </div>
@@ -464,7 +367,9 @@ const allLogs = useMemo(() => {
                           <div className="text-xs font-semibold text-[#475467]">
                             {log.oldValue || "—"}
 
-                            <span className="mx-1.5 text-[#8346F2]">→</span>
+                            <span className="mx-1.5 text-[#8346F2]">
+                              →
+                            </span>
 
                             <span className="text-[#1F1D47]">
                               {log.newValue || "—"}
@@ -472,7 +377,8 @@ const allLogs = useMemo(() => {
                           </div>
 
                           <p className="mt-1 text-[10px] text-[#98A2B3]">
-                            {log.field || "System Activity"}
+                            {log.field ||
+                              "System Activity"}
                           </p>
                         </div>
                       </td>
@@ -489,13 +395,17 @@ const allLogs = useMemo(() => {
 
                 {filteredLogs.length === 0 && (
                   <tr>
-                    <td colSpan="5" className="px-6 py-12 text-center">
+                    <td
+                      colSpan="5"
+                      className="px-6 py-12 text-center"
+                    >
                       <p className="text-sm font-bold text-[#344054]">
                         No audit logs found
                       </p>
 
                       <p className="mt-1 text-xs text-[#98A2B3]">
-                        Try adjusting your search or category filter.
+                        Try adjusting your search or category
+                        filter.
                       </p>
                     </td>
                   </tr>
@@ -513,7 +423,7 @@ const allLogs = useMemo(() => {
             </p>
 
             <h2 className="mt-1 text-lg font-extrabold text-[#1F1D47]">
-               {t("activityInformation")}
+              {t("activityInformation")}
             </h2>
           </div>
 
@@ -535,7 +445,8 @@ const allLogs = useMemo(() => {
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E8F8F4] px-2.5 py-1 text-[10px] font-bold text-[#008F78]">
                     <span className="h-1.5 w-1.5 rounded-full bg-[#2ED47A]" />
 
-                    {selectedLog.status || "Success"}
+                    {selectedLog.status ||
+                      "Success"}
                   </span>
                 </div>
               </div>
@@ -547,7 +458,8 @@ const allLogs = useMemo(() => {
                 </p>
 
                 <p className="mt-2 text-xs font-bold text-[#344054]">
-                  {selectedLog.field || "System Activity"}
+                  {selectedLog.field ||
+                    "System Activity"}
                 </p>
 
                 <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
@@ -561,7 +473,9 @@ const allLogs = useMemo(() => {
                     </p>
                   </div>
 
-                  <span className="text-sm font-bold text-[#8346F2]">→</span>
+                  <span className="text-sm font-bold text-[#8346F2]">
+                    →
+                  </span>
 
                   <div className="rounded-lg border border-[#A7F3D0] bg-[#ECFDF3] p-3">
                     <p className="text-[9px] font-bold uppercase text-[#027A48]">
@@ -577,28 +491,45 @@ const allLogs = useMemo(() => {
 
               {/* DETAILS */}
               <div className="mt-4">
-                <DetailRow label="Log ID" value={selectedLog.id} mono />
+                <DetailRow
+                  label="Log ID"
+                  value={selectedLog.id}
+                  mono
+                />
 
                 <DetailRow
                   label="Date & Time"
-                  value={formatDateTime(selectedLog.dateTime)}
+                  value={formatDateTime(
+                    selectedLog.dateTime,
+                  )}
                 />
 
                 <DetailRow
                   label="User"
-                  value={selectedLog.user || "Administrator"}
+                  value={
+                    selectedLog.user ||
+                    "Administrator"
+                  }
                 />
 
                 <DetailRow
                   label="Role"
-                  value={selectedLog.role || "Barangay Administrator"}
+                  value={
+                    selectedLog.role ||
+                    "Barangay Administrator"
+                  }
                 />
 
-                <DetailRow label="Category" value={selectedLog.category} />
+                <DetailRow
+                  label="Category"
+                  value={selectedLog.category}
+                />
 
                 <DetailRow
                   label="Target"
-                  value={selectedLog.target || "—"}
+                  value={
+                    selectedLog.target || "—"
+                  }
                   mono
                 />
               </div>
@@ -610,7 +541,8 @@ const allLogs = useMemo(() => {
                 </p>
 
                 <p className="mt-2 text-xs leading-5 text-[#475467]">
-                  {selectedLog.remarks || "No remarks provided."}
+                  {selectedLog.remarks ||
+                    "No remarks provided."}
                 </p>
               </div>
 
@@ -627,9 +559,9 @@ const allLogs = useMemo(() => {
                     </p>
 
                     <p className="mt-1 text-[11px] leading-4 text-[#667085]">
-                      This activity is permanently recorded during the current
-                      application session for administrative accountability and
-                      system monitoring.
+                      This activity is permanently recorded in the
+                      ResQNow database for administrative accountability
+                      and system monitoring.
                     </p>
                   </div>
                 </div>
@@ -638,7 +570,7 @@ const allLogs = useMemo(() => {
           ) : (
             <div className="flex flex-1 items-center justify-center p-6 text-center">
               <p className="text-sm text-[#98A2B3]">
-                Select an audit log to view its details.
+                No audit logs have been recorded yet.
               </p>
             </div>
           )}
@@ -652,12 +584,19 @@ const allLogs = useMemo(() => {
    COMPONENTS
 ========================= */
 
-function SummaryCard({ label, value, description, icon }) {
+function SummaryCard({
+  label,
+  value,
+  description,
+  icon,
+}) {
   return (
     <div className="rounded-2xl border border-[#E4E7EC] bg-white p-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold text-[#667085]">{label}</p>
+          <p className="text-xs font-semibold text-[#667085]">
+            {label}
+          </p>
 
           <p className="mt-1 text-2xl font-extrabold tracking-tight text-[#1F1D47]">
             {value}
@@ -676,7 +615,11 @@ function SummaryCard({ label, value, description, icon }) {
   );
 }
 
-function DetailRow({ label, value, mono = false }) {
+function DetailRow({
+  label,
+  value,
+  mono = false,
+}) {
   return (
     <div className="flex items-center justify-between gap-4 border-b border-[#F0F1F3] py-2.5 last:border-b-0">
       <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-[#98A2B3]">
@@ -806,7 +749,7 @@ function SettingsIcon() {
       strokeWidth="2"
     >
       <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-1.7 1.7-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V20h-2.4v-.2a1.7 1.7 0 0 0-1.03-1.56 1.7 1.7 0 0 0-1.88.34l-.06.06-1.7-1.7.06-.06A1.7 1.7 0 0 0 8.46 15a1.7 1.7 0 0 0-1.56-1.03H6.7v-2.4h.2a1.7 1.7 0 0 0 1.56-1.03 1.7 1.7 0 0 0-.34-1.88l-.06-.06 1.7-1.7.06.06a1.7 1.7 0 0 0 1.88.34 1.7 1.7 0 0 0 1.03-1.56V5.5h2.4v.2a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.88-.34l.06-.06 1.7 1.7-.06.06a1.7 1.7 0 0 0-.34 1.88 1.7 1.7 0 0 0 1.56 1.03h.2v2.4h-.2A1.7 1.7 0 0 0 19.4 15Z" />
+      <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-1.7 1.7-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V20h-2.4v-.2a1.7 1.7 0 0 0-1.03-1.56 1.7 1.7 0 0 0-1.88.34l-.06.06-1.7-1.7.06-.06A1.7 1.7 0 0 0 8.46 15a1.7 1.7 0 0 0-1.56-1.03H6.7v-2.4h.2a1.7 1.7 0 0 0 1.56-1.03 1.7 1.7 0 0 0-.34-1.88l-.06-.06 1.7-1.7.06.06a1.7 1.7 0 0 0 1.88.34 1.7 1.7 0 0 0 1.03-1.56V5.5h2.4v.2a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.88-.34l.06-.06 1.7 1.7-.06.06a1.7 1.7 0 0 0-.34 1.88 1.7 1.7 0 0 0-1.03 1.56 1.7 1.7 0 0 0 1.56 1.03h.2v2.4h-.2A1.7 1.7 0 0 0 19.4 15Z" />
     </svg>
   );
 }

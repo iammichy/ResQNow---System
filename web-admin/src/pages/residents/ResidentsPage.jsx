@@ -1,73 +1,9 @@
-import { useMemo, useState } from "react";
-
-const initialResidents = [
-  {
-    id: "RES-2026-001",
-    name: "Juan Dela Cruz",
-    email: "juan.delacruz@email.com",
-    mobile: "0917 123 4567",
-    address: "Purok 3, Camunatan",
-    status: "Active",
-    verification: "Verified",
-    reports: 3,
-    registered: "Aug 12, 2026",
-  },
-  {
-    id: "RES-2026-002",
-    name: "Maria Santos",
-    email: "maria.santos@email.com",
-    mobile: "0918 234 5678",
-    address: "Purok 1, Camunatan",
-    status: "Active",
-    verification: "Verified",
-    reports: 2,
-    registered: "Aug 15, 2026",
-  },
-  {
-    id: "RES-2026-003",
-    name: "Carlos Mendoza",
-    email: "carlos.mendoza@email.com",
-    mobile: "0919 345 6789",
-    address: "Purok 5, Camunatan",
-    status: "Active",
-    verification: "Pending",
-    reports: 1,
-    registered: "Aug 20, 2026",
-  },
-  {
-    id: "RES-2026-004",
-    name: "Liza Bautista",
-    email: "liza.bautista@email.com",
-    mobile: "0920 456 7890",
-    address: "Purok 2, Camunatan",
-    status: "Active",
-    verification: "Verified",
-    reports: 1,
-    registered: "Aug 24, 2026",
-  },
-  {
-    id: "RES-2026-005",
-    name: "Roberto Garcia",
-    email: "roberto.garcia@email.com",
-    mobile: "0921 567 8901",
-    address: "Purok 6, Camunatan",
-    status: "Inactive",
-    verification: "Verified",
-    reports: 0,
-    registered: "Jul 18, 2026",
-  },
-  {
-    id: "RES-2026-006",
-    name: "Ana Reyes",
-    email: "ana.reyes@email.com",
-    mobile: "0922 678 9012",
-    address: "Purok 4, Camunatan",
-    status: "Active",
-    verification: "Pending",
-    reports: 0,
-    registered: "Aug 29, 2026",
-  },
-];
+import { useEffect, useMemo, useState } from "react";
+import {
+  getAllResidents,
+  updateResidentVerification,
+} from "../../services/reportsService";
+import { useLanguage } from "../../hooks/useLanguage";
 
 const statusStyles = {
   Active: "bg-[#ECFDF3] text-[#027A48]",
@@ -77,15 +13,123 @@ const statusStyles = {
 const verificationStyles = {
   Verified: "border-[#ABEFC6] bg-[#ECFDF3] text-[#027A48]",
   Pending: "border-[#FEDF89] bg-[#FFF4E5] text-[#B54708]",
+  Rejected: "border-[#FDA29B] bg-[#FEF3F2] text-[#B42318]",
 };
 
+function formatResident(resident, t) {
+  const status =
+    resident.status?.toLowerCase() === "active" ? "Active" : "Inactive";
+
+  return {
+    id: `RES-${String(resident.id).padStart(4, "0")}`,
+
+    // Actual database ID
+    databaseId: resident.id,
+
+    name: resident.name || t("unknownResident"),
+
+    email: resident.email || t("noEmailProvided"),
+
+    // These fields are not yet available in the Laravel database
+    mobile: resident.mobile || t("notProvided"),
+
+    address: resident.address || t("notProvided"),
+
+    status,
+
+    verification: resident.verification_status || "Pending",
+    verificationRemarks: resident.verification_remarks || "",
+    verifiedAt: resident.verified_at || null,
+
+    reports: resident.reports_count || 0,
+
+    registered: resident.created_at
+      ? new Date(resident.created_at).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })
+      : t("unknown"),
+
+    createdAt: resident.created_at,
+
+    role: resident.role || "resident",
+  };
+}
+
 function ResidentsPage({ onViewResidentReports }) {
-  const [residents] = useState(initialResidents);
+  const { t } = useLanguage();
+
+  const [residents, setResidents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
-  const [selectedResidentId, setSelectedResidentId] = useState(
-    initialResidents[0].id,
-  );
+  const [selectedResidentId, setSelectedResidentId] = useState(null);
+  const [verificationLoading, setVerificationLoading] = useState(false);
+
+  const loadResidents = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const data = await getAllResidents();
+
+      const formattedResidents = data.map((resident) =>
+        formatResident(resident, t),
+      );
+
+      setResidents(formattedResidents);
+
+      setSelectedResidentId((currentSelectedId) => {
+        if (
+          currentSelectedId &&
+          formattedResidents.some(
+            (resident) => resident.id === currentSelectedId,
+          )
+        ) {
+          return currentSelectedId;
+        }
+
+        return formattedResidents[0]?.id || null;
+      });
+    } catch (err) {
+      console.error("Failed to load residents:", err);
+
+      setError(err.message || t("failedToLoadResidents"));
+    } finally {
+      setLoading(false);
+    }
+  };
+  const handleVerification = async (verificationStatus) => {
+    if (!selectedResident) return;
+
+    try {
+      setVerificationLoading(true);
+      setError("");
+
+      await updateResidentVerification(
+        selectedResident.databaseId,
+        verificationStatus,
+        `${verificationStatus === "Verified" ? "Resident account approved" : "Resident account rejected"} by administrator.`,
+      );
+
+      await loadResidents();
+    } catch (err) {
+      console.error("Failed to update resident verification:", err);
+      setError(err.message || "Failed to update resident verification.");
+    } finally {
+      setVerificationLoading(false);
+    }
+  };
+  useEffect(() => {
+    const load = async () => {
+      await loadResidents();
+    };
+
+    load();
+  }, []);
 
   const filteredResidents = useMemo(() => {
     return residents.filter((resident) => {
@@ -96,7 +140,7 @@ function ResidentsPage({ onViewResidentReports }) {
         resident.name.toLowerCase().includes(search) ||
         resident.id.toLowerCase().includes(search) ||
         resident.email.toLowerCase().includes(search) ||
-        resident.mobile.includes(search) ||
+        resident.mobile.toLowerCase().includes(search) ||
         resident.address.toLowerCase().includes(search);
 
       const matchesStatus =
@@ -107,9 +151,7 @@ function ResidentsPage({ onViewResidentReports }) {
   }, [residents, searchTerm, statusFilter]);
 
   const selectedResident =
-    filteredResidents.find((resident) => resident.id === selectedResidentId) ??
-    filteredResidents[0] ??
-    null;
+    residents.find((resident) => resident.id === selectedResidentId) ?? null;
 
   const totalResidents = residents.length;
 
@@ -126,21 +168,41 @@ function ResidentsPage({ onViewResidentReports }) {
     0,
   );
 
+  const displayStatus = (status) => {
+    if (status === "Active") return t("active");
+    if (status === "Inactive") return t("inactive");
+    return status;
+  };
+
+  const displayVerification = (verification) => {
+    if (verification === "Verified") return t("verified");
+    if (verification === "Pending") return t("pending");
+    return verification;
+  };
+
+  const displayRole = (role) => {
+    if (role?.toLowerCase() === "resident") {
+      return t("resident");
+    }
+
+    return role;
+  };
+
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
       {/* PAGE HEADER */}
       <div className="flex shrink-0 items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#8346F2]">
-            MANAGEMENT
+            {t("management")}
           </p>
 
           <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[#1F1D47]">
-            Residents
+            {t("residentsPageTitle")}
           </h1>
 
           <p className="mt-1 text-sm text-[#667085]">
-            Manage registered residents and review their account information.
+            {t("residentsPageDescription")}
           </p>
         </div>
 
@@ -148,7 +210,7 @@ function ResidentsPage({ onViewResidentReports }) {
           <span className="h-2 w-2 rounded-full bg-[#2ED47A]" />
 
           <span className="text-xs font-semibold text-[#344054]">
-            Resident Registry
+            {t("residentRegistry")}
           </span>
         </div>
       </div>
@@ -157,43 +219,47 @@ function ResidentsPage({ onViewResidentReports }) {
       <div className="grid shrink-0 grid-cols-2 gap-3 xl:grid-cols-4">
         <div className="rounded-2xl border border-[#E4E7EC] bg-white p-4 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
-            Total Residents
+            {t("totalResidents")}
           </p>
 
           <p className="mt-1 text-2xl font-extrabold text-[#1F1D47]">
             {totalResidents}
           </p>
 
-          <p className="mt-1 text-xs text-[#667085]">Registered accounts</p>
+          <p className="mt-1 text-xs text-[#667085]">
+            {t("registeredAccounts")}
+          </p>
         </div>
 
         <div className="rounded-2xl border border-[#ABEFC6] bg-white p-4 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
-            Active Accounts
+            {t("activeAccounts")}
           </p>
 
           <p className="mt-1 text-2xl font-extrabold text-[#027A48]">
             {activeResidents}
           </p>
 
-          <p className="mt-1 text-xs text-[#667085]">Currently active</p>
+          <p className="mt-1 text-xs text-[#667085]">{t("currentlyActive")}</p>
         </div>
 
         <div className="rounded-2xl border border-[#DDD6FE] bg-white p-4 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
-            Verified Residents
+            {t("verifiedResidents")}
           </p>
 
           <p className="mt-1 text-2xl font-extrabold text-[#6941C6]">
             {verifiedResidents}
           </p>
 
-          <p className="mt-1 text-xs text-[#667085]">Verified accounts</p>
+          <p className="mt-1 text-xs text-[#667085]">
+            {t("activeResidentAccounts")}
+          </p>
         </div>
 
         <div className="rounded-2xl border border-[#E4E7EC] bg-white p-4 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
-            Reports Submitted
+            {t("reportsSubmitted")}
           </p>
 
           <p className="mt-1 text-2xl font-extrabold text-[#1F1D47]">
@@ -201,7 +267,7 @@ function ResidentsPage({ onViewResidentReports }) {
           </p>
 
           <p className="mt-1 text-xs text-[#667085]">
-            From registered residents
+            {t("fromRegisteredResidents")}
           </p>
         </div>
       </div>
@@ -220,179 +286,236 @@ function ResidentsPage({ onViewResidentReports }) {
                   type="text"
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="Search residents..."
+                  placeholder={t("searchResidents")}
                   className="min-w-0 flex-1 bg-transparent text-xs text-[#1F1D47] outline-none placeholder:text-[#98A2B3]"
-                  aria-label="Search residents"
+                  aria-label={t("searchResidents")}
                 />
               </div>
             </div>
 
-            <select
-              value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
-              className="h-10 rounded-xl border border-[#E4E7EC] bg-white px-3 text-xs font-semibold text-[#344054] outline-none focus:border-[#8346F2]"
-            >
-              <option value="All">All Status</option>
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-            </select>
+            <div className="flex gap-2">
+              <select
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value)}
+                className="h-10 rounded-xl border border-[#E4E7EC] bg-white px-3 text-xs font-semibold text-[#344054] outline-none focus:border-[#8346F2]"
+              >
+                <option value="All">{t("allStatus")}</option>
+
+                <option value="Active">{t("active")}</option>
+
+                <option value="Inactive">{t("inactive")}</option>
+              </select>
+
+              <button
+                type="button"
+                onClick={loadResidents}
+                className="h-10 rounded-xl border border-[#DDD6FE] bg-[#F5F3FF] px-3 text-xs font-bold text-[#6941C6] transition hover:bg-[#EDE9FE]"
+              >
+                {t("refresh")}
+              </button>
+            </div>
           </div>
+
+          {/* LOADING */}
+          {loading && (
+            <div className="flex min-h-[300px] flex-1 items-center justify-center">
+              <div className="text-center">
+                <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-[#EDE9FE] border-t-[#8346F2]" />
+
+                <p className="mt-4 text-sm font-semibold text-[#667085]">
+                  {t("loadingResidents")}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* ERROR */}
+          {!loading && error && (
+            <div className="flex min-h-[300px] flex-1 items-center justify-center p-6">
+              <div className="max-w-sm text-center">
+                <p className="text-sm font-bold text-[#B42318]">
+                  {t("unableToLoadResidents")}
+                </p>
+
+                <p className="mt-2 text-xs text-[#667085]">{error}</p>
+
+                <button
+                  type="button"
+                  onClick={loadResidents}
+                  className="mt-4 rounded-xl bg-[#8346F2] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#6D32D6]"
+                >
+                  {t("tryAgainResidents")}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* TABLE */}
-          <div className="min-h-0 flex-1 overflow-auto">
-            <table className="w-full min-w-[760px] border-collapse">
-              <thead className="sticky top-0 z-10 bg-[#F8FAFC]">
-                <tr className="border-b border-[#E4E7EC]">
-                  <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
-                    Resident
-                  </th>
+          {!loading && !error && (
+            <>
+              <div className="min-h-0 flex-1 overflow-auto">
+                <table className="w-full min-w-[760px] border-collapse">
+                  <thead className="sticky top-0 z-10 bg-[#F8FAFC]">
+                    <tr className="border-b border-[#E4E7EC]">
+                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
+                        {t("resident")}
+                      </th>
 
-                  <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
-                    Contact
-                  </th>
+                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
+                        {t("contact")}
+                      </th>
 
-                  <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
-                    Address
-                  </th>
+                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
+                        {t("role")}
+                      </th>
 
-                  <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
-                    Verification
-                  </th>
+                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
+                        {t("verification")}
+                      </th>
 
-                  <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
-                    Status
-                  </th>
+                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
+                        {t("status")}
+                      </th>
 
-                  <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
-                    Reports
-                  </th>
+                      <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
+                        {t("reports")}
+                      </th>
 
-                  <th className="px-4 py-3" />
-                </tr>
-              </thead>
-
-              <tbody>
-                {filteredResidents.map((resident) => {
-                  const isSelected = selectedResident?.id === resident.id;
-
-                  return (
-                    <tr
-                      key={resident.id}
-                      onClick={() => setSelectedResidentId(resident.id)}
-                      className={`cursor-pointer border-b border-[#E4E7EC] transition ${
-                        isSelected ? "bg-[#F5F3FF]" : "hover:bg-[#FAF9FF]"
-                      }`}
-                    >
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F4F3FF] text-xs font-bold text-[#6941C6]">
-                            {resident.name.charAt(0)}
-                          </div>
-
-                          <div className="min-w-0">
-                            <p className="truncate text-xs font-bold text-[#1F1D47]">
-                              {resident.name}
-                            </p>
-
-                            <p className="mt-0.5 text-[10px] text-[#667085]">
-                              {resident.id}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <p className="text-xs font-medium text-[#344054]">
-                          {resident.mobile}
-                        </p>
-
-                        <p className="mt-0.5 text-[10px] text-[#667085]">
-                          {resident.email}
-                        </p>
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <p className="max-w-[180px] truncate text-xs font-medium text-[#344054]">
-                          {resident.address}
-                        </p>
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <span
-                          className={`rounded-full border px-2 py-1 text-[10px] font-bold ${
-                            verificationStyles[resident.verification]
-                          }`}
-                        >
-                          {resident.verification}
-                        </span>
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <span
-                          className={`rounded-full px-2 py-1 text-[10px] font-bold ${
-                            statusStyles[resident.status]
-                          }`}
-                        >
-                          {resident.status}
-                        </span>
-                      </td>
-
-                      <td className="px-4 py-3 text-right text-xs font-bold text-[#344054]">
-                        {resident.reports}
-                      </td>
-
-                      <td className="px-4 py-3 text-right text-sm text-[#98A2B3]">
-                        ›
-                      </td>
+                      <th className="px-4 py-3" />
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  </thead>
 
-            {filteredResidents.length === 0 && (
-              <div className="flex h-full min-h-[260px] items-center justify-center p-6 text-center">
-                <div>
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#F4F3FF] text-lg text-[#8346F2]">
-                    ♙
+                  <tbody>
+                    {filteredResidents.map((resident) => {
+                      const isSelected = selectedResident?.id === resident.id;
+
+                      return (
+                        <tr
+                          key={resident.id}
+                          onClick={() => setSelectedResidentId(resident.id)}
+                          className={`cursor-pointer border-b border-[#E4E7EC] transition ${
+                            isSelected ? "bg-[#F5F3FF]" : "hover:bg-[#FAF9FF]"
+                          }`}
+                        >
+                          {/* RESIDENT */}
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F4F3FF] text-xs font-bold text-[#6941C6]">
+                                {resident.name.charAt(0).toUpperCase()}
+                              </div>
+
+                              <div className="min-w-0">
+                                <p className="truncate text-xs font-bold text-[#1F1D47]">
+                                  {resident.name}
+                                </p>
+
+                                <p className="mt-0.5 text-[10px] text-[#667085]">
+                                  {resident.id}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* CONTACT */}
+                          <td className="px-4 py-3">
+                            <p className="text-xs font-medium text-[#344054]">
+                              {resident.email}
+                            </p>
+
+                            <p className="mt-0.5 text-[10px] text-[#98A2B3]">
+                              {resident.mobile}
+                            </p>
+                          </td>
+
+                          {/* ROLE */}
+                          <td className="px-4 py-3">
+                            <span className="capitalize text-xs font-semibold text-[#344054]">
+                              {displayRole(resident.role)}
+                            </span>
+                          </td>
+
+                          {/* VERIFICATION */}
+                          <td className="px-4 py-3">
+                            <span
+                              className={`rounded-full border px-2 py-1 text-[10px] font-bold ${
+                                verificationStyles[resident.verification]
+                              }`}
+                            >
+                              {displayVerification(resident.verification)}
+                            </span>
+                          </td>
+
+                          {/* STATUS */}
+                          <td className="px-4 py-3">
+                            <span
+                              className={`rounded-full px-2 py-1 text-[10px] font-bold ${
+                                statusStyles[resident.status]
+                              }`}
+                            >
+                              {displayStatus(resident.status)}
+                            </span>
+                          </td>
+
+                          {/* REPORTS */}
+                          <td className="px-4 py-3 text-right text-xs font-bold text-[#344054]">
+                            {resident.reports}
+                          </td>
+
+                          <td className="px-4 py-3 text-right text-sm text-[#98A2B3]">
+                            ›
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+
+                {filteredResidents.length === 0 && (
+                  <div className="flex min-h-[260px] items-center justify-center p-6 text-center">
+                    <div>
+                      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#F4F3FF] text-lg text-[#8346F2]">
+                        ♙
+                      </div>
+
+                      <p className="mt-3 text-sm font-bold text-[#1F1D47]">
+                        {t("noResidentsFound")}
+                      </p>
+
+                      <p className="mt-1 text-xs text-[#667085]">
+                        {t("adjustSearchOrStatus")}
+                      </p>
+                    </div>
                   </div>
-
-                  <p className="mt-3 text-sm font-bold text-[#1F1D47]">
-                    No residents found
-                  </p>
-
-                  <p className="mt-1 text-xs text-[#667085]">
-                    Try adjusting your search or status filter.
-                  </p>
-                </div>
+                )}
               </div>
-            )}
-          </div>
 
-          {/* TABLE FOOTER */}
-          <div className="flex shrink-0 items-center justify-between border-t border-[#E4E7EC] px-4 py-3">
-            <p className="text-xs text-[#667085]">
-              Showing{" "}
-              <span className="font-semibold text-[#344054]">
-                {filteredResidents.length}
-              </span>{" "}
-              of {totalResidents} residents
-            </p>
+              {/* TABLE FOOTER */}
+              <div className="flex shrink-0 items-center justify-between border-t border-[#E4E7EC] px-4 py-3">
+                <p className="text-xs text-[#667085]">
+                  {t("showing")}{" "}
+                  <span className="font-semibold text-[#344054]">
+                    {filteredResidents.length}
+                  </span>{" "}
+                  {t("of")} {totalResidents} {t("residents").toLowerCase()}
+                </p>
 
-            <p className="hidden text-[10px] text-[#98A2B3] sm:block">
-              Select a resident to view details
-            </p>
-          </div>
+                <p className="hidden text-[10px] text-[#98A2B3] sm:block">
+                  {t("selectResidentToViewDetails")}
+                </p>
+              </div>
+            </>
+          )}
         </section>
 
         {/* DETAILS */}
         <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
           {selectedResident ? (
             <>
+              {/* RESIDENT HEADER */}
               <div className="shrink-0 border-b border-[#E4E7EC] p-5">
                 <div className="flex items-center gap-3">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#8346F2] text-lg font-bold text-white">
-                    {selectedResident.name.charAt(0)}
+                    {selectedResident.name.charAt(0).toUpperCase()}
                   </div>
 
                   <div className="min-w-0">
@@ -412,7 +535,7 @@ function ResidentsPage({ onViewResidentReports }) {
                       statusStyles[selectedResident.status]
                     }`}
                   >
-                    {selectedResident.status}
+                    {displayStatus(selectedResident.status)}
                   </span>
 
                   <span
@@ -420,33 +543,24 @@ function ResidentsPage({ onViewResidentReports }) {
                       verificationStyles[selectedResident.verification]
                     }`}
                   >
-                    {selectedResident.verification}
+                    {displayVerification(selectedResident.verification)}
                   </span>
                 </div>
               </div>
 
+              {/* DETAILS CONTENT */}
               <div className="min-h-0 flex-1 overflow-auto p-5">
                 <div className="space-y-5">
                   {/* CONTACT */}
                   <div>
                     <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-[#8346F2]">
-                      Contact Information
+                      {t("contactInformation")}
                     </h3>
 
                     <div className="mt-3 space-y-3">
                       <div>
                         <p className="text-[10px] font-bold uppercase text-[#98A2B3]">
-                          Mobile Number
-                        </p>
-
-                        <p className="mt-1 text-sm font-semibold text-[#344054]">
-                          {selectedResident.mobile}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-[10px] font-bold uppercase text-[#98A2B3]">
-                          Email Address
+                          {t("emailAddress")}
                         </p>
 
                         <p className="mt-1 break-all text-sm font-semibold text-[#344054]">
@@ -456,7 +570,17 @@ function ResidentsPage({ onViewResidentReports }) {
 
                       <div>
                         <p className="text-[10px] font-bold uppercase text-[#98A2B3]">
-                          Address
+                          {t("mobileNumber")}
+                        </p>
+
+                        <p className="mt-1 text-sm font-semibold text-[#344054]">
+                          {selectedResident.mobile}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] font-bold uppercase text-[#98A2B3]">
+                          {t("address")}
                         </p>
 
                         <p className="mt-1 text-sm font-semibold text-[#344054]">
@@ -469,13 +593,13 @@ function ResidentsPage({ onViewResidentReports }) {
                   {/* ACCOUNT */}
                   <div className="border-t border-[#E4E7EC] pt-5">
                     <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-[#8346F2]">
-                      Account Information
+                      {t("accountInformation")}
                     </h3>
 
                     <div className="mt-3 grid grid-cols-2 gap-3">
                       <div className="rounded-xl border border-[#E4E7EC] bg-[#F8FAFC] p-3">
                         <p className="text-[9px] font-bold uppercase text-[#98A2B3]">
-                          Reports
+                          {t("reports")}
                         </p>
 
                         <p className="mt-1 text-lg font-extrabold text-[#1F1D47]">
@@ -485,7 +609,7 @@ function ResidentsPage({ onViewResidentReports }) {
 
                       <div className="rounded-xl border border-[#E4E7EC] bg-[#F8FAFC] p-3">
                         <p className="text-[9px] font-bold uppercase text-[#98A2B3]">
-                          Registered
+                          {t("registered")}
                         </p>
 
                         <p className="mt-1 text-xs font-bold text-[#344054]">
@@ -493,23 +617,33 @@ function ResidentsPage({ onViewResidentReports }) {
                         </p>
                       </div>
                     </div>
+
+                    <div className="mt-3">
+                      <p className="text-[10px] font-bold uppercase text-[#98A2B3]">
+                        {t("accountRole")}
+                      </p>
+
+                      <p className="mt-1 capitalize text-sm font-semibold text-[#344054]">
+                        {displayRole(selectedResident.role)}
+                      </p>
+                    </div>
                   </div>
 
                   {/* REPORT ACTIVITY */}
                   <div className="border-t border-[#E4E7EC] pt-5">
                     <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-[#8346F2]">
-                      Report Activity
+                      {t("reportActivity")}
                     </h3>
 
                     <div className="mt-3 rounded-xl border border-[#E4E7EC] bg-[#F8FAFC] p-4">
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <p className="text-sm font-bold text-[#1F1D47]">
-                            {selectedResident.reports} submitted reports
+                            {selectedResident.reports} {t("submittedReports")}
                           </p>
 
                           <p className="mt-1 text-xs text-[#667085]">
-                            Reports associated with this resident account.
+                            {t("reportsAssociatedWithAccount")}
                           </p>
                         </div>
 
@@ -522,18 +656,41 @@ function ResidentsPage({ onViewResidentReports }) {
                 </div>
               </div>
 
-              <div className="shrink-0 border-t border-[#E4E7EC] p-4">
+              {/* BUTTON */}
+              <div className="shrink-0 border-t border-[#E4E7EC] p-4 space-y-3">
+                {selectedResident?.verification === "Pending" && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleVerification("Rejected")}
+                      disabled={verificationLoading}
+                      className="rounded-xl border border-[#FDA29B] bg-white px-4 py-2.5 text-xs font-bold text-[#B42318] transition hover:bg-[#FEF3F2] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {verificationLoading ? "Updating..." : "Reject"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleVerification("Verified")}
+                      disabled={verificationLoading}
+                      className="rounded-xl bg-[#8346F2] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#6D38D9] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {verificationLoading ? "Updating..." : "Approve"}
+                    </button>
+                  </div>
+                )}
+
                 <button
                   type="button"
                   onClick={() => {
-                    if (selectedResident) {
+                    if (selectedResident && onViewResidentReports) {
                       onViewResidentReports(selectedResident);
                     }
                   }}
-                  disabled={!selectedResident}
+                  disabled={!selectedResident || !onViewResidentReports}
                   className="w-full rounded-xl border border-[#8346F2] bg-white px-4 py-2.5 text-xs font-bold text-[#8346F2] transition hover:bg-[#F5F3FF] disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  View Resident Reports
+                  {t("viewResidentReports")}
                 </button>
               </div>
             </>
@@ -545,11 +702,11 @@ function ResidentsPage({ onViewResidentReports }) {
                 </div>
 
                 <p className="mt-3 text-sm font-bold text-[#1F1D47]">
-                  No resident selected
+                  {t("noResidentSelected")}
                 </p>
 
                 <p className="mt-1 text-xs text-[#667085]">
-                  Select a resident from the registry.
+                  {t("selectResidentFromRegistry")}
                 </p>
               </div>
             </div>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createReport } from "../../services/reportsService";
 
 const initialForm = {
   reportType: "Hazard-Related",
@@ -15,6 +16,7 @@ const initialForm = {
   peopleAffected: "",
   vulnerablePersons: "None reported",
   hazardSeverity: "Not Assessed",
+  locationRisk: "Not Assessed",
   waterLevel: "Not Applicable",
   roadPassability: "Not Assessed",
   evacuationNeed: "Not Assessed",
@@ -48,6 +50,7 @@ const purokOptions = [
 function ManualAddReport() {
   const [form, setForm] = useState(initialForm);
   const [photoName, setPhotoName] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const updateField = (field, value) => {
     setForm((current) => ({
@@ -67,10 +70,111 @@ function ManualAddReport() {
     );
   };
 
-  const handleSubmit = () => {
-    alert("Manual report submitted. Backend integration will be added later.");
-  };
+  const handleSubmit = async () => {
+    try {
+      setIsSubmitting(true);
 
+      // Extract a numeric value from entries such as:
+      // "Approximately 20 people" → 20
+      const affectedResidentsMatch = form.peopleAffected.match(/\d+/);
+
+      const affectedResidents = affectedResidentsMatch
+        ? Number(affectedResidentsMatch[0])
+        : 0;
+
+      // Convert the form's wording into the values
+      // expected by the automated triage system.
+      const waterLevelMap = {
+        "Not Applicable": "None/Not applicable",
+        "Below Ankle": "Below knee",
+        "Ankle Level": "Below knee",
+        "Knee Level": "Knee",
+        "Waist Level": "Waist or higher",
+        "Chest Level": "Waist or higher",
+      };
+
+      const roadPassabilityMap = {
+        "Not Assessed": "Fully passable",
+        Passable: "Fully passable",
+        "Passable with Caution": "Passable with caution",
+        "Partially Blocked": "Partially passable",
+        "Not Passable": "Impassable",
+      };
+
+      const locationRisk =
+        form.locationRisk === "Not Assessed" ? "Low" : form.locationRisk;
+
+      const assistanceNeedMap = {
+        "Not Assessed": "No immediate assistance",
+        Routine: "Assistance needed",
+        Urgent: "Urgent assistance",
+        Immediate: "Immediate evacuation required",
+      };
+
+      const evacuationNeedMap = {
+        "Not Assessed": "No immediate assistance",
+        "Not Required": "No immediate assistance",
+        Recommended: "Evacuation recommended",
+        Immediate: "Immediate evacuation required",
+      };
+
+      // Use the stronger of assistance need and evacuation need.
+      const assistanceNeed =
+        evacuationNeedMap[form.evacuationNeed] !== "No immediate assistance"
+          ? evacuationNeedMap[form.evacuationNeed]
+          : assistanceNeedMap[form.assistanceNeed];
+
+      const additionalRiskFactors = [];
+
+      if (form.threatToLife !== "Not Assessed") {
+        additionalRiskFactors.push(`Threat to Life: ${form.threatToLife}`);
+      }
+
+      if (form.vulnerablePersons !== "None reported") {
+        additionalRiskFactors.push(
+          `Vulnerable Persons: ${form.vulnerablePersons}`,
+        );
+      }
+
+      if (form.hazardSeverity !== "Not Assessed") {
+        additionalRiskFactors.push(`Hazard Severity: ${form.hazardSeverity}`);
+      }
+
+      const reportData = {
+        report_type: form.incidentType,
+        category: form.reportType,
+        description: form.description,
+
+        location: [form.purok, form.specificLocation]
+          .filter(Boolean)
+          .join(", "),
+
+        water_level: waterLevelMap[form.waterLevel] || "None/Not applicable",
+
+        road_passability:
+          roadPassabilityMap[form.roadPassability] || "Fully passable",
+
+        affected_residents: affectedResidents,
+
+        location_risk: locationRisk,
+
+        assistance_evacuation_need: assistanceNeed,
+
+        additional_risk_factors: additionalRiskFactors,
+      };
+      await createReport(reportData);
+
+      alert("Manual report submitted successfully.");
+
+      handleReset();
+    } catch (error) {
+      console.error("Failed to submit manual report:", error);
+
+      alert(error.message || "Failed to submit manual report.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
       {/* PAGE HEADER */}
@@ -266,6 +370,23 @@ function ManualAddReport() {
               />
 
               <AssessmentField
+                label="Location Risk"
+                value={form.locationRisk}
+                options={[
+                  "Not Assessed",
+                  "Low",
+                  "Moderate",
+                  "High",
+                  "Critical",
+                ]}
+                onChange={(value) => updateField("locationRisk", value)}
+                critical={
+                  form.locationRisk === "High" ||
+                  form.locationRisk === "Critical"
+                }
+              />
+
+              <AssessmentField
                 label="Road Passability"
                 value={form.roadPassability}
                 options={[
@@ -370,9 +491,10 @@ function ManualAddReport() {
               <button
                 type="button"
                 onClick={handleSubmit}
-                className="h-10 rounded-lg bg-[#8346F2] px-5 text-xs font-bold text-white shadow-sm transition hover:bg-[#7138DB]"
+                disabled={isSubmitting}
+                className="h-10 rounded-lg bg-[#8346F2] px-5 text-xs font-bold text-white shadow-sm transition hover:bg-[#7138DB] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Submit Report
+                {isSubmitting ? "Submitting..." : "Submit Report"}
               </button>
             </div>
           </div>

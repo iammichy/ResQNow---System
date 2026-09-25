@@ -1,7 +1,15 @@
 import { useContext, useEffect, useRef, useState } from "react";
 
 import { Bell, Search, X } from "lucide-react";
-import { LanguageContext } from "../../context/LanguageContext.jsx";
+
+import {
+  getNotifications,
+  getUnreadNotificationCount,
+  markAllNotificationsAsRead,
+  markNotificationAsRead,
+} from "../../services/reportsService";
+
+import LanguageContext from "../../context/LanguageContextValue";
 
 function Topbar() {
   const languageContext = useContext(LanguageContext);
@@ -9,36 +17,88 @@ function Topbar() {
   const t = languageContext?.t || ((key) => key);
 
   const [searchQuery, setSearchQuery] = useState("");
-
   const [showNotifications, setShowNotifications] = useState(false);
 
   const notificationRef = useRef(null);
 
-  const notifications = [
-    {
-      id: 1,
-      type: "critical",
-      title: t("evacuationAlertIssued"),
-      message: t("evacuationAlertMessage"),
-      time: t("justNow"),
-    },
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+  const [notifications, setNotifications] = useState([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
+  useEffect(() => {
+    let isMounted = true;
 
-    {
-      id: 2,
-      type: "warning",
-      title: t("newReportPendingVerification"),
-      message: t("hazardReportWaiting"),
-      time: t("tenMinutesAgo"),
-    },
+    const loadNotifications = async () => {
+      try {
+        if (isMounted) {
+          setLoadingNotifications(true);
+        }
 
-    {
-      id: 3,
-      type: "info",
-      title: t("medicalSupportAssigned"),
-      message: t("responsePersonnelAssigned"),
-      time: t("twentyFiveMinutesAgo"),
-    },
-  ];
+        const [data, unreadCount] = await Promise.all([
+          getNotifications(),
+          getUnreadNotificationCount(),
+        ]);
+
+        if (isMounted) {
+          setNotifications(data);
+          setUnreadNotificationCount(unreadCount);
+        }
+      } catch (error) {
+        console.error("Failed to load notifications:", error);
+      } finally {
+        if (isMounted) {
+          setLoadingNotifications(false);
+        }
+      }
+    };
+
+    loadNotifications();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleNotificationClick = async (notification) => {
+    if (notification.is_read) {
+      return;
+    }
+
+    try {
+      await markNotificationAsRead(notification.id);
+
+      setNotifications((currentNotifications) =>
+        currentNotifications.map((currentNotification) =>
+          currentNotification.id === notification.id
+            ? {
+                ...currentNotification,
+                is_read: true,
+              }
+            : currentNotification,
+        ),
+      );
+
+      setUnreadNotificationCount((current) => Math.max(0, current - 1));
+    } catch (error) {
+      console.error("Failed to mark notification as read:", error);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await markAllNotificationsAsRead();
+
+      setNotifications((currentNotifications) =>
+        currentNotifications.map((notification) => ({
+          ...notification,
+          is_read: true,
+        })),
+      );
+
+      setUnreadNotificationCount(0);
+    } catch (error) {
+      console.error("Failed to mark all notifications as read:", error);
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -53,10 +113,7 @@ function Topbar() {
     document.addEventListener("mousedown", handleClickOutside);
 
     return () => {
-      document.removeEventListener(
-        "mousedown",
-        handleClickOutside,
-      );
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -75,13 +132,15 @@ function Topbar() {
 
   const getNotificationColor = (type) => {
     switch (type) {
-      case "critical":
+      case "critical_report":
         return "bg-[#D90429]";
 
-      case "warning":
+      case "personnel_assignment":
         return "bg-[#FF8C42]";
 
-      case "info":
+      case "announcement_published":
+        return "bg-[#38BDF8]";
+
       default:
         return "bg-[#38BDF8]";
     }
@@ -90,12 +149,10 @@ function Topbar() {
   return (
     <header className="relative z-40 shrink-0 border-b border-[var(--border-soft)] bg-[var(--card-white)]">
       {/* GRADIENT BRAND ACCENT */}
-
       <div className="h-1 w-full bg-gradient-to-r from-[#8346F2] via-[#818CF8] to-[#00C9A7]" />
 
       <div className="flex h-[71px] items-center justify-between px-6">
         {/* SEARCH */}
-
         <div className="flex min-w-0 flex-1 items-center">
           <form
             onSubmit={handleSearch}
@@ -119,9 +176,7 @@ function Topbar() {
             <input
               type="text"
               value={searchQuery}
-              onChange={(event) =>
-                setSearchQuery(event.target.value)
-              }
+              onChange={(event) => setSearchQuery(event.target.value)}
               placeholder={t("searchReportsResidentsLocations")}
               className="
                 min-w-0 flex-1 bg-transparent text-sm
@@ -150,17 +205,13 @@ function Topbar() {
         </div>
 
         {/* RIGHT ACTIONS */}
-
         <div className="ml-6 flex shrink-0 items-center gap-4">
           {/* NOTIFICATIONS */}
-
           <div ref={notificationRef} className="relative">
             <button
               type="button"
               aria-label={t("notifications")}
-              onClick={() =>
-                setShowNotifications((current) => !current)
-              }
+              onClick={() => setShowNotifications((current) => !current)}
               className={`
                 relative flex h-10 w-10 items-center justify-center
                 rounded-xl border transition
@@ -174,12 +225,12 @@ function Topbar() {
               <Bell size={19} strokeWidth={2} />
 
               {/* NOTIFICATION BADGE */}
-
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full border border-white bg-[var(--critical-rose)]" />
+              {unreadNotificationCount > 0 && (
+                <span className="absolute right-2 top-2 h-2 w-2 rounded-full border border-white bg-[var(--critical-rose)]" />
+              )}
             </button>
 
             {/* NOTIFICATION PANEL */}
-
             {showNotifications && (
               <div
                 className="
@@ -191,7 +242,6 @@ function Topbar() {
                 "
               >
                 {/* PANEL HEADER */}
-
                 <div className="border-b border-[var(--border-soft)] bg-[var(--soft-blue-mist)] px-4 py-3">
                   <div className="flex items-center justify-between">
                     <div>
@@ -205,68 +255,87 @@ function Topbar() {
                     </div>
 
                     <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-[var(--brand-violet)] shadow-sm">
-                      {notifications.length} {t("new")}
+                      {unreadNotificationCount} {t("new")}
                     </span>
                   </div>
                 </div>
 
                 {/* NOTIFICATION LIST */}
-
                 <div className="max-h-96 overflow-y-auto">
-                  {notifications.map((notification) => (
-                    <button
-                      key={notification.id}
-                      type="button"
-                      className="
-                        flex w-full items-start gap-3
-                        border-b border-[#F2F4F7]
-                        px-4 py-3 text-left
-                        transition hover:bg-[#F9FAFB]
-                      "
-                    >
-                      <span
-                        className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${getNotificationColor(
-                          notification.type,
-                        )}`}
-                      />
+                  {loadingNotifications ? (
+                    <div className="px-4 py-8 text-center text-xs text-[var(--text-muted)]">
+                      Loading notifications...
+                    </div>
+                  ) : notifications.length === 0 ? (
+                    <div className="px-4 py-8 text-center text-xs text-[var(--text-muted)]">
+                      No notifications yet.
+                    </div>
+                  ) : (
+                    notifications.map((notification) => (
+                      <button
+                        key={notification.id}
+                        type="button"
+                        onClick={() => handleNotificationClick(notification)}
+                        className={`
+                          flex w-full items-start gap-3
+                          border-b border-[#F2F4F7]
+                          px-4 py-3 text-left
+                          transition hover:bg-[#F9FAFB]
+                          ${
+                            !notification.is_read
+                              ? "bg-[var(--soft-blue-mist)]/40"
+                              : ""
+                          }
+                        `}
+                      >
+                        <span
+                          className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${getNotificationColor(
+                            notification.type,
+                          )}`}
+                        />
 
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-[var(--text-primary)]">
-                          {notification.title}
-                        </p>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-[var(--text-primary)]">
+                            {notification.title}
+                          </p>
 
-                        <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
-                          {notification.message}
-                        </p>
+                          <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+                            {notification.message}
+                          </p>
 
-                        <p className="mt-1.5 text-[11px] text-[var(--text-placeholder)]">
-                          {notification.time}
-                        </p>
-                      </div>
-                    </button>
-                  ))}
+                          <p className="mt-1.5 text-[11px] text-[var(--text-placeholder)]">
+                            {new Date(notification.created_at).toLocaleString()}
+                          </p>
+                        </div>
+                      </button>
+                    ))
+                  )}
                 </div>
 
                 {/* PANEL FOOTER */}
-
                 <button
                   type="button"
+                  onClick={handleMarkAllAsRead}
+                  disabled={
+                    loadingNotifications || unreadNotificationCount === 0
+                  }
                   className="
                     w-full border-t border-[var(--border-soft)]
                     px-4 py-3 text-center text-xs
                     font-semibold text-[var(--brand-violet)]
                     transition
                     hover:bg-[var(--soft-blue-mist)]
+                    disabled:cursor-not-allowed
+                    disabled:opacity-50
                   "
                 >
-                  {t("viewAllNotifications")}
+                  Mark all as read
                 </button>
               </div>
             )}
           </div>
 
           {/* ADMIN PROFILE */}
-
           <div className="flex items-center gap-3 px-2 py-1.5">
             <div
               className="

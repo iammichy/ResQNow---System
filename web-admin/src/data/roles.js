@@ -75,3 +75,13 @@ export const ROLE_PERMISSIONS = {
 export function hasPermission(role, permission) {
   return ROLE_PERMISSIONS[role]?.includes(permission) || false;
 }
+
+export function normalizeRole(role) {
+  const roleMap = {
+    admin: ROLES.ADMIN,
+    personnel: ROLES.PERSONNEL,
+    responder: ROLES.RESPONDER,
+  };
+
+  return roleMap[role?.toLowerCase()] || role;
+}

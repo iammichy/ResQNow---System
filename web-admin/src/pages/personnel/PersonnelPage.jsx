@@ -1,79 +1,6 @@
-import { useMemo, useState } from "react";
-
-const initialPersonnel = [
-  {
-    id: "PER-2026-001",
-    name: "Carlos Mendoza",
-    role: "Response Team Leader",
-    team: "Emergency Response Team A",
-    mobile: "0917 456 7890",
-    status: "Active",
-    availability: "Assigned",
-    assignment: "RPT-2026-001",
-    location: "Purok 3, Camunatan",
-    joined: "Jan 15, 2026",
-  },
-  {
-    id: "PER-2026-002",
-    name: "Mark Reyes",
-    role: "Emergency Responder",
-    team: "Emergency Response Team A",
-    mobile: "0918 567 8901",
-    status: "Active",
-    availability: "Available",
-    assignment: null,
-    location: "Barangay Hall",
-    joined: "Feb 03, 2026",
-  },
-  {
-    id: "PER-2026-003",
-    name: "John Bautista",
-    role: "Emergency Responder",
-    team: "Emergency Response Team B",
-    mobile: "0919 678 9012",
-    status: "Active",
-    availability: "Assigned",
-    assignment: "RPT-2026-003",
-    location: "Purok 1, Camunatan",
-    joined: "Feb 18, 2026",
-  },
-  {
-    id: "PER-2026-004",
-    name: "Ana Garcia",
-    role: "Barangay Personnel",
-    team: "Emergency Response Team B",
-    mobile: "0920 789 0123",
-    status: "Active",
-    availability: "Available",
-    assignment: null,
-    location: "Barangay Hall",
-    joined: "Mar 02, 2026",
-  },
-  {
-    id: "PER-2026-005",
-    name: "Miguel Santos",
-    role: "Emergency Responder",
-    team: "Emergency Response Team C",
-    mobile: "0921 890 1234",
-    status: "Active",
-    availability: "Assigned",
-    assignment: "RPT-2026-006",
-    location: "Purok 4, Camunatan",
-    joined: "Mar 15, 2026",
-  },
-  {
-    id: "PER-2026-006",
-    name: "Ramon Cruz",
-    role: "Barangay Personnel",
-    team: "Emergency Response Team C",
-    mobile: "0922 901 2345",
-    status: "Inactive",
-    availability: "Unavailable",
-    assignment: null,
-    location: "—",
-    joined: "Apr 11, 2026",
-  },
-];
+import { useEffect, useMemo, useState } from "react";
+import { getAllPersonnel } from "../../services/reportsService";
+import { useLanguage } from "../../hooks/useLanguage";
 
 const statusStyles = {
   Active: "bg-[#ECFDF3] text-[#027A48]",
@@ -86,8 +13,66 @@ const availabilityStyles = {
   Unavailable: "border-[#FECACA] bg-[#FEF2F2] text-[#B42318]",
 };
 
+function formatPersonnel(person) {
+  return {
+    databaseId: person.id,
+    id: person.personnel_code || `PER-${person.id}`,
+    name: person.name || "Unknown Personnel",
+    role: person.role || "Not specified",
+    team: person.team || "Not assigned",
+    mobile: person.mobile || "Not provided",
+    status: person.status || "Inactive",
+    availability: person.availability || "Unavailable",
+    assignment: person.assignment || null,
+    location: person.location || "—",
+    joined: person.joined_at
+      ? new Date(person.joined_at).toLocaleDateString("en-US", {
+          month: "short",
+          day: "2-digit",
+          year: "numeric",
+        })
+      : "Not specified",
+  };
+}
+
 function PersonnelPage({ onOpenReport, reportUpdates }) {
-  const [personnel] = useState(initialPersonnel);
+  const { t } = useLanguage();
+
+  const [personnel, setPersonnel] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [selectedPersonnelId, setSelectedPersonnelId] = useState(null);
+
+  useEffect(() => {
+    async function loadPersonnel() {
+      try {
+        setLoading(true);
+        setError("");
+
+        const data = await getAllPersonnel();
+
+        const formattedPersonnel = data.map(formatPersonnel);
+
+        setPersonnel(formattedPersonnel);
+
+        if (formattedPersonnel.length > 0) {
+          setSelectedPersonnelId(formattedPersonnel[0].id);
+        }
+      } catch (err) {
+        console.error("Failed to load personnel:", err);
+
+        setError(t("unableToLoadPersonnel"));
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadPersonnel();
+  }, []);
+
   const updatedPersonnel = useMemo(() => {
     return personnel.map((person) => {
       const activeAssignment = Object.values(reportUpdates || {}).find(
@@ -108,16 +93,14 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
       return {
         ...person,
         availability:
-          person.status === "Inactive" ? "Unavailable" : "Available",
-        assignment: null,
+          person.status === "Inactive"
+            ? "Unavailable"
+            : person.assignment
+              ? "Assigned"
+              : "Available",
       };
     });
   }, [personnel, reportUpdates]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [selectedPersonnelId, setSelectedPersonnelId] = useState(
-    initialPersonnel[0].id,
-  );
 
   const filteredPersonnel = useMemo(() => {
     return updatedPersonnel.filter((person) => {
@@ -151,13 +134,30 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
 
   const availablePersonnel = updatedPersonnel.filter(
     (person) =>
-      person.status === "Active" && person.availability === "Available",
+      person.status === "Active" &&
+      person.availability === "Available",
   ).length;
 
   const assignedPersonnel = updatedPersonnel.filter(
     (person) =>
-      person.status === "Active" && person.availability === "Assigned",
+      person.status === "Active" &&
+      person.availability === "Assigned",
   ).length;
+
+  const displayStatus = (status) => {
+    if (status === "Active") return t("active");
+    if (status === "Inactive") return t("inactive");
+
+    return status;
+  };
+
+  const displayAvailability = (availability) => {
+    if (availability === "Available") return t("available");
+    if (availability === "Assigned") return t("assigned");
+    if (availability === "Unavailable") return t("unavailable");
+
+    return availability;
+  };
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
@@ -165,15 +165,15 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
       <div className="flex shrink-0 items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#8346F2]">
-            MANAGEMENT
+            {t("management")}
           </p>
 
           <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[#1F1D47]">
-            Personnel
+            {t("personnelPageTitle")}
           </h1>
 
           <p className="mt-1 text-sm text-[#667085]">
-            Manage barangay response personnel, teams, and current assignments.
+            {t("personnelPageDescription")}
           </p>
         </div>
 
@@ -181,7 +181,7 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
           <span className="h-2 w-2 rounded-full bg-[#2ED47A]" />
 
           <span className="text-xs font-semibold text-[#344054]">
-            Personnel Registry
+            {t("personnelRegistry")}
           </span>
         </div>
       </div>
@@ -190,52 +190,67 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
       <div className="grid shrink-0 grid-cols-2 gap-3 xl:grid-cols-4">
         <div className="rounded-2xl border border-[#E4E7EC] bg-white p-4 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
-            Total Personnel
+            {t("totalPersonnel")}
           </p>
 
           <p className="mt-1 text-2xl font-extrabold text-[#1F1D47]">
             {totalPersonnel}
           </p>
 
-          <p className="mt-1 text-xs text-[#667085]">Registered personnel</p>
+          <p className="mt-1 text-xs text-[#667085]">
+            {t("registeredPersonnel")}
+          </p>
         </div>
 
         <div className="rounded-2xl border border-[#ABEFC6] bg-white p-4 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
-            Active Personnel
+            {t("activePersonnel")}
           </p>
 
           <p className="mt-1 text-2xl font-extrabold text-[#027A48]">
             {activePersonnel}
           </p>
 
-          <p className="mt-1 text-xs text-[#667085]">Currently active</p>
+          <p className="mt-1 text-xs text-[#667085]">
+            {t("currentlyActive")}
+          </p>
         </div>
 
         <div className="rounded-2xl border border-[#ABEFC6] bg-white p-4 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
-            Available
+            {t("available")}
           </p>
 
           <p className="mt-1 text-2xl font-extrabold text-[#027A48]">
             {availablePersonnel}
           </p>
 
-          <p className="mt-1 text-xs text-[#667085]">Ready for assignment</p>
+          <p className="mt-1 text-xs text-[#667085]">
+            {t("readyForAssignment")}
+          </p>
         </div>
 
         <div className="rounded-2xl border border-[#DDD6FE] bg-white p-4 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
-            Assigned
+            {t("assigned")}
           </p>
 
           <p className="mt-1 text-2xl font-extrabold text-[#6941C6]">
             {assignedPersonnel}
           </p>
 
-          <p className="mt-1 text-xs text-[#667085]">Handling active reports</p>
+          <p className="mt-1 text-xs text-[#667085]">
+            {t("handlingActiveReports")}
+          </p>
         </div>
       </div>
+
+      {/* ERROR */}
+      {error && (
+        <div className="rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-sm font-medium text-[#B42318]">
+          {error}
+        </div>
+      )}
 
       {/* MAIN WORKSPACE */}
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.65fr)]">
@@ -251,9 +266,8 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
                   type="text"
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="Search personnel..."
+                  placeholder={t("searchPersonnel")}
                   className="min-w-0 flex-1 bg-transparent text-xs text-[#1F1D47] outline-none placeholder:text-[#98A2B3]"
-                  aria-label="Search personnel"
                 />
               </div>
             </div>
@@ -263,143 +277,154 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
               onChange={(event) => setStatusFilter(event.target.value)}
               className="h-10 rounded-xl border border-[#E4E7EC] bg-white px-3 text-xs font-semibold text-[#344054] outline-none focus:border-[#8346F2]"
             >
-              <option value="All">All Status</option>
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
+              <option value="All">{t("allStatus")}</option>
+              <option value="Active">{t("active")}</option>
+              <option value="Inactive">{t("inactive")}</option>
             </select>
           </div>
 
           {/* TABLE */}
           <div className="min-h-0 flex-1 overflow-auto">
-            <table className="w-full min-w-[820px] border-collapse">
-              <thead className="sticky top-0 z-10 bg-[#F8FAFC]">
-                <tr className="border-b border-[#E4E7EC]">
-                  <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
-                    Personnel
-                  </th>
+            {loading ? (
+              <div className="flex min-h-[300px] items-center justify-center">
+                <p className="text-sm font-medium text-[#667085]">
+                  {t("loadingPersonnel")}
+                </p>
+              </div>
+            ) : (
+              <table className="w-full min-w-[820px] border-collapse">
+                <thead className="sticky top-0 z-10 bg-[#F8FAFC]">
+                  <tr className="border-b border-[#E4E7EC]">
+                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
+                      {t("personnel")}
+                    </th>
 
-                  <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
-                    Role
-                  </th>
+                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
+                      {t("role")}
+                    </th>
 
-                  <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
-                    Team
-                  </th>
+                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
+                      {t("team")}
+                    </th>
 
-                  <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
-                    Availability
-                  </th>
+                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
+                      {t("availability")}
+                    </th>
 
-                  <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
-                    Status
-                  </th>
+                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
+                      {t("status")}
+                    </th>
 
-                  <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
-                    Assignment
-                  </th>
+                    <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
+                      {t("assignment")}
+                    </th>
 
-                  <th className="px-4 py-3" />
-                </tr>
-              </thead>
+                    <th className="px-4 py-3" />
+                  </tr>
+                </thead>
 
-              <tbody>
-                {filteredPersonnel.map((person) => {
-                  const isSelected = selectedPersonnel?.id === person.id;
+                <tbody>
+                  {filteredPersonnel.map((person) => {
+                    const isSelected =
+                      selectedPersonnel?.id === person.id;
 
-                  return (
-                    <tr
-                      key={person.id}
-                      onClick={() => setSelectedPersonnelId(person.id)}
-                      className={`cursor-pointer border-b border-[#E4E7EC] transition ${
-                        isSelected ? "bg-[#F5F3FF]" : "hover:bg-[#FAF9FF]"
-                      }`}
-                    >
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F4F3FF] text-xs font-bold text-[#6941C6]">
-                            {person.name.charAt(0)}
+                    return (
+                      <tr
+                        key={person.id}
+                        onClick={() =>
+                          setSelectedPersonnelId(person.id)
+                        }
+                        className={`cursor-pointer border-b border-[#E4E7EC] transition ${
+                          isSelected
+                            ? "bg-[#F5F3FF]"
+                            : "hover:bg-[#FAF9FF]"
+                        }`}
+                      >
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F4F3FF] text-xs font-bold text-[#6941C6]">
+                              {person.name.charAt(0)}
+                            </div>
+
+                            <div className="min-w-0">
+                              <p className="truncate text-xs font-bold text-[#1F1D47]">
+                                {person.name}
+                              </p>
+
+                              <p className="mt-0.5 text-[10px] text-[#667085]">
+                                {person.id}
+                              </p>
+                            </div>
                           </div>
+                        </td>
 
-                          <div className="min-w-0">
-                            <p className="truncate text-xs font-bold text-[#1F1D47]">
-                              {person.name}
-                            </p>
+                        <td className="px-4 py-3">
+                          <p className="text-xs font-medium text-[#344054]">
+                            {person.role}
+                          </p>
 
-                            <p className="mt-0.5 text-[10px] text-[#667085]">
-                              {person.id}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
+                          <p className="mt-0.5 text-[10px] text-[#667085]">
+                            {person.mobile}
+                          </p>
+                        </td>
 
-                      <td className="px-4 py-3">
-                        <p className="text-xs font-medium text-[#344054]">
-                          {person.role}
-                        </p>
+                        <td className="px-4 py-3">
+                          <p className="max-w-[190px] truncate text-xs font-medium text-[#344054]">
+                            {person.team}
+                          </p>
+                        </td>
 
-                        <p className="mt-0.5 text-[10px] text-[#667085]">
-                          {person.mobile}
-                        </p>
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <p className="max-w-[190px] truncate text-xs font-medium text-[#344054]">
-                          {person.team}
-                        </p>
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <span
-                          className={`rounded-full border px-2 py-1 text-[10px] font-bold ${
-                            availabilityStyles[person.availability]
-                          }`}
-                        >
-                          {person.availability}
-                        </span>
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <span
-                          className={`rounded-full px-2 py-1 text-[10px] font-bold ${
-                            statusStyles[person.status]
-                          }`}
-                        >
-                          {person.status}
-                        </span>
-                      </td>
-
-                      <td className="px-4 py-3 text-right">
-                        {person.assignment ? (
-                          <span className="text-xs font-bold text-[#6941C6]">
-                            {person.assignment}
+                        <td className="px-4 py-3">
+                          <span
+                            className={`rounded-full border px-2 py-1 text-[10px] font-bold ${
+                              availabilityStyles[person.availability]
+                            }`}
+                          >
+                            {displayAvailability(person.availability)}
                           </span>
-                        ) : (
-                          <span className="text-xs text-[#98A2B3]">—</span>
-                        )}
-                      </td>
+                        </td>
 
-                      <td className="px-4 py-3 text-right text-sm text-[#98A2B3]">
-                        ›
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`rounded-full px-2 py-1 text-[10px] font-bold ${
+                              statusStyles[person.status]
+                            }`}
+                          >
+                            {displayStatus(person.status)}
+                          </span>
+                        </td>
 
-            {filteredPersonnel.length === 0 && (
-              <div className="flex h-full min-h-[260px] items-center justify-center p-6 text-center">
+                        <td className="px-4 py-3 text-right">
+                          {person.assignment ? (
+                            <span className="text-xs font-bold text-[#6941C6]">
+                              {person.assignment}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-[#98A2B3]">
+                              —
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="px-4 py-3 text-right text-sm text-[#98A2B3]">
+                          ›
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+
+            {!loading && filteredPersonnel.length === 0 && (
+              <div className="flex min-h-[260px] items-center justify-center p-6 text-center">
                 <div>
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#F4F3FF] text-lg text-[#8346F2]">
-                    ♙
-                  </div>
-
-                  <p className="mt-3 text-sm font-bold text-[#1F1D47]">
-                    No personnel found
+                  <p className="text-sm font-bold text-[#1F1D47]">
+                    {t("noPersonnelFound")}
                   </p>
 
                   <p className="mt-1 text-xs text-[#667085]">
-                    Try adjusting your search or status filter.
+                    {t("adjustSearchOrStatus")}
                   </p>
                 </div>
               </div>
@@ -409,15 +434,15 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
           {/* TABLE FOOTER */}
           <div className="flex shrink-0 items-center justify-between border-t border-[#E4E7EC] px-4 py-3">
             <p className="text-xs text-[#667085]">
-              Showing{" "}
+              {t("showing")}{" "}
               <span className="font-semibold text-[#344054]">
                 {filteredPersonnel.length}
               </span>{" "}
-              of {totalPersonnel} personnel
+              {t("of")} {totalPersonnel} {t("personnel").toLowerCase()}
             </p>
 
             <p className="hidden text-[10px] text-[#98A2B3] sm:block">
-              Select personnel to view details
+              {t("selectPersonnelToViewDetails")}
             </p>
           </div>
         </section>
@@ -449,31 +474,34 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
                       statusStyles[selectedPersonnel.status]
                     }`}
                   >
-                    {selectedPersonnel.status}
+                    {displayStatus(selectedPersonnel.status)}
                   </span>
 
                   <span
                     className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${
-                      availabilityStyles[selectedPersonnel.availability]
+                      availabilityStyles[
+                        selectedPersonnel.availability
+                      ]
                     }`}
                   >
-                    {selectedPersonnel.availability}
+                    {displayAvailability(
+                      selectedPersonnel.availability,
+                    )}
                   </span>
                 </div>
               </div>
 
               <div className="min-h-0 flex-1 overflow-auto p-5">
                 <div className="space-y-5">
-                  {/* ROLE & TEAM */}
                   <div>
                     <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-[#8346F2]">
-                      Personnel Information
+                      {t("personnelInformation")}
                     </h3>
 
                     <div className="mt-3 space-y-3">
                       <div>
                         <p className="text-[10px] font-bold uppercase text-[#98A2B3]">
-                          Role
+                          {t("role")}
                         </p>
 
                         <p className="mt-1 text-sm font-semibold text-[#344054]">
@@ -483,7 +511,7 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
 
                       <div>
                         <p className="text-[10px] font-bold uppercase text-[#98A2B3]">
-                          Response Team
+                          {t("responseTeam")}
                         </p>
 
                         <p className="mt-1 text-sm font-semibold text-[#344054]">
@@ -493,7 +521,7 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
 
                       <div>
                         <p className="text-[10px] font-bold uppercase text-[#98A2B3]">
-                          Mobile Number
+                          {t("mobileNumber")}
                         </p>
 
                         <p className="mt-1 text-sm font-semibold text-[#344054]">
@@ -503,17 +531,16 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
                     </div>
                   </div>
 
-                  {/* ASSIGNMENT */}
                   <div className="border-t border-[#E4E7EC] pt-5">
                     <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-[#8346F2]">
-                      Current Assignment
+                      {t("currentAssignment")}
                     </h3>
 
                     <div className="mt-3 rounded-xl border border-[#E4E7EC] bg-[#F8FAFC] p-4">
                       {selectedPersonnel.assignment ? (
                         <>
                           <p className="text-[10px] font-bold uppercase text-[#98A2B3]">
-                            Active Report
+                            {t("activeReport")}
                           </p>
 
                           <p className="mt-1 text-sm font-extrabold text-[#6941C6]">
@@ -521,7 +548,7 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
                           </p>
 
                           <p className="mt-2 text-xs text-[#667085]">
-                            Current location:{" "}
+                            {t("currentLocation")}:{" "}
                             <span className="font-semibold text-[#344054]">
                               {selectedPersonnel.location}
                             </span>
@@ -530,38 +557,36 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
                       ) : (
                         <>
                           <p className="text-sm font-bold text-[#027A48]">
-                            No active assignment
+                            {t("noActiveAssignment")}
                           </p>
 
                           <p className="mt-1 text-xs text-[#667085]">
-                            This personnel is currently available for
-                            deployment.
+                            {t("personnelAvailableForDeployment")}
                           </p>
                         </>
                       )}
                     </div>
                   </div>
 
-                  {/* ACCOUNT */}
                   <div className="border-t border-[#E4E7EC] pt-5">
                     <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-[#8346F2]">
-                      Account Information
+                      {t("accountInformation")}
                     </h3>
 
                     <div className="mt-3 grid grid-cols-2 gap-3">
                       <div className="rounded-xl border border-[#E4E7EC] bg-[#F8FAFC] p-3">
                         <p className="text-[9px] font-bold uppercase text-[#98A2B3]">
-                          Status
+                          {t("status")}
                         </p>
 
                         <p className="mt-1 text-xs font-bold text-[#344054]">
-                          {selectedPersonnel.status}
+                          {displayStatus(selectedPersonnel.status)}
                         </p>
                       </div>
 
                       <div className="rounded-xl border border-[#E4E7EC] bg-[#F8FAFC] p-3">
                         <p className="text-[9px] font-bold uppercase text-[#98A2B3]">
-                          Joined
+                          {t("joined")}
                         </p>
 
                         <p className="mt-1 text-xs font-bold text-[#344054]">
@@ -591,24 +616,20 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
                   }`}
                 >
                   {selectedPersonnel.assignment
-                    ? `View Assignment • ${selectedPersonnel.assignment}`
-                    : "No Active Assignment"}
+                    ? `${t("viewAssignment")} • ${selectedPersonnel.assignment}`
+                    : t("noActiveAssignmentButton")}
                 </button>
               </div>
             </>
           ) : (
             <div className="flex h-full items-center justify-center p-6 text-center">
               <div>
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#F4F3FF] text-lg text-[#8346F2]">
-                  ♙
-                </div>
-
-                <p className="mt-3 text-sm font-bold text-[#1F1D47]">
-                  No personnel selected
+                <p className="text-sm font-bold text-[#1F1D47]">
+                  {t("noPersonnelSelected")}
                 </p>
 
                 <p className="mt-1 text-xs text-[#667085]">
-                  Select personnel from the registry.
+                  {t("selectPersonnelFromRegistry")}
                 </p>
               </div>
             </div>

@@ -1,47 +1,9 @@
-import { useState } from "react";
-
-const initialPersonnel = [
-  {
-    id: "PER-2026-001",
-    name: "Carlos Mendoza",
-    role: "Response Team Leader",
-    team: "Emergency Response Team A",
-    status: "Active",
-    access: "Personnel",
-  },
-  {
-    id: "PER-2026-002",
-    name: "Mark Reyes",
-    role: "Emergency Responder",
-    team: "Emergency Response Team A",
-    status: "Active",
-    access: "Personnel",
-  },
-  {
-    id: "PER-2026-003",
-    name: "John Bautista",
-    role: "Emergency Responder",
-    team: "Emergency Response Team B",
-    status: "Active",
-    access: "Personnel",
-  },
-  {
-    id: "PER-2026-004",
-    name: "Ana Garcia",
-    role: "Barangay Personnel",
-    team: "Emergency Response Team B",
-    status: "Active",
-    access: "Personnel",
-  },
-  {
-    id: "PER-2026-005",
-    name: "Miguel Santos",
-    role: "Emergency Responder",
-    team: "Emergency Response Team C",
-    status: "Active",
-    access: "Personnel",
-  },
-];
+import { useEffect, useState } from "react";
+import {
+  getAllPersonnel,
+  getSystemSettings,
+  updateSystemSettings,
+} from "../../services/reportsService";
 
 const initialSettings = {
   systemName: "ResQNow",
@@ -88,22 +50,112 @@ const tabs = [
   },
 ];
 
-function SettingsRoles({
-  systemSettings,
-  onSettingsUpdate,
-  onAddAuditLog,
-}) {
+function SettingsRoles({ systemSettings, onSettingsUpdate, onAddAuditLog }) {
   const [activeTab, setActiveTab] = useState("general");
 
-  const [personnel] = useState(initialPersonnel);
+  const [personnel, setPersonnel] = useState([]);
+  const [selectedPersonnel, setSelectedPersonnel] = useState(null);
+  const [personnelLoading, setPersonnelLoading] = useState(true);
+const [personnelError, setPersonnelError] = useState("");
 
-  const [selectedPersonnel, setSelectedPersonnel] = useState(
-    initialPersonnel[0],
-  );
+const [savedSettings, setSavedSettings] = useState(
+  systemSettings || initialSettings,
+);
 
-  const savedSettings = systemSettings || initialSettings;
+const [settings, setSettings] = useState(
+  systemSettings || initialSettings,
+);
 
-  const [settings, setSettings] = useState(savedSettings);
+const [settingsLoading, setSettingsLoading] = useState(true);
+const [settingsError, setSettingsError] = useState("");
+const [settingsSaving, setSettingsSaving] = useState(false);
+
+useEffect(() => {
+  let isMounted = true;
+
+  async function loadSystemSettings() {
+    try {
+      setSettingsLoading(true);
+      setSettingsError("");
+
+      const data = await getSystemSettings();
+
+      if (!isMounted) return;
+
+      const loadedSettings = {
+        systemName: data.system_name,
+        barangayName: data.barangay_name,
+        cityName: data.city_name,
+        language: data.language,
+        notifications: data.notifications,
+        criticalAlerts: data.critical_alerts,
+        assignmentAlerts: data.assignment_alerts,
+        announcementAlerts: data.announcement_alerts,
+        autoRefresh: data.auto_refresh,
+      };
+
+      setSavedSettings(loadedSettings);
+      setSettings(loadedSettings);
+    } catch (error) {
+      console.error("Failed to load system settings:", error);
+
+      if (isMounted) {
+        setSettingsError(
+          "Unable to load system settings from the server.",
+        );
+      }
+    } finally {
+      if (isMounted) {
+        setSettingsLoading(false);
+      }
+    }
+  }
+
+  loadSystemSettings();
+
+  return () => {
+    isMounted = false;
+  };
+}, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadPersonnel() {
+      try {
+        setPersonnelLoading(true);
+        setPersonnelError("");
+
+        const personnelData = await getAllPersonnel();
+
+        if (!isMounted) return;
+
+        setPersonnel(personnelData);
+
+        if (personnelData.length > 0) {
+          setSelectedPersonnel(personnelData[0]);
+        }
+      } catch (error) {
+        console.error("Failed to load personnel:", error);
+
+        if (isMounted) {
+          setPersonnelError(
+            "Unable to load personnel accounts from the server.",
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setPersonnelLoading(false);
+        }
+      }
+    }
+
+    loadPersonnel();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const updateSetting = (key, value) => {
     setSettings((currentSettings) => ({
@@ -115,32 +167,70 @@ function SettingsRoles({
   const hasUnsavedChanges =
     JSON.stringify(settings) !== JSON.stringify(savedSettings);
 
-  const handleSaveChanges = () => {
+  const handleSaveChanges = async () => {
     const changedSettings = Object.keys(settings).filter(
       (key) => settings[key] !== savedSettings[key],
     );
 
-    if (changedSettings.length === 0) return;
+    if (changedSettings.length === 0 || settingsSaving) return;
 
-    // Update central state
-    onSettingsUpdate?.(settings);
+    try {
+      setSettingsSaving(true);
+      setSettingsError("");
 
-    // Create audit logs only for changed settings
-    changedSettings.forEach((key) => {
-      const oldValue = savedSettings[key];
-      const newValue = settings[key];
-
-      onAddAuditLog?.({
-        action: "System Setting Updated",
-        category: "System Action",
-        target: "SYS-SETTINGS",
-        field: settingLabels[key] || key,
-        oldValue: String(oldValue),
-        newValue: String(newValue),
-        remarks: `${settingLabels[key] || key} was changed from "${oldValue}" to "${newValue}".`,
-        status: "Success",
+      const updatedData = await updateSystemSettings({
+        system_name: settings.systemName,
+        barangay_name: settings.barangayName,
+        city_name: settings.cityName,
+        language: settings.language,
+        notifications: settings.notifications,
+        critical_alerts: settings.criticalAlerts,
+        assignment_alerts: settings.assignmentAlerts,
+        announcement_alerts: settings.announcementAlerts,
+        auto_refresh: settings.autoRefresh,
       });
-    });
+
+      const updatedSettings = {
+        systemName: updatedData.system_name,
+        barangayName: updatedData.barangay_name,
+        cityName: updatedData.city_name,
+        language: updatedData.language,
+        notifications: updatedData.notifications,
+        criticalAlerts: updatedData.critical_alerts,
+        assignmentAlerts: updatedData.assignment_alerts,
+        announcementAlerts: updatedData.announcement_alerts,
+        autoRefresh: updatedData.auto_refresh,
+      };
+
+      setSavedSettings(updatedSettings);
+      setSettings(updatedSettings);
+
+      onSettingsUpdate?.(updatedSettings);
+
+      changedSettings.forEach((key) => {
+        const oldValue = savedSettings[key];
+        const newValue = updatedSettings[key];
+
+        onAddAuditLog?.({
+          action: "System Setting Updated",
+          category: "System Action",
+          target: "SYS-SETTINGS",
+          field: settingLabels[key] || key,
+          oldValue: String(oldValue),
+          newValue: String(newValue),
+          remarks: `${settingLabels[key] || key} was changed from "${oldValue}" to "${newValue}".`,
+          status: "Success",
+        });
+      });
+    } catch (error) {
+      console.error("Failed to save system settings:", error);
+
+      setSettingsError(
+        error.message || "Unable to save system settings.",
+      );
+    } finally {
+      setSettingsSaving(false);
+    }
   };
 
   const handleCancelChanges = () => {
@@ -268,6 +358,8 @@ function SettingsRoles({
               personnel={personnel}
               selectedPersonnel={selectedPersonnel}
               setSelectedPersonnel={setSelectedPersonnel}
+              personnelLoading={personnelLoading}
+              personnelError={personnelError}
             />
           )}
 
@@ -275,7 +367,19 @@ function SettingsRoles({
           {activeTab !== "roles" && (
             <div className="flex shrink-0 items-center justify-between gap-4 border-t border-[#E4E7EC] bg-white px-5 py-4">
               <div>
-                {hasUnsavedChanges && (
+                {settingsLoading && (
+                  <p className="text-xs font-medium text-[#667085]">
+                    Loading system settings...
+                  </p>
+                )}
+
+                {!settingsLoading && settingsError && (
+                  <p className="text-xs font-medium text-[#D92D20]">
+                    {settingsError}
+                  </p>
+                )}
+
+                {!settingsLoading && !settingsError && hasUnsavedChanges && (
                   <p className="text-xs font-medium text-[#D97706]">
                     You have unsaved changes.
                   </p>
@@ -299,14 +403,16 @@ function SettingsRoles({
                 <button
                   type="button"
                   onClick={handleSaveChanges}
-                  disabled={!hasUnsavedChanges}
+                  disabled={
+                    !hasUnsavedChanges || settingsSaving || settingsLoading
+                  }
                   className={`rounded-xl px-5 py-2.5 text-sm font-bold text-white shadow-md transition ${
-                    hasUnsavedChanges
+                    hasUnsavedChanges && !settingsSaving && !settingsLoading
                       ? "bg-gradient-to-r from-[#8346F2] to-[#818CF8] hover:shadow-lg active:scale-[0.98]"
                       : "cursor-not-allowed bg-[#C4B5FD] shadow-none"
                   }`}
                 >
-                  Save Changes
+                  {settingsSaving ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </div>
@@ -397,9 +503,8 @@ function GeneralSettings({ settings, updateSetting }) {
               </p>
 
               <p className="mt-1 text-[11px] leading-5 text-[#667085]">
-                Changes will only be applied after clicking Save Changes.
-                Persistent system settings will be connected to the backend
-                during API integration.
+                Changes are saved to the system database when you click Save
+                Changes.
               </p>
             </div>
           </div>
@@ -472,7 +577,13 @@ function NotificationSettings({ settings, updateSetting }) {
   );
 }
 
-function RolesSettings({ personnel, selectedPersonnel, setSelectedPersonnel }) {
+function RolesSettings({
+  personnel,
+  selectedPersonnel,
+  setSelectedPersonnel,
+  personnelLoading,
+  personnelError,
+}) {
   return (
     <>
       <SectionHeader
@@ -503,40 +614,54 @@ function RolesSettings({ personnel, selectedPersonnel, setSelectedPersonnel }) {
 
           <div className="p-3">
             <div className="space-y-2">
-              {personnel.map((person) => {
-                const isSelected = selectedPersonnel?.id === person.id;
+              {personnelLoading ? (
+                <div className="py-8 text-center text-sm text-gray-500">
+                  Loading personnel...
+                </div>
+              ) : personnelError ? (
+                <div className="py-8 text-center text-sm text-red-500">
+                  {personnelError}
+                </div>
+              ) : personnel.length === 0 ? (
+                <div className="py-8 text-center text-sm text-gray-500">
+                  No personnel accounts found.
+                </div>
+              ) : (
+                personnel.map((person) => {
+                  const isSelected = selectedPersonnel?.id === person.id;
 
-                return (
-                  <button
-                    key={person.id}
-                    type="button"
-                    onClick={() => setSelectedPersonnel(person)}
-                    className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition ${
-                      isSelected
-                        ? "border-[#D9C8FF] bg-[#F7F3FF]"
-                        : "border-[#E4E7EC] bg-white hover:bg-[#FCFCFD]"
-                    }`}
-                  >
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#EDE9FE] text-[10px] font-extrabold text-[#6D28D9]">
-                      {getInitials(person.name)}
-                    </div>
+                  return (
+                    <button
+                      key={person.id}
+                      type="button"
+                      onClick={() => setSelectedPersonnel(person)}
+                      className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition ${
+                        isSelected
+                          ? "border-[#D9C8FF] bg-[#F7F3FF]"
+                          : "border-[#E4E7EC] bg-white hover:bg-[#FCFCFD]"
+                      }`}
+                    >
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#EDE9FE] text-[10px] font-extrabold text-[#6D28D9]">
+                        {getInitials(person.name)}
+                      </div>
 
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-bold text-[#344054]">
-                        {person.name}
-                      </p>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-bold text-[#344054]">
+                          {person.name}
+                        </p>
 
-                      <p className="truncate text-[10px] text-[#98A2B3]">
-                        {person.role}
-                      </p>
-                    </div>
+                        <p className="truncate text-[10px] text-[#98A2B3]">
+                          {person.role}
+                        </p>
+                      </div>
 
-                    <span className="shrink-0 rounded-full bg-[#E8F8F4] px-2 py-1 text-[9px] font-bold text-[#008F78]">
-                      {person.status}
-                    </span>
-                  </button>
-                );
-              })}
+                      <span className="shrink-0 rounded-full bg-[#E8F8F4] px-2 py-1 text-[9px] font-bold text-[#008F78]">
+                        {person.status}
+                      </span>
+                    </button>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>
@@ -629,9 +754,7 @@ function SectionHeader({ eyebrow, title, description }) {
         {eyebrow}
       </p>
 
-      <h2 className="mt-1 text-lg font-extrabold text-[#1F1D47]">
-        {title}
-      </h2>
+      <h2 className="mt-1 text-lg font-extrabold text-[#1F1D47]">{title}</h2>
 
       <p className="mt-1 text-xs text-[#667085]">{description}</p>
     </div>
@@ -644,9 +767,7 @@ function SettingsSection({ title, description, children }) {
       <div className="mb-4">
         <h3 className="text-sm font-bold text-[#344054]">{title}</h3>
 
-        <p className="mt-0.5 text-[11px] text-[#98A2B3]">
-          {description}
-        </p>
+        <p className="mt-0.5 text-[11px] text-[#98A2B3]">{description}</p>
       </div>
 
       {children}
@@ -678,8 +799,7 @@ function ToggleRow({
   onChange,
   accent = "default",
 }) {
-  const activeColor =
-    accent === "critical" ? "bg-[#EF4444]" : "bg-[#8346F2]";
+  const activeColor = accent === "critical" ? "bg-[#EF4444]" : "bg-[#8346F2]";
 
   return (
     <div className="flex items-center justify-between gap-4 rounded-xl border border-[#E4E7EC] bg-[#FCFCFD] p-3.5">

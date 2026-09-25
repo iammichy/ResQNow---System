@@ -19,10 +19,11 @@ function Sidebar({
   onNavigate,
   onAddManualReport,
   onLogout,
-
   // RBAC
   currentUser,
   can,
+  // GLOBAL SYSTEM SETTINGS
+  systemSettings,
 }) {
   const { t } = useLanguage();
 
@@ -38,7 +39,6 @@ function Sidebar({
         },
       ],
     },
-
     {
       label: t("operations"),
       items: [
@@ -68,7 +68,6 @@ function Sidebar({
         },
       ],
     },
-
     {
       label: t("management"),
       items: [
@@ -92,7 +91,6 @@ function Sidebar({
         },
       ],
     },
-
     {
       label: t("system"),
       items: [
@@ -104,7 +102,7 @@ function Sidebar({
         },
         {
           id: "settings",
-          label: "Settings & Roles",
+          label: t("settingsRoles"),
           icon: Settings,
           permission: "settings.view",
         },
@@ -152,7 +150,7 @@ function Sidebar({
       {/* BRAND */}
       <div className="shrink-0 border-b border-white/20 bg-black/5 px-5 py-4 backdrop-blur-sm">
         <div className="text-[25px] font-extrabold leading-none tracking-tight">
-          Res<span className="text-white">Q</span>Now
+          {systemSettings?.systemName || "ResQNow"}
         </div>
 
         <p className="mt-1.5 text-xs font-medium text-white/75">
@@ -217,7 +215,6 @@ function Sidebar({
       {/* BOTTOM AREA */}
       <div className="shrink-0 border-t border-white/20 bg-black/5 p-3 backdrop-blur-sm">
         {/* ADD MANUAL REPORT */}
-
         {canCreateReport && (
           <button
             type="button"
@@ -243,14 +240,13 @@ function Sidebar({
         )}
 
         {/* CURRENT ROLE */}
-
         <div className="mt-3 rounded-xl border border-white/15 bg-white/10 px-3 py-2">
           <p className="text-[9px] font-bold uppercase tracking-wider text-white/55">
-            Current Access
+            {t("currentAccess")}
           </p>
 
           <p className="mt-1 truncate text-xs font-bold text-white">
-            {currentUser?.role || "Administrator"}
+            {currentUser?.role || t("administrator")}
           </p>
         </div>
 
