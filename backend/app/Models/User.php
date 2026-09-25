@@ -39,6 +39,16 @@ class User extends Authenticatable
     }
 
     /**
+     * Operational responder profile for responder accounts.
+     */
+    public function responderProfile(): HasOne
+    {
+        return $this->hasOne(
+            ResponderProfile::class
+        );
+    }
+
+    /**
      * Reports submitted by this user.
      *
      * For a resident account, these are the

@@ -103,7 +103,7 @@ export default function ResponderUpdates() {
               <button
                 key={`${update.reportId}-${update.id}`}
                 type="button"
-                onClick={() => navigate(`/responder/incidents/${update.reportId}`)}
+                onClick={() => navigate(`/responder/missions/${update.reportId}`)}
                 className="flex w-full items-start gap-3 rounded-2xl border border-resqnow-border-soft bg-white p-4 text-left shadow-[0_4px_16px_rgba(31,29,71,.05)] hover:border-resqnow-violet/25"
               >
                 <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${update.priority === 'High' ? 'bg-resqnow-critical/10 text-resqnow-critical' : 'bg-resqnow-violet/10 text-resqnow-violet'}`}>

@@ -303,7 +303,7 @@ export default function ResponderAssignedMap({
         </p>
 
         <p className="mt-1 max-w-xs text-[11px] leading-relaxed text-resqnow-muted">
-          Assigned reports without coordinates remain available in Track.
+          Assigned reports without coordinates remain available in Missions.
         </p>
       </div>
     );

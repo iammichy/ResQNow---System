@@ -35,7 +35,6 @@ import ResponderTrack from './components/responder/ResponderTrack';
 import ResponderFullMap from './components/responder/ResponderFullMap';
 import ResponderIncidentDetail from './components/responder/ResponderIncidentDetail';
 import ResponderContacts from './components/responder/ResponderContacts';
-import ResponderSafetyTips from './components/responder/ResponderSafetyTips';
 import ResponderUpdates from './components/responder/ResponderUpdates';
 import ResponderProfile from './components/responder/ResponderProfile';
 
@@ -258,12 +257,7 @@ export default function App() {
 
           <Route
             path="/responder"
-            element={
-              <Navigate
-                to="/responder/dashboard"
-                replace
-              />
-            }
+            element={<Navigate to="/responder/dashboard" replace />}
           />
 
           <Route
@@ -276,84 +270,24 @@ export default function App() {
               </ProtectedRoute>
             }
           >
-            <Route
-              path="/responder/dashboard"
-              element={<ResponderDashboard />}
-            />
+            <Route path="/responder/dashboard" element={<ResponderDashboard />} />
 
-            {/* Track */}
-            <Route
-              path="/responder/incidents"
-              element={<ResponderTrack />}
-            />
+            <Route path="/responder/missions" element={<ResponderTrack />} />
+            <Route path="/responder/missions/map" element={<ResponderFullMap />} />
+            <Route path="/responder/missions/:reportId" element={<ResponderIncidentDetail />} />
 
-            <Route
-              path="/responder/track"
-              element={
-                <Navigate
-                  to="/responder/incidents"
-                  replace
-                />
-              }
-            />
+            <Route path="/responder/contacts" element={<ResponderContacts />} />
+            <Route path="/responder/updates" element={<ResponderUpdates />} />
+            <Route path="/responder/profile" element={<ResponderProfile />} />
 
-            {/* Full-screen assigned map */}
-            <Route
-              path="/responder/incidents/map"
-              element={<ResponderFullMap />}
-            />
-
-            {/* Incident review */}
-            <Route
-              path="/responder/incidents/:reportId"
-              element={<ResponderIncidentDetail />}
-            />
-
-            {/* Contact directory */}
-            <Route
-              path="/responder/contacts"
-              element={<ResponderContacts />}
-            />
-
-            {/* Safety tips */}
-            <Route
-              path="/responder/safety-tips"
-              element={<ResponderSafetyTips />}
-            />
-
-            {/* Header bell */}
-            <Route
-              path="/responder/updates"
-              element={<ResponderUpdates />}
-            />
-
-            {/* Header profile */}
-            <Route
-              path="/responder/settings"
-              element={<ResponderProfile />}
-            />
-
-            {/* Old profile URL */}
-            <Route
-              path="/responder/profile"
-              element={
-                <Navigate
-                  to="/responder/settings"
-                  replace
-                />
-              }
-            />
-
-            {/* Old map URL */}
-            <Route
-              path="/responder/map"
-              element={
-                <Navigate
-                  to="/responder/incidents"
-                  replace
-                />
-              }
-            />
+            {/* Legacy URLs kept as safe redirects / compatibility routes. */}
+            <Route path="/responder/incidents" element={<Navigate to="/responder/missions" replace />} />
+            <Route path="/responder/track" element={<Navigate to="/responder/missions" replace />} />
+            <Route path="/responder/incidents/map" element={<Navigate to="/responder/missions/map" replace />} />
+            <Route path="/responder/incidents/:reportId" element={<ResponderIncidentDetail />} />
+            <Route path="/responder/settings" element={<Navigate to="/responder/profile" replace />} />
+            <Route path="/responder/safety-tips" element={<Navigate to="/responder/dashboard" replace />} />
+            <Route path="/responder/map" element={<Navigate to="/responder/missions" replace />} />
           </Route>
 
 

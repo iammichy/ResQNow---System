@@ -24,6 +24,7 @@ import {
   performResponderAction,
 } from '../../services/responderService';
 import { getPriorityStyle, getStatusStyle } from '../../utils/statusUtils';
+import ResponderAssignedMap from './ResponderAssignedMap';
 import {
   contactTarget,
   directionsInfo,
@@ -39,6 +40,18 @@ const secondaryActionValues = [
   'unable-locate',
   'invalid-finding',
 ];
+
+const tacticalActionLabels = {
+  acknowledge: 'Acknowledge Mission',
+  start: 'Start Response',
+  'en-route': 'Mark En Route',
+  arrived: 'On Scene',
+  resolve: 'Victim Secured / Resolve',
+};
+
+function tacticalActionLabel(action) {
+  return tacticalActionLabels[action?.value] || action?.label || 'Update Mission';
+}
 
 export default function ResponderIncidentDetail() {
   const { user } = useAuth();
@@ -111,7 +124,7 @@ export default function ResponderIncidentDetail() {
       navigate(-1);
       return;
     }
-    navigate('/responder/incidents');
+    navigate('/responder/missions');
   }
 
   async function saveResponderAction(action, remarks = '') {
@@ -258,6 +271,23 @@ export default function ResponderIncidentDetail() {
         </div>
       </section>
 
+      <section className="rounded-2xl border border-resqnow-border-soft bg-white p-4 shadow-[0_5px_18px_rgba(31,29,71,.05)]">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[9px] font-extrabold uppercase tracking-[.14em] text-resqnow-violet">Reporter location</p>
+            <h2 className="mt-0.5 text-[14px] font-bold text-resqnow-primary">Incident map</h2>
+            <p className="mt-0.5 text-[9px] text-resqnow-muted">Submitted report coordinates · not live resident tracking</p>
+          </div>
+          <MapPin className="h-5 w-5 shrink-0 text-resqnow-critical" />
+        </div>
+        <ResponderAssignedMap
+          reports={[report]}
+          heightClass="h-[240px]"
+          showLegend={false}
+          ariaLabel={`Reporter location for ${report.id}`}
+        />
+      </section>
+
       {actionSuccess && (
         <div
           role="status"
@@ -329,17 +359,34 @@ export default function ResponderIncidentDetail() {
             What should I do next?
           </p>
           <h2 className="mt-1 text-[14px] font-bold text-resqnow-primary">
-            {nextAction.label}
+            {tacticalActionLabel(nextAction)}
           </h2>
           <button
             type="button"
             onClick={() => setActionSheet(nextAction)}
             className="mt-3 min-h-[50px] w-full rounded-xl bg-brand-gradient px-4 text-[12px] font-bold text-white shadow-[0_6px_18px_rgba(131,70,242,.18)] active:scale-[.99]"
           >
-            {nextAction.label}
+            {tacticalActionLabel(nextAction)}
           </button>
         </section>
       )}
+
+      <section className="rounded-2xl border border-resqnow-border-soft bg-white p-4 shadow-[0_5px_18px_rgba(31,29,71,.05)]">
+        <h2 className="text-[15px] font-bold text-resqnow-primary">Victim / household intelligence</h2>
+        <p className="mt-0.5 text-[10px] text-resqnow-muted">Operational flags from the report and resident household profile. No counts are inferred from boolean profile flags.</p>
+        <div className="mt-3 grid gap-3">
+          <InfoRow
+            icon={BadgeCheck}
+            label="Affected individuals"
+            value={(report.responderIntel?.affectedIndividuals || report.affectedIndividuals || []).length ? (report.responderIntel?.affectedIndividuals || report.affectedIndividuals).join(', ') : 'No affected-individual flags recorded'}
+          />
+          <InfoRow
+            icon={ShieldCheck}
+            label="Household vulnerability flags"
+            value={(report.responderIntel?.householdFlags || []).length ? report.responderIntel.householdFlags.join(', ') : 'No household vulnerability flags recorded'}
+          />
+        </div>
+      </section>
 
       <section className="rounded-2xl border border-resqnow-border-soft bg-white p-4 shadow-[0_5px_18px_rgba(31,29,71,.05)]">
         <h2 className="text-[15px] font-bold text-resqnow-primary">Original resident report</h2>

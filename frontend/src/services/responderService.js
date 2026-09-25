@@ -64,3 +64,28 @@ export async function performResponderAction(
 
   return unwrapResource(payload);
 }
+
+export async function getResponderOperations() {
+  const payload = await apiRequest('/api/responder/operations');
+  return unwrapResource(payload);
+}
+
+export async function updateResponderDutyStatus(isOnDuty) {
+  const payload = await apiRequest('/api/responder/duty-status', {
+    method: 'POST',
+    body: JSON.stringify({ isOnDuty: Boolean(isOnDuty) }),
+  });
+
+  return unwrapResource(payload);
+}
+
+export async function getResponderEvacuationCenters({ limit = 20 } = {}) {
+  const params = new URLSearchParams();
+  params.set('limit', String(limit));
+
+  const payload = await apiRequest(
+    `/api/responder/evacuation-centers?${params.toString()}`
+  );
+
+  return unwrapCollection(payload);
+}

@@ -125,6 +125,10 @@ class ReportResource extends JsonResource
             'affectedIndividuals' =>
                 $this->affected_individuals ?? [],
 
+            // Assignment-scoped operational vulnerability context.
+            'responderIntel' =>
+                $this->getResponderIntel($request),
+
 
             // ============ RESIDENT EVIDENCE ============
 
@@ -224,6 +228,48 @@ class ReportResource extends JsonResource
         ];
     }
 
+
+
+    /**
+     * Operational vulnerability context for assigned responders/admins only.
+     * Boolean resident-profile flags are never converted into invented counts.
+     */
+    private function getResponderIntel(Request $request): ?array
+    {
+        $viewerRole = $request->user()?->role;
+
+        if (! in_array($viewerRole, ['responder', 'admin'], true)) {
+            return null;
+        }
+
+        $profile = (
+            $this->relationLoaded('user') &&
+            $this->user?->relationLoaded('profile')
+        )
+            ? $this->user->profile
+            : null;
+
+        $householdFlags = [];
+
+        if ($profile?->has_senior_citizen) {
+            $householdFlags[] = 'Senior citizen in household';
+        }
+        if ($profile?->has_child) {
+            $householdFlags[] = 'Child in household';
+        }
+        if ($profile?->has_pwd) {
+            $householdFlags[] = 'PWD in household';
+        }
+        if ($profile?->has_pregnant_person) {
+            $householdFlags[] = 'Pregnant person in household';
+        }
+
+        return [
+            'affectedIndividuals' => $this->affected_individuals ?? [],
+            'householdFlags' => $householdFlags,
+            'householdCount' => $profile?->household_count,
+        ];
+    }
 
     /**
      * Resident who submitted the report.

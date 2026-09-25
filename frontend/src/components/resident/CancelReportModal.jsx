@@ -129,12 +129,12 @@ export default function CancelReportModal({
 
   return (
     <div
-      className="fixed inset-0 z-[80] bg-slate-950/55 px-4 py-6 flex items-end sm:items-center justify-center"
+      className="fixed inset-0 z-[120] bg-slate-950/55 px-3 pt-6 flex items-end sm:items-center justify-center"
       role="dialog"
       aria-modal="true"
       aria-labelledby="cancel-report-title"
     >
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden">
+      <div className="w-full max-w-md max-h-[calc(100dvh-24px)] bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col">
         <div className="px-4 py-4 border-b border-resqnow-border-soft flex items-start gap-3">
           <div className="w-10 h-10 rounded-xl bg-resqnow-critical/10 text-resqnow-critical flex items-center justify-center shrink-0">
             <AlertTriangle className="w-5 h-5" />
@@ -161,7 +161,7 @@ export default function CancelReportModal({
           </button>
         </div>
 
-        <div className="p-4">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 pb-[calc(104px+env(safe-area-inset-bottom))] sm:pb-4">
           <p className="text-[11px] font-extrabold text-resqnow-primary mb-2.5">
             Why are you cancelling?
           </p>
@@ -218,7 +218,7 @@ export default function CancelReportModal({
             </div>
           )}
 
-          <div className="mt-4 grid grid-cols-2 gap-2.5">
+          <div className="sticky bottom-0 -mx-4 mt-4 grid grid-cols-2 gap-2.5 border-t border-resqnow-border-soft bg-white/95 px-4 pt-3 pb-2 backdrop-blur">
             <button
               type="button"
               onClick={onClose}

@@ -13,11 +13,14 @@ import {
   LogOut,
   Mail,
   ShieldCheck,
+  Truck,
+  Radio,
   UserRound,
 } from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext';
 import { apiRequest, getCsrfCookie } from '../../services/api';
+import { getResponderOperations } from '../../services/responderService';
 
 const preferenceKey = 'resqnow_responder_preferences';
 
@@ -40,6 +43,7 @@ export default function ResponderProfile() {
     urgentAlerts: true,
   });
   const [preferencesSaved, setPreferencesSaved] = useState(false);
+  const [operations, setOperations] = useState(null);
 
   useEffect(() => {
     try {
@@ -50,6 +54,22 @@ export default function ResponderProfile() {
     } catch {
       // Keep defaults when saved preferences are malformed.
     }
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    getResponderOperations()
+      .then((data) => {
+        if (active) setOperations(data);
+      })
+      .catch(() => {
+        // Profile still works when operational metadata is temporarily unavailable.
+      });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const firstLetter = (user?.fullName || 'Responder')
@@ -149,6 +169,23 @@ export default function ResponderProfile() {
             <p className="text-[10px] text-white/80 mt-1 truncate">Barangay Camunatan</p>
           </div>
         </div>
+      </section>
+
+      <section className="mb-3 rounded-2xl border border-resqnow-border-soft bg-white p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[9px] font-extrabold uppercase tracking-[.14em] text-resqnow-violet">Operational identity</p>
+            <p className="mt-1 text-[12px] font-semibold text-resqnow-muted">Dispatcher-facing readiness information.</p>
+          </div>
+          <span className={`rounded-full px-2.5 py-1 text-[9px] font-extrabold ${operations?.isOnDuty ? 'bg-resqnow-safe/10 text-resqnow-safe' : 'bg-resqnow-canvas text-resqnow-muted'}`}>
+            {operations?.isOnDuty ? 'ON DUTY' : 'OFF DUTY'}
+          </span>
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <InfoLine icon={Radio} label="Responder role" value={operations?.responderRole || 'Emergency Responder'} />
+          <InfoLine icon={Truck} label="Asset / team" value={operations?.currentAsset || operations?.teamName || 'Not assigned'} />
+        </div>
+        <p className="mt-3 text-[9px] leading-relaxed text-resqnow-placeholder">Duty status is changed from Home. Asset and team values are displayed only when operational data has been assigned.</p>
       </section>
 
       <SettingsSection

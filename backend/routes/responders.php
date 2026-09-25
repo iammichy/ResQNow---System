@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Api\EvacuationCenterController;
+use App\Http\Controllers\Api\ResponderOperationsController;
 use App\Http\Controllers\Api\ResponderReportController;
 use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\EnsureVerifiedAccount;
@@ -29,6 +31,37 @@ Route::prefix('responder')
         'throttle:120,1',
     ])
     ->group(function () {
+
+        /*
+         * Responder readiness / operational context.
+         * Exact unassigned incident locations are intentionally not exposed.
+         */
+        Route::get(
+            '/operations',
+            [
+                ResponderOperationsController::class,
+                'show',
+            ]
+        );
+
+        Route::post(
+            '/duty-status',
+            [
+                ResponderOperationsController::class,
+                'updateDutyStatus',
+            ]
+        )->middleware('throttle:30,1');
+
+        /*
+         * Published evacuation-center operational data for field routing.
+         */
+        Route::get(
+            '/evacuation-centers',
+            [
+                EvacuationCenterController::class,
+                'index',
+            ]
+        );
 
         /*
          * List reports currently assigned

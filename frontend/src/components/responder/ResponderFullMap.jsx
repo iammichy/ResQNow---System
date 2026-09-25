@@ -210,7 +210,7 @@ export default function ResponderFullMap() {
     }
 
     navigate(
-      '/responder/incidents'
+      '/responder/missions'
     );
   }
 
@@ -218,7 +218,7 @@ export default function ResponderFullMap() {
     report
   ) {
     navigate(
-      `/responder/incidents/${report.id}`,
+      `/responder/missions/${report.id}`,
       {
         state: {
           returnTo:
@@ -241,7 +241,7 @@ export default function ResponderFullMap() {
             onClick={
               goBack
             }
-            aria-label="Back to Track"
+            aria-label="Back to Missions"
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-resqnow-border-soft bg-white text-resqnow-primary"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -249,7 +249,7 @@ export default function ResponderFullMap() {
 
           <div className="min-w-0 flex-1">
             <p className="text-[9px] font-extrabold uppercase tracking-[.14em] text-resqnow-violet">
-              Track
+              Missions
             </p>
 
             <h1 className="truncate text-[16px] font-extrabold text-resqnow-primary">
