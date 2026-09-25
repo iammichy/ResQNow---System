@@ -59,6 +59,7 @@ class ReportWorkflow
                 [
                     'Resolved',
                     'Invalid',
+                    'Cancelled',
                 ],
                 true
             )

@@ -29,6 +29,9 @@ function getStatusStyle(status) {
     case 'Invalid':
       return 'border bg-resqnow-crimson/10 text-resqnow-crimson border-resqnow-crimson/20';
 
+    case 'Cancelled':
+      return 'border bg-slate-100 text-slate-600 border-slate-200';
+
     default:
       return 'border bg-slate-100 text-slate-600 border-slate-200';
   }

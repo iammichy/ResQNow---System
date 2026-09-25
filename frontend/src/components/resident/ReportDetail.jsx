@@ -41,6 +41,7 @@ import {
   getPriorityStyle,
 } from '../../utils/statusUtils';
 import { getBarangayHotline } from '../../utils/contactUtils';
+import CancelReportModal, { canResidentCancel } from './CancelReportModal';
 
 const ACTIVE_REPORT_POLL_MS = 15000;
 const HOTLINE = getBarangayHotline();
@@ -90,6 +91,8 @@ function getResidentTimelineLabel(status) {
       return 'Report resolved';
     case 'Invalid':
       return 'Report closed as invalid';
+    case 'Cancelled':
+      return 'Report cancelled';
     default:
       return status;
   }
@@ -149,6 +152,12 @@ function getTimelineStyle(status) {
         line: 'bg-resqnow-crimson/30',
       };
 
+    case 'Cancelled':
+      return {
+        circle: 'bg-slate-500 text-white',
+        line: 'bg-slate-300',
+      };
+
     default:
       return {
         circle: 'bg-slate-500 text-white',
@@ -196,6 +205,8 @@ export default function ReportDetail() {
 
   const requestInFlightRef =
     useRef(false);
+
+  const [cancelOpen, setCancelOpen] = useState(false);
 
   // ============ LOAD REPORT ============
 
@@ -300,7 +311,8 @@ export default function ReportDetail() {
     if (
       !report ||
       report.status === 'Resolved' ||
-      report.status === 'Invalid'
+      report.status === 'Invalid' ||
+      report.status === 'Cancelled'
     ) {
       return undefined;
     }
@@ -461,6 +473,14 @@ export default function ReportDetail() {
     report.status ===
     'Invalid';
 
+
+  const isCancelled =
+    report.status ===
+    'Cancelled';
+
+  const canCancel =
+    canResidentCancel(report);
+
   const timeline =
     Array.isArray(
       report.timeline
@@ -547,7 +567,8 @@ export default function ReportDetail() {
           </p>
 
           {!isResolved &&
-            !isInvalid && (
+            !isInvalid &&
+            !isCancelled && (
               <p className="text-[10px] text-resqnow-muted mt-0.5 ml-1">
                 Auto-checking every 15 seconds while this report is active
               </p>
@@ -710,6 +731,8 @@ export default function ReportDetail() {
             ? 'bg-resqnow-safe/10 border-resqnow-safe/20'
             : isInvalid
             ? 'bg-resqnow-crimson/10 border-resqnow-crimson/20'
+            : isCancelled
+            ? 'bg-slate-100 border-slate-200'
             : 'bg-white border-resqnow-border-soft'
         }`}
       >
@@ -720,6 +743,8 @@ export default function ReportDetail() {
               ? 'text-resqnow-safe'
               : isInvalid
               ? 'text-resqnow-crimson'
+              : isCancelled
+              ? 'text-slate-600'
               : 'text-resqnow-muted'
           }`}
         >
@@ -743,6 +768,8 @@ export default function ReportDetail() {
                   ? 'text-resqnow-safe'
                   : isInvalid
                   ? 'text-resqnow-crimson'
+                  : isCancelled
+                  ? 'text-slate-600'
                   : 'text-resqnow-muted'
               }`}
             >
@@ -758,7 +785,8 @@ export default function ReportDetail() {
           <div
             className={`mt-4 rounded-xl p-3 ${
               isResolved ||
-              isInvalid
+              isInvalid ||
+              isCancelled
                 ? 'bg-white/70'
                 : 'bg-resqnow-canvas'
             }`}
@@ -796,7 +824,7 @@ export default function ReportDetail() {
             </div>
           )}
 
-        {!isResolved && HOTLINE && (
+        {!isResolved && !isInvalid && !isCancelled && HOTLINE && (
           <a
             href={HOTLINE.href}
             className="mt-4 min-h-[44px] w-full rounded-xl border border-resqnow-violet/20 bg-resqnow-violet/5 text-resqnow-violet text-[11px] font-bold flex items-center justify-center gap-2 active:scale-[0.99] transition-transform"
@@ -804,6 +832,19 @@ export default function ReportDetail() {
             <Phone className="w-4 h-4" />
             Call Barangay Hotline
           </a>
+        )}
+
+
+        {canCancel && (
+          <button
+            type="button"
+            onClick={() => setCancelOpen(true)}
+            className="mt-2.5 min-h-[44px] w-full rounded-xl border border-resqnow-critical/25 bg-resqnow-critical/5 text-resqnow-critical text-[11px] font-bold flex items-center justify-center active:scale-[0.99] transition-transform"
+          >
+            {report.concernCode === 'sos'
+              ? "I'm Safe / Cancel Rescue"
+              : 'Cancel Report'}
+          </button>
         )}
       </section>
 
@@ -1238,6 +1279,17 @@ export default function ReportDetail() {
           </p>
         </section>
       )}
+
+      <CancelReportModal
+        open={cancelOpen}
+        report={report}
+        onClose={() => setCancelOpen(false)}
+        onCancelled={(updatedReport) => {
+          setReport(updatedReport);
+          setLastChecked(new Date());
+          setCancelOpen(false);
+        }}
+      />
     </div>
   );
 }

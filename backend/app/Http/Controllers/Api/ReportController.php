@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\CancelReportRequest;
 use App\Http\Requests\Api\StoreEmergencyReportRequest;
 use App\Http\Requests\Api\StoreNonEmergencyReportRequest;
 use App\Http\Resources\ReportResource;
 use App\Models\Report;
+use App\Services\ReportNotifications;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -64,6 +66,34 @@ class ReportController extends Controller
         'other-assistance' => 'Low',
     ];
 
+
+    /**
+     * Resident cancellation is available while assistance is still
+     * pending or in progress. Once an on-scene response is recorded,
+     * the incident should be completed by the responder workflow.
+     */
+    private const CANCELLABLE_STATUSES = [
+        'Submitted',
+        'Pending Verification',
+        'Verified',
+        'Assigned',
+        'In Progress',
+        'Responders En Route',
+    ];
+
+    /**
+     * Canonical human-readable resident cancellation reasons.
+     */
+    private const CANCELLATION_REASONS = [
+        'safe_now' => 'Resident is safe now',
+        'accidental' => 'Submitted by mistake / accidental SOS',
+        'help_elsewhere' => 'Help arrived from another source',
+        'duplicate' => 'Duplicate report',
+        'issue_resolved' => 'Issue already resolved',
+        'no_longer_needed' => 'Assistance is no longer needed',
+        'other' => 'Other reason',
+    ];
+
     /**
      * Get all reports belonging to
      * the currently authenticated resident.
@@ -114,6 +144,154 @@ class ReportController extends Controller
         return new ReportResource(
             $report
         );
+    }
+
+
+    /**
+     * Cancel one resident-owned report.
+     *
+     * This endpoint is shared by Emergency, Non-Emergency, and SOS
+     * reports. Identity and ownership come from Sanctum, never from a
+     * resident ID submitted by the browser.
+     */
+    public function cancel(
+        CancelReportRequest $request,
+        string $reportCode
+    ): JsonResponse {
+        $data = $request->validated();
+        $user = $request->user();
+
+        $report = DB::transaction(
+            function () use (
+                $data,
+                $user,
+                $reportCode
+            ) {
+                $report = Report::query()
+                    ->where('user_id', $user->id)
+                    ->where('report_code', $reportCode)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                // Repeated requests against an already-cancelled report are
+                // treated as idempotent reads rather than creating more logs.
+                if ($report->status === 'Cancelled') {
+                    return $report;
+                }
+
+                abort_if(
+                    (int) $report->version !== (int) $data['expectedVersion'],
+                    409,
+                    'This report changed since it was loaded. Refresh it before cancelling.'
+                );
+
+                abort_unless(
+                    in_array(
+                        $report->status,
+                        self::CANCELLABLE_STATUSES,
+                        true
+                    ),
+                    409,
+                    'This report can no longer be cancelled because its response is already complete or closed.'
+                );
+
+                // Capture responder recipients before active assignments are
+                // closed so they can still be notified of the cancellation.
+                $activeAssignments = $report
+                    ->activeAssignments()
+                    ->lockForUpdate()
+                    ->get();
+
+                $responderIds = $activeAssignments
+                    ->pluck('assigned_user_id')
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                $cancelledAt = now();
+
+                foreach ($activeAssignments as $assignment) {
+                    $assignment->forceFill([
+                        'unassigned_at' => $cancelledAt,
+                    ])->save();
+                }
+
+                $reasonLabel = self::CANCELLATION_REASONS[
+                    $data['reason']
+                ];
+
+                $extraRemarks = trim(
+                    (string) ($data['remarks'] ?? '')
+                );
+
+                $remarks = 'Cancellation reason: ' . $reasonLabel . '.';
+
+                if ($extraRemarks !== '') {
+                    $remarks .= ' Resident note: ' . $extraRemarks;
+                }
+
+                $isSos = $report->concern_code === 'sos';
+
+                $report->status = 'Cancelled';
+                $report->version = ((int) $report->version) + 1;
+                $report->save();
+
+                $report->statusLogs()->create([
+                    'status' => 'Cancelled',
+                    'activity' => $isSos
+                        ? 'Resident cancelled SOS rescue'
+                        : 'Resident cancelled report',
+                    'remarks' => $remarks,
+                    'changed_by_user_id' => $user->id,
+                ]);
+
+                // Keep the resident's bell/history consistent with the saved
+                // cancellation even though they performed the action.
+                ReportNotifications::send(
+                    [$user->id],
+                    'report',
+                    $report->report_code . ': Report cancelled',
+                    $isSos
+                        ? 'Your SOS rescue was cancelled. Open the report for the confirmed history.'
+                        : 'Your report was cancelled. Open it for the confirmed history.',
+                    $report->report_code
+                );
+
+                $staffRecipients = array_values(
+                    array_unique(
+                        array_merge(
+                            $responderIds,
+                            ReportNotifications::admins()
+                        )
+                    )
+                );
+
+                if ($staffRecipients !== []) {
+                    ReportNotifications::send(
+                        $staffRecipients,
+                        'report',
+                        $report->report_code . ': Resident cancelled report',
+                        $reasonLabel . '.',
+                        $report->report_code
+                    );
+                }
+
+                return $report;
+            }
+        );
+
+        $report->refresh();
+        $report->load([
+            'user.profile',
+            'statusLogs.changedBy',
+            'activeAssignments.assignedUser',
+        ]);
+
+        return response()->json([
+            'message' => 'Report cancelled successfully.',
+            'report' => new ReportResource($report),
+        ]);
     }
 
     /**

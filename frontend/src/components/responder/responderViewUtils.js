@@ -5,7 +5,7 @@ export const PRIORITY_RANK = {
 };
 
 export function isOpenReport(report) {
-  return !['Resolved', 'Invalid'].includes(report?.status);
+  return !['Resolved', 'Invalid', 'Cancelled'].includes(report?.status);
 }
 
 export function getCurrentAssignment(report, userId) {

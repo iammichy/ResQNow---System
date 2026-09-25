@@ -363,6 +363,48 @@ class ReportResource extends JsonResource
             ];
         }
 
+        if (
+            $this->status ===
+            'Cancelled'
+        ) {
+            // A cancelled report has no future lifecycle steps. Keep only
+            // progression that really happened before the cancellation.
+            $timeline = array_values(
+                array_filter(
+                    $timeline,
+                    fn ($step) => $step['done']
+                )
+            );
+
+            $cancelledLog =
+                $logs
+                    ->where(
+                        'status',
+                        'Cancelled'
+                    )
+                    ->sortByDesc(
+                        'created_at'
+                    )
+                    ->first();
+
+            $timeline[] = [
+                'status' =>
+                    'Cancelled',
+
+                'date' =>
+                    $cancelledLog?->created_at
+                        ? $cancelledLog
+                            ->created_at
+                            ->format(
+                                'Y-m-d h:i A'
+                            )
+                        : null,
+
+                'done' =>
+                    true,
+            ];
+        }
+
         return $timeline;
     }
 
@@ -507,6 +549,9 @@ class ReportResource extends JsonResource
 
             'Invalid' =>
                 'This report has been marked invalid.',
+
+            'Cancelled' =>
+                'This report was cancelled by the resident.',
 
             default =>
                 'Your report status has been updated.',

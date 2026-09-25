@@ -161,6 +161,21 @@ Route::middleware([
             '^(EM|NE)-[0-9]{6}$'
         );
 
+        // Cancel any resident-owned Emergency, Non-Emergency, or SOS report
+        // while response is still pending / in progress.
+        Route::patch(
+            '/reports/{reportCode}/cancel',
+            [
+                ReportController::class,
+                'cancel',
+            ]
+        )->where(
+            'reportCode',
+            '^(EM|NE)-[0-9]{6}$'
+        )->middleware(
+            'throttle:20,1'
+        );
+
 
         // Resident in-app notifications.
         Route::get(

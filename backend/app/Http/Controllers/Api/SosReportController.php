@@ -16,6 +16,7 @@ class SosReportController extends Controller
     private const TERMINAL_STATUSES = [
         'Resolved',
         'Invalid',
+        'Cancelled',
     ];
 
     /**

@@ -167,6 +167,7 @@ export default function TrackReports() {
             ![
               'Resolved',
               'Invalid',
+              'Cancelled',
             ].includes(
               report.status
             )
@@ -191,13 +192,18 @@ export default function TrackReports() {
       [reports]
     );
 
-  const resolvedCount =
+  const closedCount =
     useMemo(
       () =>
         reports.filter(
           (report) =>
-            report.status ===
-            'Resolved'
+            [
+              'Resolved',
+              'Invalid',
+              'Cancelled',
+            ].includes(
+              report.status
+            )
         ).length,
       [reports]
     );
@@ -452,9 +458,9 @@ export default function TrackReports() {
             CheckCircle2
           }
           value={
-            resolvedCount
+            closedCount
           }
-          label="Resolved"
+          label="Closed"
           color="safe"
         />
       </div>

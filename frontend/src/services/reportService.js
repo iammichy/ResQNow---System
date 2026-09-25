@@ -204,3 +204,33 @@ export async function createNonEmergencyReport(
 
   return extractReport(data);
 }
+// ============ CANCEL RESIDENT REPORT ============
+// Shared cancellation for Emergency, Non-Emergency, and SOS reports.
+// The backend derives ownership from the Sanctum-authenticated resident.
+export async function cancelReport(
+  reportCode,
+  {
+    reason,
+    remarks = '',
+    expectedVersion,
+  }
+) {
+  await getCsrfCookie();
+
+  const data = await apiRequest(
+    `/api/reports/${encodeURIComponent(
+      reportCode
+    )}/cancel`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({
+        reason,
+        remarks:
+          remarks?.trim() || null,
+        expectedVersion,
+      }),
+    }
+  );
+
+  return extractReport(data);
+}

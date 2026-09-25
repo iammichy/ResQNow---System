@@ -26,9 +26,10 @@ import {
 } from '../../services/operationsService';
 import { getReports } from '../../services/reportService';
 import { getStatusStyle } from '../../utils/statusUtils';
+import CancelReportModal, { canResidentCancel } from './CancelReportModal';
 import SOSAction from './SOSAction';
 
-const TERMINAL_STATUSES = ['Resolved', 'Invalid'];
+const TERMINAL_STATUSES = ['Resolved', 'Invalid', 'Cancelled'];
 const HOME_REPORT_POLL_MS = 15000;
 const HOME_OPERATIONS_POLL_MS = 30000;
 
@@ -45,6 +46,7 @@ export default function Dashboard() {
   const [evacuationCenters, setEvacuationCenters] = useState([]);
   const [evacuationSource, setEvacuationSource] = useState('api');
   const [hotline, setHotline] = useState(null);
+  const [cancelTarget, setCancelTarget] = useState(null);
 
   const loadReports = useCallback(async () => {
     try {
@@ -179,6 +181,20 @@ export default function Dashboard() {
     ]);
   };
 
+
+  const handleReportCancelled = (updatedReport) => {
+    if (updatedReport?.id) {
+      setReports((current) => [
+        updatedReport,
+        ...current.filter((item) => item.id !== updatedReport.id),
+      ]);
+    } else {
+      loadReports();
+    }
+
+    setCancelTarget(null);
+  };
+
   return (
     <div className="px-4 pt-2 pb-6 space-y-4">
       {criticalAlert && (
@@ -203,6 +219,7 @@ export default function Dashboard() {
         <ActiveRescueCard
           report={activeRescue}
           onOpen={() => navigate(`/track/${encodeURIComponent(activeRescue.id)}`)}
+          onCancel={() => setCancelTarget(activeRescue)}
         />
       ) : (
         <SOSAction
@@ -246,6 +263,13 @@ export default function Dashboard() {
           onRetry={loadOperations}
         />
       )}
+
+      <CancelReportModal
+        open={Boolean(cancelTarget)}
+        report={cancelTarget}
+        onClose={() => setCancelTarget(null)}
+        onCancelled={handleReportCancelled}
+      />
     </div>
   );
 }
@@ -356,7 +380,7 @@ function OfflineModeBanner() {
   );
 }
 
-function ActiveRescueCard({ report, onOpen }) {
+function ActiveRescueCard({ report, onOpen, onCancel }) {
   const status = getRescueStatus(report);
   const isSos = report.concernCode === 'sos';
 
@@ -412,6 +436,17 @@ function ActiveRescueCard({ report, onOpen }) {
           Track Rescue
           <ChevronRight className="w-4 h-4" />
         </button>
+
+
+        {canResidentCancel(report) && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="mt-2.5 w-full min-h-[44px] rounded-xl border border-resqnow-critical/25 bg-resqnow-critical/5 text-resqnow-critical text-[10px] font-extrabold active:scale-[0.99] transition-transform"
+          >
+            {isSos ? "I'm Safe / Cancel Rescue" : 'Cancel Report'}
+          </button>
+        )}
       </div>
     </section>
   );
