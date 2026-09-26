@@ -108,8 +108,6 @@ const translations = {
 
     dashboardAdminLabel: "RESQNOW ADMIN DASHBOARD",
 
-    goodMorningAdmin: "Good morning, Admin!",
-
     dashboardSituation: "Here's the current situation in your barangay.",
 
     totalReports: "Total Reports",
@@ -139,6 +137,8 @@ const translations = {
     allIncidentsResolved: "All recorded incidents are currently resolved.",
 
     priorityOverview: "Priority Overview",
+
+    prioritizedReportsLabel: "Prioritized Reports",
 
     totalReportsLabel: "Total reports",
 
@@ -181,6 +181,9 @@ const translations = {
     noIncidentDescription: "No incident description provided.",
 
     emergencyResponseMonitoring: "Emergency response requires monitoring.",
+    goodMorningAdmin: "Good morning, Admin!",
+    goodAfternoonAdmin: "Good afternoon, Admin!",
+    goodEveningAdmin: "Good evening, Admin!",
 
     /* =========================
        DASHBOARD PRIORITY
@@ -967,8 +970,6 @@ const translations = {
 
     dashboardAdminLabel: "RESQNOW ADMIN DASHBOARD",
 
-    goodMorningAdmin: "Magandang umaga, Admin!",
-
     dashboardSituation: "Narito ang kasalukuyang sitwasyon sa inyong barangay.",
 
     totalReports: "Kabuuang Ulat",
@@ -1005,6 +1006,8 @@ const translations = {
       "Lahat ng naitalang insidente ay kasalukuyang nalutas.",
 
     priorityOverview: "Pangkalahatang Prayoridad",
+
+    prioritizedReportsLabel: "Mga Na-prayoridad na Ulat",
 
     totalReportsLabel: "Kabuuang mga ulat",
 
@@ -1048,6 +1051,9 @@ const translations = {
 
     emergencyResponseMonitoring:
       "Ang emergency response ay nangangailangan ng pagmamanman.",
+    goodMorningAdmin: "Magandang umaga, Admin!",
+    goodAfternoonAdmin: "Magandang hapon, Admin!",
+    goodEveningAdmin: "Magandang gabi, Admin!",
 
     /* =========================
        DASHBOARD PRIORITY

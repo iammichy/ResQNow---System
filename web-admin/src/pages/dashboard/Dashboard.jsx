@@ -154,12 +154,12 @@ export default function Dashboard({
 
   const hour = currentDate.getHours();
 
-  const greeting =
-    hour >= 5 && hour < 12
-      ? "Good morning"
-      : hour >= 12 && hour < 18
-        ? "Good afternoon"
-        : "Good evening";
+ const greetingKey =
+  hour >= 5 && hour < 12
+    ? "goodMorningAdmin"
+    : hour >= 12 && hour < 18
+      ? "goodAfternoonAdmin"
+      : "goodEveningAdmin";
   const { t } = useLanguage();
 
   /* =========================================================
@@ -480,9 +480,9 @@ export default function Dashboard({
               {t("dashboardAdminLabel")}
             </p>
 
-            <h1 className="text-[24px] font-extrabold leading-tight text-[var(--text-primary)]">
-              {greeting}, Admin!
-            </h1>
+           <h1 className="text-[24px] font-extrabold leading-tight text-[var(--text-primary)]">
+  {t(greetingKey)}
+</h1>
 
             <p className="mt-1 text-[14px] text-[var(--text-muted)]">
               {t("dashboardSituation")}

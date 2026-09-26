@@ -201,13 +201,13 @@ function Verification({ onVerificationUpdate }) {
       </div>
       {/* Report verification */}
 
-      <div className="grid gap-4 md:grid-cols-1">
-        <div className="rounded-2xl border border-[#E4E7EC] bg-white p-5">
+      <div className="flex">
+        <div className="w-full max-w-xs rounded-2xl border border-[#E4E7EC] bg-white p-5 shadow-sm">
           <p className="text-sm font-semibold text-[#667085]">
             {t("pendingReports")}
           </p>
 
-          <p className="mt-2 text-3xl font-extrabold text-[#1F1D47]">
+          <p className="mt-3 text-3xl font-extrabold text-[#1F1D47]">
             {pendingCount}
           </p>
         </div>

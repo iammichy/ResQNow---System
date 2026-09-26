@@ -12,7 +12,9 @@ import {
   Plus,
 } from "lucide-react";
 
+import { useEffect, useState } from "react";
 import { useLanguage } from "../../hooks/useLanguage";
+import { getCurrentUser } from "../../services/authService";
 
 function Sidebar({
   activePage = "dashboard",
@@ -26,6 +28,74 @@ function Sidebar({
   systemSettings,
 }) {
   const { t } = useLanguage();
+  const [systemStatus, setSystemStatus] = useState("operational");
+  const [lastSync, setLastSync] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const clockInterval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => {
+      clearInterval(clockInterval);
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const checkSystemStatus = async () => {
+      try {
+        await getCurrentUser();
+
+        if (!isMounted) return;
+
+        setSystemStatus("operational");
+        setLastSync(new Date());
+      } catch (error) {
+        console.error("System health check failed:", error);
+
+        if (!isMounted) return;
+
+        setSystemStatus("error");
+        setLastSync(new Date());
+      }
+    };
+
+    checkSystemStatus();
+
+    const statusInterval = setInterval(() => {
+      checkSystemStatus();
+    }, 15000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(statusInterval);
+    };
+  }, []);
+
+  const getLastSyncText = () => {
+    const seconds = Math.floor(
+      (currentTime.getTime() - lastSync.getTime()) / 1000,
+    );
+
+    if (seconds < 5) {
+      return "Just now";
+    }
+
+    if (seconds < 60) {
+      return `${seconds} sec ago`;
+    }
+
+    const minutes = Math.floor(seconds / 60);
+
+    if (minutes === 1) {
+      return "1 min ago";
+    }
+
+    return `${minutes} min ago`;
+  };
 
   const navigationGroups = [
     {
@@ -270,15 +340,23 @@ function Sidebar({
         {/* SYSTEM STATUS */}
         <div className="mt-3 rounded-xl border border-white/20 bg-white/10 px-3 py-2.5 backdrop-blur-sm">
           <div className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[#2ED47A] shadow-sm shadow-[#2ED47A]/50" />
+            <span
+              className={`h-2.5 w-2.5 shrink-0 rounded-full shadow-sm ${
+                systemStatus === "operational"
+                  ? "bg-[#2ED47A] shadow-[#2ED47A]/50"
+                  : "bg-[#FF2D55] shadow-[#FF2D55]/50"
+              }`}
+            />
 
             <span className="text-xs font-semibold text-white">
-              {t("allSystemsOperational")}
+              {systemStatus === "operational"
+                ? t("allSystemsOperational")
+                : "System connection issue"}
             </span>
           </div>
 
           <p className="mt-1 pl-4 text-[10px] text-white/65">
-            {t("lastSync")}: 2 min ago
+            {t("lastSync")}: {getLastSyncText()}
           </p>
         </div>
       </div>
