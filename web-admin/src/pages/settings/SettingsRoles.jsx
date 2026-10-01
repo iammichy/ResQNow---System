@@ -242,11 +242,11 @@ useEffect(() => {
       {/* PAGE HEADER */}
       <div className="flex shrink-0 items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8346F2]">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#1F5FA6]">
             System
           </p>
 
-          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[#1F1D47]">
+          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[#101C2E]">
             Settings & Roles
           </h1>
 
@@ -255,7 +255,7 @@ useEffect(() => {
           </p>
         </div>
 
-        <div className="hidden items-center gap-2 rounded-xl border border-[#E4E7EC] bg-white px-3 py-2 shadow-sm sm:flex">
+        <div className="hidden items-center gap-2 rounded-lg border border-[#E4E7EC] bg-white px-3 py-2 shadow-sm sm:flex">
           <span className="h-2 w-2 rounded-full bg-[#2ED47A]" />
 
           <span className="text-xs font-semibold text-[#475467]">
@@ -267,7 +267,7 @@ useEffect(() => {
       {/* SETTINGS WORKSPACE */}
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 xl:grid-cols-[240px_minmax(0,1fr)]">
         {/* LEFT NAVIGATION */}
-        <aside className="min-h-0 overflow-auto rounded-2xl border border-[#E4E7EC] bg-white p-2 shadow-sm">
+        <aside className="min-h-0 overflow-auto rounded-xl border border-[#E4E7EC] bg-white p-2 shadow-sm">
           <div className="px-3 pb-2 pt-2">
             <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#98A2B3]">
               Configuration
@@ -283,16 +283,16 @@ useEffect(() => {
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition ${
+                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition ${
                     isActive
-                      ? "bg-[#F0EBFF] text-[#8346F2]"
+                      ? "bg-[#F0EBFF] text-[#1F5FA6]"
                       : "text-[#475467] hover:bg-[#F9FAFB]"
                   }`}
                 >
                   <span
                     className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
                       isActive
-                        ? "bg-[#8346F2] text-white"
+                        ? "bg-[#1F5FA6] text-white"
                         : "bg-[#F2F4F7] text-[#667085]"
                     }`}
                   >
@@ -306,7 +306,7 @@ useEffect(() => {
 
                     <span
                       className={`mt-0.5 block text-[10px] leading-4 ${
-                        isActive ? "text-[#6D28D9]" : "text-[#98A2B3]"
+                        isActive ? "text-[#1F5FA6]" : "text-[#98A2B3]"
                       }`}
                     >
                       {tab.description}
@@ -318,7 +318,7 @@ useEffect(() => {
           </div>
 
           {/* SECURITY STATUS */}
-          <div className="mt-4 rounded-xl border border-[#E4E7EC] bg-[#FCFCFD] p-3">
+          <div className="mt-4 rounded-lg border border-[#E4E7EC] bg-[#FCFCFD] p-3">
             <div className="flex items-start gap-2.5">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#E8F8F4] text-[#008F78]">
                 <ShieldIcon />
@@ -338,7 +338,7 @@ useEffect(() => {
         </aside>
 
         {/* RIGHT CONTENT */}
-        <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
+        <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
           {activeTab === "general" && (
             <GeneralSettings
               settings={settings}
@@ -391,7 +391,7 @@ useEffect(() => {
                   type="button"
                   onClick={handleCancelChanges}
                   disabled={!hasUnsavedChanges}
-                  className={`rounded-xl border px-5 py-2.5 text-sm font-semibold transition ${
+                  className={`rounded-lg border px-5 py-2.5 text-sm font-semibold transition ${
                     hasUnsavedChanges
                       ? "border-[#D0D5DD] bg-white text-[#344054] hover:bg-[#F9FAFB]"
                       : "cursor-not-allowed border-[#EAECF0] bg-[#F9FAFB] text-[#98A2B3]"
@@ -406,10 +406,10 @@ useEffect(() => {
                   disabled={
                     !hasUnsavedChanges || settingsSaving || settingsLoading
                   }
-                  className={`rounded-xl px-5 py-2.5 text-sm font-bold text-white shadow-md transition ${
+                  className={`rounded-lg px-5 py-2.5 text-sm font-bold text-white shadow-md transition ${
                     hasUnsavedChanges && !settingsSaving && !settingsLoading
-                      ? "bg-gradient-to-r from-[#8346F2] to-[#818CF8] hover:shadow-lg active:scale-[0.98]"
-                      : "cursor-not-allowed bg-[#C4B5FD] shadow-none"
+                      ? "bg-[#1F5FA6] hover:bg-[#174A86]"
+                      : "cursor-not-allowed bg-[#A9C5E6] shadow-none"
                   }`}
                 >
                   {settingsSaving ? "Saving..." : "Save Changes"}
@@ -466,7 +466,7 @@ function GeneralSettings({ settings, updateSetting }) {
                 onChange={(event) =>
                   updateSetting("language", event.target.value)
                 }
-                className="h-10 w-full rounded-lg border border-[#E4E7EC] bg-[#FCFCFD] px-3 text-xs font-medium text-[#344054] outline-none transition focus:border-[#8346F2] focus:ring-2 focus:ring-[#8346F2]/10"
+                className="h-10 w-full rounded-lg border border-[#E4E7EC] bg-[#FCFCFD] px-3 text-xs font-medium text-[#344054] outline-none transition focus:border-[#1F5FA6] focus:ring-2 focus:ring-[#1F5FA6]/10"
               >
                 <option>English</option>
                 <option>Filipino</option>
@@ -491,14 +491,14 @@ function GeneralSettings({ settings, updateSetting }) {
           </SettingsSection>
         </div>
 
-        <div className="mt-4 rounded-xl border border-[#E4E7EC] bg-[#F9F7FF] p-4">
+        <div className="mt-4 rounded-lg border border-[#E4E7EC] bg-[#F9F7FF] p-4">
           <div className="flex items-start gap-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#EDE9FE] text-[#8346F2]">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#D6E4F5] text-[#1F5FA6]">
               <InfoIcon />
             </div>
 
             <div>
-              <p className="text-xs font-bold text-[#1F1D47]">
+              <p className="text-xs font-bold text-[#101C2E]">
                 Configuration Preview
               </p>
 
@@ -553,7 +553,7 @@ function NotificationSettings({ settings, updateSetting }) {
           </div>
         </SettingsSection>
 
-        <div className="mt-4 rounded-xl border border-[#FDE2E2] bg-[#FFF8F8] p-4">
+        <div className="mt-4 rounded-lg border border-[#FDE2E2] bg-[#FFF8F8] p-4">
           <div className="flex items-start gap-3">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#FEECEC] text-[#EF4444]">
               <AlertIcon />
@@ -635,13 +635,13 @@ function RolesSettings({
                       key={person.id}
                       type="button"
                       onClick={() => setSelectedPersonnel(person)}
-                      className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition ${
+                      className={`flex w-full items-center gap-3 rounded-lg border p-3 text-left transition ${
                         isSelected
                           ? "border-[#D9C8FF] bg-[#F7F3FF]"
                           : "border-[#E4E7EC] bg-white hover:bg-[#FCFCFD]"
                       }`}
                     >
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#EDE9FE] text-[10px] font-extrabold text-[#6D28D9]">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#D6E4F5] text-[10px] font-extrabold text-[#1F5FA6]">
                         {getInitials(person.name)}
                       </div>
 
@@ -669,14 +669,14 @@ function RolesSettings({
         <div className="min-h-0 overflow-auto p-4">
           {selectedPersonnel && (
             <>
-              <div className="rounded-xl border border-[#E4E7EC] bg-[#FCFCFD] p-4">
+              <div className="rounded-lg border border-[#E4E7EC] bg-[#FCFCFD] p-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#8346F2] text-sm font-extrabold text-white">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#1F5FA6] text-sm font-extrabold text-white">
                     {getInitials(selectedPersonnel.name)}
                   </div>
 
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-extrabold text-[#1F1D47]">
+                    <p className="truncate text-sm font-extrabold text-[#101C2E]">
                       {selectedPersonnel.name}
                     </p>
 
@@ -706,7 +706,7 @@ function RolesSettings({
                 />
               </div>
 
-              <div className="mt-4 rounded-xl border border-[#E4E7EC] bg-white p-4">
+              <div className="mt-4 rounded-lg border border-[#E4E7EC] bg-white p-4">
                 <p className="text-[10px] font-bold uppercase tracking-wide text-[#98A2B3]">
                   Current Permissions
                 </p>
@@ -720,14 +720,14 @@ function RolesSettings({
                 </div>
               </div>
 
-              <div className="mt-4 rounded-xl border border-[#E4E7EC] bg-[#F9F7FF] p-4">
+              <div className="mt-4 rounded-lg border border-[#E4E7EC] bg-[#F9F7FF] p-4">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#EDE9FE] text-[#8346F2]">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#D6E4F5] text-[#1F5FA6]">
                     <ShieldIcon />
                   </div>
 
                   <div>
-                    <p className="text-xs font-bold text-[#1F1D47]">
+                    <p className="text-xs font-bold text-[#101C2E]">
                       Role-Based Access
                     </p>
 
@@ -750,11 +750,11 @@ function RolesSettings({
 function SectionHeader({ eyebrow, title, description }) {
   return (
     <div className="shrink-0 border-b border-[#E4E7EC] px-5 py-4">
-      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8346F2]">
+      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#1F5FA6]">
         {eyebrow}
       </p>
 
-      <h2 className="mt-1 text-lg font-extrabold text-[#1F1D47]">{title}</h2>
+      <h2 className="mt-1 text-lg font-extrabold text-[#101C2E]">{title}</h2>
 
       <p className="mt-1 text-xs text-[#667085]">{description}</p>
     </div>
@@ -763,7 +763,7 @@ function SectionHeader({ eyebrow, title, description }) {
 
 function SettingsSection({ title, description, children }) {
   return (
-    <div className="rounded-xl border border-[#E4E7EC] bg-white p-4">
+    <div className="rounded-lg border border-[#E4E7EC] bg-white p-4">
       <div className="mb-4">
         <h3 className="text-sm font-bold text-[#344054]">{title}</h3>
 
@@ -786,7 +786,7 @@ function Field({ label, value, onChange }) {
         type="text"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-10 w-full rounded-lg border border-[#E4E7EC] bg-[#FCFCFD] px-3 text-xs font-medium text-[#344054] outline-none transition focus:border-[#8346F2] focus:ring-2 focus:ring-[#8346F2]/10"
+        className="h-10 w-full rounded-lg border border-[#E4E7EC] bg-[#FCFCFD] px-3 text-xs font-medium text-[#344054] outline-none transition focus:border-[#1F5FA6] focus:ring-2 focus:ring-[#1F5FA6]/10"
       />
     </div>
   );
@@ -799,10 +799,10 @@ function ToggleRow({
   onChange,
   accent = "default",
 }) {
-  const activeColor = accent === "critical" ? "bg-[#EF4444]" : "bg-[#8346F2]";
+  const activeColor = accent === "critical" ? "bg-[#EF4444]" : "bg-[#1F5FA6]";
 
   return (
-    <div className="flex items-center justify-between gap-4 rounded-xl border border-[#E4E7EC] bg-[#FCFCFD] p-3.5">
+    <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E4E7EC] bg-[#FCFCFD] p-3.5">
       <div className="min-w-0">
         <p className="text-xs font-bold text-[#344054]">{label}</p>
 
@@ -846,7 +846,7 @@ function DetailRow({ label, value }) {
 
 function PermissionBadge({ label }) {
   return (
-    <span className="rounded-full bg-[#F0EBFF] px-2.5 py-1 text-[10px] font-semibold text-[#6D28D9]">
+    <span className="rounded-full bg-[#F0EBFF] px-2.5 py-1 text-[10px] font-semibold text-[#1F5FA6]">
       {label}
     </span>
   );

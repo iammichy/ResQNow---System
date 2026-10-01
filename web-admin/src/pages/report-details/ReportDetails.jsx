@@ -1,3 +1,4 @@
+import { Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -21,9 +22,9 @@ const priorityStyles = {
 
 const statusStyles = {
   "For Verification": "bg-[#FFF7ED] text-[#B54708]",
-  "Pending Response": "bg-[#F4F3FF] text-[#6941C6]",
-  Dispatched: "bg-[#EEF4FF] text-[#3538CD]",
-  "In Progress": "bg-[#EEF4FF] text-[#3538CD]",
+  "Pending Response": "bg-[#EAF1FA] text-[#174A86]",
+  Dispatched: "bg-[#EEF4FF] text-[#174A86]",
+  "In Progress": "bg-[#EEF4FF] text-[#174A86]",
   Resolved: "bg-[#ECFDF3] text-[#027A48]",
   Closed: "bg-[#F2F4F7] text-[#475467]",
 };
@@ -83,7 +84,7 @@ function getRecommendationStyle(priority) {
 function AutomatedRiskItem({ label, value, score, highlighted = false }) {
   return (
     <div
-      className={`rounded-xl border p-3.5 ${
+      className={`rounded-lg border p-3.5 ${
         highlighted
           ? "border-[#C7D7FE] bg-[#F5F8FF]"
           : "border-[#E4E7EC] bg-white"
@@ -858,13 +859,13 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
           <button
             type="button"
             onClick={onBack}
-            className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#667085] transition hover:text-[#8346F2]"
+            className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#667085] transition hover:text-[#1F5FA6]"
           >
             ← Back to All Reports
           </button>
 
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#8346F2]">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#1F5FA6]">
               Report Details
             </p>
 
@@ -876,7 +877,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
           </div>
 
           <div className="mt-1 flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-extrabold tracking-tight text-[#1F1D47]">
+            <h1 className="text-2xl font-extrabold tracking-tight text-[#101C2E]">
               {report.type}
             </h1>
 
@@ -907,7 +908,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
           <button
             type="button"
             onClick={handleExportPDF}
-            className="flex items-center gap-2 rounded-xl border border-[#E4E7EC] bg-white px-4 py-2.5 text-sm font-semibold text-[#475467] shadow-sm transition hover:border-[#8346F2] hover:text-[#8346F2]"
+            className="flex items-center gap-2 rounded-lg border border-[#E4E7EC] bg-white px-4 py-2.5 text-sm font-semibold text-[#475467] shadow-sm transition hover:border-[#1F5FA6] hover:text-[#1F5FA6]"
           >
             <span>↓</span>
             Export PDF
@@ -921,9 +922,9 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
         <div className="min-h-0 overflow-auto pr-1">
           <div className="space-y-4">
             {/* REPORT INFORMATION */}
-            <section className="rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
+            <section className="rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
               <div className="border-b border-[#E4E7EC] px-5 py-4">
-                <h2 className="text-sm font-bold text-[#1F1D47]">
+                <h2 className="text-sm font-bold text-[#101C2E]">
                   Report Information
                 </h2>
               </div>
@@ -939,9 +940,9 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
             </section>
 
             {/* DESCRIPTION */}
-            <section className="rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
+            <section className="rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
               <div className="border-b border-[#E4E7EC] px-5 py-4">
-                <h2 className="text-sm font-bold text-[#1F1D47]">
+                <h2 className="text-sm font-bold text-[#101C2E]">
                   Report Description
                 </h2>
               </div>
@@ -953,11 +954,11 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
               </div>
             </section>
             {/* AUTOMATED RISK ASSESSMENT */}
-            <section className="rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
+            <section className="rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
               <div className="border-b border-[#E4E7EC] px-5 py-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F0EBFF] text-[#8346F2]">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#F0EBFF] text-[#1F5FA6]">
                       <svg
                         className="h-5 w-5"
                         viewBox="0 0 24 24"
@@ -971,7 +972,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                     </div>
 
                     <div>
-                      <h2 className="text-sm font-bold text-[#1F1D47]">
+                      <h2 className="text-sm font-bold text-[#101C2E]">
                         Automated Risk Assessment
                       </h2>
 
@@ -984,7 +985,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
 
                   {report.triage.recommendation ? (
                     <div
-                      className={`rounded-xl border px-4 py-2.5 ${
+                      className={`rounded-lg border px-4 py-2.5 ${
                         getRecommendationStyle(report.triage.recommendation)
                           .container
                       }`}
@@ -1073,7 +1074,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                   </div>
 
                   {report.triage.remarks && (
-                    <div className="mx-5 mb-5 rounded-xl border border-[#E4E7EC] bg-[#F8FAFC] p-4">
+                    <div className="mx-5 mb-5 rounded-lg border border-[#E4E7EC] bg-[#F8FAFC] p-4">
                       <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
                         Assessment Remarks
                       </p>
@@ -1084,7 +1085,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                     </div>
                   )}
 
-                  <div className="mx-5 mb-5 rounded-xl border border-[#FEDF89] bg-[#FFFCF5] p-4">
+                  <div className="mx-5 mb-5 rounded-lg border border-[#FEDF89] bg-[#FFFCF5] p-4">
                     <div className="flex items-start gap-3">
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#FEF0C7] text-[#B54708]">
                         !
@@ -1107,7 +1108,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                 </>
               ) : (
                 <div className="p-5">
-                  <div className="rounded-xl border border-dashed border-[#D0D5DD] bg-[#F8FAFC] px-5 py-8 text-center">
+                  <div className="rounded-lg border border-dashed border-[#D0D5DD] bg-[#F8FAFC] px-5 py-8 text-center">
                     <p className="text-sm font-bold text-[#344054]">
                       Risk assessment not yet available
                     </p>
@@ -1122,9 +1123,9 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
             </section>
 
             {/* EVIDENCE */}
-            <section className="rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
+            <section className="rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
               <div className="border-b border-[#E4E7EC] px-5 py-4">
-                <h2 className="text-sm font-bold text-[#1F1D47]">
+                <h2 className="text-sm font-bold text-[#101C2E]">
                   Submitted Evidence
                 </h2>
 
@@ -1139,9 +1140,9 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                     <button
                       key={item.id}
                       type="button"
-                      className="overflow-hidden rounded-xl border border-[#E4E7EC] bg-[#F8FAFC] text-left transition hover:border-[#8346F2]"
+                      className="overflow-hidden rounded-lg border border-[#E4E7EC] bg-[#F8FAFC] text-left transition hover:border-[#1F5FA6]"
                     >
-                      <div className="flex h-28 items-center justify-center bg-[#F4F3FF] text-2xl text-[#8346F2]">
+                      <div className="flex h-28 items-center justify-center bg-[#EAF1FA] text-2xl text-[#1F5FA6]">
                         ▧
                       </div>
 
@@ -1155,7 +1156,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                 </div>
               ) : (
                 <div className="p-5">
-                  <div className="rounded-xl border border-dashed border-[#E4E7EC] bg-[#F8FAFC] px-4 py-8 text-center">
+                  <div className="rounded-lg border border-dashed border-[#E4E7EC] bg-[#F8FAFC] px-4 py-8 text-center">
                     <p className="text-sm font-semibold text-[#667085]">
                       No evidence attached
                     </p>
@@ -1170,20 +1171,20 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
         <div className="min-h-0 overflow-auto pr-1">
           <div className="space-y-4">
             {/* STATUS */}
-            <section className="rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
+            <section className="rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
               <div className="border-b border-[#E4E7EC] px-5 py-4">
-                <h2 className="text-sm font-bold text-[#1F1D47]">
+                <h2 className="text-sm font-bold text-[#101C2E]">
                   Current Status
                 </h2>
               </div>
 
               <div className="p-5">
-                <div className="rounded-xl bg-[#EEF4FF] p-4">
+                <div className="rounded-lg bg-[#EEF4FF] p-4">
                   <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#667085]">
                     Response Status
                   </p>
 
-                  <p className="mt-1 text-lg font-extrabold text-[#3538CD]">
+                  <p className="mt-1 text-lg font-extrabold text-[#174A86]">
                     {status}
                   </p>
 
@@ -1205,7 +1206,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                     value={status}
                     onChange={(event) => handleStatusChange(event.target.value)}
                     disabled={!incident || !nextIncidentStatus}
-                    className="mt-2 h-10 w-full rounded-xl border border-[#E4E7EC] bg-white px-3 text-sm font-medium text-[#344054] outline-none transition focus:border-[#8346F2] disabled:cursor-not-allowed disabled:bg-[#F8FAFC]"
+                    className="mt-2 h-10 w-full rounded-lg border border-[#E4E7EC] bg-white px-3 text-sm font-medium text-[#344054] outline-none transition focus:border-[#1F5FA6] disabled:cursor-not-allowed disabled:bg-[#F8FAFC]"
                   >
                     <option value={status}>{status}</option>
                     {nextIncidentStatus && (
@@ -1233,9 +1234,9 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
             </section>
 
             {/* PRIORITY ASSIGNMENT */}
-            <section className="rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
+            <section className="rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
               <div className="border-b border-[#E4E7EC] px-5 py-4">
-                <h2 className="text-sm font-bold text-[#1F1D47]">
+                <h2 className="text-sm font-bold text-[#101C2E]">
                   Priority Assignment
                 </h2>
 
@@ -1247,7 +1248,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
 
               <div className="space-y-4 p-5">
                 <div
-                  className={`rounded-xl border p-4 ${
+                  className={`rounded-lg border p-4 ${
                     report.triage.recommendation
                       ? getRecommendationStyle(report.triage.recommendation)
                           .container
@@ -1259,7 +1260,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                   </p>
 
                   <div className="mt-1 flex items-center justify-between gap-3">
-                    <p className="text-lg font-extrabold text-[#1F1D47]">
+                    <p className="text-lg font-extrabold text-[#101C2E]">
                       {report.triage.recommendation || "Not assessed"}
                     </p>
 
@@ -1287,10 +1288,10 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                           setSelectedPriority(priority);
                           setPriorityError("");
                         }}
-                        className={`rounded-xl border px-3 py-2.5 text-xs font-bold transition ${
+                        className={`rounded-lg border px-3 py-2.5 text-xs font-bold transition ${
                           selectedPriority === priority
                             ? priorityStyles[priority]
-                            : "border-[#E4E7EC] bg-white text-[#667085] hover:border-[#8346F2] hover:text-[#8346F2]"
+                            : "border-[#E4E7EC] bg-white text-[#667085] hover:border-[#1F5FA6] hover:text-[#1F5FA6]"
                         } disabled:cursor-not-allowed disabled:opacity-50`}
                       >
                         {priority}
@@ -1304,7 +1305,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                     Decision
                   </p>
 
-                  <div className="mt-2 rounded-xl border border-[#E4E7EC] bg-[#F8FAFC] px-3 py-3">
+                  <div className="mt-2 rounded-lg border border-[#E4E7EC] bg-[#F8FAFC] px-3 py-3">
                     <p className="text-xs font-semibold text-[#344054]">
                       {selectedPriority
                         ? "Priority selected for confirmation"
@@ -1314,7 +1315,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                 </div>
 
                 {priorityError && (
-                  <p className="rounded-xl border border-[#FECDCA] bg-[#FEF3F2] px-3 py-2 text-xs font-semibold text-[#B42318]">
+                  <p className="rounded-lg border border-[#FECDCA] bg-[#FEF3F2] px-3 py-2 text-xs font-semibold text-[#B42318]">
                     {priorityError}
                   </p>
                 )}
@@ -1325,7 +1326,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                   disabled={
                     priorityLoading || !canAssignPriority || !selectedPriority
                   }
-                  className="w-full rounded-xl bg-[#8346F2] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#7138DB] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="w-full rounded-lg bg-[#1F5FA6] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#7138DB] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {priorityLoading ? "Saving Priority..." : "Confirm Priority"}
                 </button>
@@ -1333,9 +1334,9 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
             </section>
 
             {/* ASSIGNMENT */}
-            <section className="rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
+            <section className="rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
               <div className="border-b border-[#E4E7EC] px-5 py-4">
-                <h2 className="text-sm font-bold text-[#1F1D47]">
+                <h2 className="text-sm font-bold text-[#101C2E]">
                   Response Assignment
                 </h2>
               </div>
@@ -1355,7 +1356,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                     type="button"
                     onClick={handleCreateIncident}
                     disabled={assignmentLoading}
-                    className="w-full rounded-xl bg-[#8346F2] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#7138DB] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="w-full rounded-lg bg-[#1F5FA6] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#7138DB] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {assignmentLoading
                       ? "Creating Incident..."
@@ -1369,7 +1370,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                       setShowAssignmentModal(true);
                     }}
                     disabled={!incident}
-                    className="w-full rounded-xl border border-[#8346F2] bg-white px-4 py-2.5 text-sm font-semibold text-[#8346F2] transition hover:bg-[#F5F3FF] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="w-full rounded-lg border border-[#1F5FA6] bg-white px-4 py-2.5 text-sm font-semibold text-[#1F5FA6] transition hover:bg-[#EAF1FA] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Change Assignment
                   </button>
@@ -1378,9 +1379,9 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
             </section>
 
             {/* VERIFICATION */}
-            <section className="rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
+            <section className="rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
               <div className="border-b border-[#E4E7EC] px-5 py-4">
-                <h2 className="text-sm font-bold text-[#1F1D47]">
+                <h2 className="text-sm font-bold text-[#101C2E]">
                   Verification
                 </h2>
               </div>
@@ -1411,17 +1412,17 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
             </section>
 
             {/* HISTORY */}
-            <section className="rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
+            <section className="rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
               <div className="border-b border-[#E4E7EC] px-5 py-4">
                 <div className="flex items-center justify-between gap-3">
-                  <h2 className="text-sm font-bold text-[#1F1D47]">
+                  <h2 className="text-sm font-bold text-[#101C2E]">
                     Status History
                   </h2>
 
                   <button
                     type="button"
                     onClick={() => setShowMoreHistory((current) => !current)}
-                    className="text-[11px] font-semibold text-[#8346F2]"
+                    className="text-[11px] font-semibold text-[#1F5FA6]"
                   >
                     {showMoreHistory ? "Show Less" : "View All"}
                   </button>
@@ -1437,8 +1438,8 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                         className="flex gap-3"
                       >
                         <div className="flex flex-col items-center">
-                          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#F4F3FF] text-xs font-bold text-[#8346F2]">
-                            ✓
+                          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#EAF1FA] text-xs font-bold text-[#1F5FA6]">
+                            <Check size={14} strokeWidth={3} />
                           </span>
 
                           {index !== visibleHistory.length - 1 && (
@@ -1475,7 +1476,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
               <button
                 type="button"
                 onClick={() => handleStatusChange(nextIncidentStatus)}
-                className="w-full rounded-xl bg-[#8346F2] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#7138DB]"
+                className="w-full rounded-lg bg-[#1F5FA6] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#7138DB]"
               >
                 {nextIncidentStatus === "Dispatched"
                   ? "Dispatch Incident"
@@ -1492,11 +1493,11 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
 
       {/* ASSIGNMENT MODAL */}
       {showAssignmentModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1F1D47]/40 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#101C2E]/40 p-4">
+          <div className="w-full max-w-md rounded-xl bg-white shadow-lg">
             <div className="flex items-center justify-between border-b border-[#E4E7EC] px-6 py-4">
               <div>
-                <h2 className="text-lg font-bold text-[#1F1D47]">
+                <h2 className="text-lg font-bold text-[#101C2E]">
                   Assign Response Team
                 </h2>
 
@@ -1526,7 +1527,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                 <select
                   value={selectedTeam}
                   disabled
-                  className="mt-2 h-11 w-full rounded-xl border border-[#E4E7EC] bg-[#F8FAFC] px-3 text-sm text-[#475467] outline-none disabled:cursor-not-allowed"
+                  className="mt-2 h-11 w-full rounded-lg border border-[#E4E7EC] bg-[#F8FAFC] px-3 text-sm text-[#475467] outline-none disabled:cursor-not-allowed"
                 >
                   <option value={selectedTeam}>
                     {selectedTeam || "Select personnel first"}
@@ -1554,7 +1555,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
 
                     setSelectedTeam(person?.team || "");
                   }}
-                  className="mt-2 h-11 w-full rounded-xl border border-[#E4E7EC] px-3 text-sm outline-none focus:border-[#8346F2]"
+                  className="mt-2 h-11 w-full rounded-lg border border-[#E4E7EC] px-3 text-sm outline-none focus:border-[#1F5FA6]"
                 >
                   <option value="">Select personnel</option>
 
@@ -1574,7 +1575,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
               </div>
 
               {assignmentError && (
-                <p className="rounded-xl border border-[#FECDCA] bg-[#FEF3F2] px-3 py-2 text-xs font-semibold text-[#B42318]">
+                <p className="rounded-lg border border-[#FECDCA] bg-[#FEF3F2] px-3 py-2 text-xs font-semibold text-[#B42318]">
                   {assignmentError}
                 </p>
               )}
@@ -1584,7 +1585,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
               <button
                 type="button"
                 onClick={() => setShowAssignmentModal(false)}
-                className="rounded-xl border border-[#E4E7EC] px-4 py-2.5 text-sm font-semibold text-[#475467]"
+                className="rounded-lg border border-[#E4E7EC] px-4 py-2.5 text-sm font-semibold text-[#475467]"
               >
                 Cancel
               </button>
@@ -1593,7 +1594,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                 type="button"
                 onClick={handleSaveAssignment}
                 disabled={assignmentLoading || !selectedPersonnel}
-                className="rounded-xl bg-[#8346F2] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#7335E6] disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-lg bg-[#1F5FA6] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#7335E6] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {assignmentLoading ? "Saving..." : "Save Assignment"}
               </button>

@@ -1,3 +1,4 @@
+import { Check } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import {
@@ -546,11 +547,11 @@ function AnnouncementsPage({ onAddAuditLog }) {
 
         <div className="flex shrink-0 items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#8346F2]">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#1F5FA6]">
               {t("management")}
             </p>
 
-            <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[#1F1D47]">
+            <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[#101C2E]">
               {t("announcementsPageTitle")}
             </h1>
 
@@ -562,7 +563,7 @@ function AnnouncementsPage({ onAddAuditLog }) {
           <button
             type="button"
             onClick={handleNewAnnouncement}
-            className="rounded-xl bg-[#8346F2] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#7335E6]"
+            className="rounded-lg bg-[#1F5FA6] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#7335E6]"
           >
             + {t("newAnnouncement")}
           </button>
@@ -601,12 +602,12 @@ function AnnouncementsPage({ onAddAuditLog }) {
         <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]">
           {/* LIST */}
 
-          <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
+          <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
             {/* FILTERS */}
 
             <div className="flex shrink-0 flex-col gap-3 border-b border-[#E4E7EC] p-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h2 className="text-sm font-bold text-[#1F1D47]">
+                <h2 className="text-sm font-bold text-[#101C2E]">
                   {t("announcementList")}
                 </h2>
 
@@ -621,7 +622,7 @@ function AnnouncementsPage({ onAddAuditLog }) {
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
                   placeholder={t("searchAnnouncements")}
-                  className="h-9 w-full rounded-lg border border-[#E4E7EC] bg-[#FCFCFD] px-3 text-xs outline-none focus:border-[#8346F2]"
+                  className="h-9 w-full rounded-lg border border-[#E4E7EC] bg-[#FCFCFD] px-3 text-xs outline-none focus:border-[#1F5FA6]"
                 />
 
                 <select
@@ -662,7 +663,7 @@ function AnnouncementsPage({ onAddAuditLog }) {
                   <button
                     type="button"
                     onClick={loadAnnouncements}
-                    className="mt-4 rounded-lg bg-[#8346F2] px-4 py-2 text-xs font-bold text-white"
+                    className="mt-4 rounded-lg bg-[#1F5FA6] px-4 py-2 text-xs font-bold text-white"
                   >
                     {t("retry")}
                   </button>
@@ -680,9 +681,9 @@ function AnnouncementsPage({ onAddAuditLog }) {
                         onClick={() =>
                           setSelectedAnnouncementId(announcement.id)
                         }
-                        className={`w-full rounded-xl border p-4 text-left transition ${
+                        className={`w-full rounded-lg border p-4 text-left transition ${
                           isSelected
-                            ? "border-[#8346F2] bg-[#F7F3FF]"
+                            ? "border-[#1F5FA6] bg-[#F7F3FF]"
                             : "border-[#E4E7EC] bg-white hover:bg-[#FCFCFD]"
                         }`}
                       >
@@ -712,7 +713,7 @@ function AnnouncementsPage({ onAddAuditLog }) {
                               </span>
                             </div>
 
-                            <h3 className="mt-2 text-sm font-extrabold text-[#1F1D47]">
+                            <h3 className="mt-2 text-sm font-extrabold text-[#101C2E]">
                               {announcement.title}
                             </h3>
 
@@ -751,17 +752,17 @@ function AnnouncementsPage({ onAddAuditLog }) {
 
           {/* DETAILS */}
 
-          <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
+          <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
             {selectedAnnouncement ? (
               <>
                 <div className="shrink-0 border-b border-[#E4E7EC] p-5">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#8346F2]">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#1F5FA6]">
                         {t("announcementDetails")}
                       </p>
 
-                      <h2 className="mt-1 text-lg font-extrabold leading-6 text-[#1F1D47]">
+                      <h2 className="mt-1 text-lg font-extrabold leading-6 text-[#101C2E]">
                         {selectedAnnouncement.title}
                       </h2>
                     </div>
@@ -813,11 +814,11 @@ function AnnouncementsPage({ onAddAuditLog }) {
                     </div>
 
                     <div className="border-t border-[#E4E7EC] pt-5">
-                      <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#8346F2]">
+                      <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#1F5FA6]">
                         {t("announcementMessage")}
                       </p>
 
-                      <div className="mt-3 rounded-xl border border-[#E4E7EC] bg-[#F8FAFC] p-4">
+                      <div className="mt-3 rounded-lg border border-[#E4E7EC] bg-[#F8FAFC] p-4">
                         <p className="text-sm leading-6 text-[#475467]">
                           {selectedAnnouncement.message}
                         </p>
@@ -836,7 +837,7 @@ function AnnouncementsPage({ onAddAuditLog }) {
                   <button
                     type="button"
                     onClick={handleEditAnnouncement}
-                    className="flex-1 rounded-xl border border-[#8346F2] bg-white px-4 py-2.5 text-xs font-bold text-[#8346F2] transition hover:bg-[#F5F3FF]"
+                    className="flex-1 rounded-lg border border-[#1F5FA6] bg-white px-4 py-2.5 text-xs font-bold text-[#1F5FA6] transition hover:bg-[#EAF1FA]"
                   >
                     {t("edit")}
                   </button>
@@ -844,7 +845,7 @@ function AnnouncementsPage({ onAddAuditLog }) {
                   <button
                     type="button"
                     onClick={() => setIsManageOpen(true)}
-                    className="flex-1 rounded-xl bg-[#8346F2] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#7335E6]"
+                    className="flex-1 rounded-lg bg-[#1F5FA6] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#7335E6]"
                   >
                     {t("manage")}
                   </button>
@@ -852,7 +853,7 @@ function AnnouncementsPage({ onAddAuditLog }) {
                   <button
                     type="button"
                     onClick={handleDeleteAnnouncement}
-                    className="rounded-xl border border-[#FECDCA] bg-white px-4 py-2.5 text-xs font-bold text-[#D92D20] transition hover:bg-[#FEF3F2]"
+                    className="rounded-lg border border-[#FECDCA] bg-white px-4 py-2.5 text-xs font-bold text-[#D92D20] transition hover:bg-[#FEF3F2]"
                   >
                     {t("delete")}
                   </button>
@@ -861,7 +862,7 @@ function AnnouncementsPage({ onAddAuditLog }) {
             ) : (
               <div className="flex h-full items-center justify-center p-6 text-center">
                 <div>
-                  <p className="text-sm font-bold text-[#1F1D47]">
+                  <p className="text-sm font-bold text-[#101C2E]">
                     {t("noAnnouncementSelected")}
                   </p>
 
@@ -880,15 +881,15 @@ function AnnouncementsPage({ onAddAuditLog }) {
       ========================= */}
 
       {isFormOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#101828]/50 p-4 backdrop-blur-sm">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-auto rounded-2xl bg-white shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#101828]/50 p-4">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-auto rounded-xl bg-white shadow-lg">
             <div className="flex items-center justify-between border-b border-[#E4E7EC] p-5">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8346F2]">
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#1F5FA6]">
                   {t("announcementManagement")}
                 </p>
 
-                <h2 className="mt-1 text-lg font-extrabold text-[#1F1D47]">
+                <h2 className="mt-1 text-lg font-extrabold text-[#101C2E]">
                   {editingAnnouncement
                     ? t("editAnnouncement")
                     : t("newAnnouncement")}
@@ -925,7 +926,7 @@ function AnnouncementsPage({ onAddAuditLog }) {
                     onChange={handleFormChange}
                     rows="5"
                     placeholder={t("enterAnnouncementMessage")}
-                    className="w-full rounded-xl border border-[#E4E7EC] bg-[#FCFCFD] px-3 py-3 text-sm outline-none focus:border-[#8346F2]"
+                    className="w-full rounded-lg border border-[#E4E7EC] bg-[#FCFCFD] px-3 py-3 text-sm outline-none focus:border-[#1F5FA6]"
                   />
                 </div>
 
@@ -978,14 +979,14 @@ function AnnouncementsPage({ onAddAuditLog }) {
                 <button
                   type="button"
                   onClick={() => setIsFormOpen(false)}
-                  className="rounded-xl border border-[#E4E7EC] px-4 py-2.5 text-xs font-bold text-[#475467]"
+                  className="rounded-lg border border-[#E4E7EC] px-4 py-2.5 text-xs font-bold text-[#475467]"
                 >
                   {t("cancel")}
                 </button>
 
                 <button
                   type="submit"
-                  className="rounded-xl bg-[#8346F2] px-5 py-2.5 text-xs font-bold text-white transition hover:bg-[#7335E6]"
+                  className="rounded-lg bg-[#1F5FA6] px-5 py-2.5 text-xs font-bold text-white transition hover:bg-[#7335E6]"
                 >
                   {editingAnnouncement
                     ? t("saveChanges")
@@ -1002,14 +1003,14 @@ function AnnouncementsPage({ onAddAuditLog }) {
       ========================= */}
 
       {isManageOpen && selectedAnnouncement && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#101828]/50 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#101828]/50 p-4">
+          <div className="w-full max-w-md rounded-xl bg-white shadow-lg">
             <div className="border-b border-[#E4E7EC] p-5">
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8346F2]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#1F5FA6]">
                 {t("manageAnnouncement")}
               </p>
 
-              <h2 className="mt-1 text-lg font-extrabold text-[#1F1D47]">
+              <h2 className="mt-1 text-lg font-extrabold text-[#101C2E]">
                 {t("changeAnnouncementStatus")}
               </h2>
 
@@ -1024,14 +1025,14 @@ function AnnouncementsPage({ onAddAuditLog }) {
                   key={status}
                   type="button"
                   onClick={() => handleStatusChange(status)}
-                  className={`flex w-full items-center justify-between rounded-xl border p-4 text-left transition ${
+                  className={`flex w-full items-center justify-between rounded-lg border p-4 text-left transition ${
                     selectedAnnouncement.status === status
-                      ? "border-[#8346F2] bg-[#F7F3FF]"
+                      ? "border-[#1F5FA6] bg-[#F7F3FF]"
                       : "border-[#E4E7EC] hover:bg-[#FCFCFD]"
                   }`}
                 >
                   <div>
-                    <p className="text-sm font-bold text-[#1F1D47]">
+                    <p className="text-sm font-bold text-[#101C2E]">
                       {displayStatus(status)}
                     </p>
 
@@ -1041,7 +1042,7 @@ function AnnouncementsPage({ onAddAuditLog }) {
                   </div>
 
                   {selectedAnnouncement.status === status && (
-                    <span className="text-sm font-bold text-[#8346F2]">✓</span>
+                    <span className="text-sm font-bold text-[#1F5FA6]"><Check size={16} /></span>
                   )}
                 </button>
               ))}
@@ -1051,7 +1052,7 @@ function AnnouncementsPage({ onAddAuditLog }) {
               <button
                 type="button"
                 onClick={() => setIsManageOpen(false)}
-                className="w-full rounded-xl border border-[#E4E7EC] py-2.5 text-xs font-bold text-[#475467]"
+                className="w-full rounded-lg border border-[#E4E7EC] py-2.5 text-xs font-bold text-[#475467]"
               >
                 {t("cancel")}
               </button>
@@ -1069,12 +1070,12 @@ function AnnouncementsPage({ onAddAuditLog }) {
 
 function SummaryCard({ label, value, description }) {
   return (
-    <div className="rounded-2xl border border-[#E4E7EC] bg-white p-4 shadow-sm">
+    <div className="rounded-xl border border-[#E4E7EC] bg-white p-4 shadow-sm">
       <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
         {label}
       </p>
 
-      <p className="mt-1 text-2xl font-extrabold text-[#1F1D47]">{value}</p>
+      <p className="mt-1 text-2xl font-extrabold text-[#101C2E]">{value}</p>
 
       <p className="mt-1 text-[10px] text-[#667085]">{description}</p>
     </div>
@@ -1083,7 +1084,7 @@ function SummaryCard({ label, value, description }) {
 
 function InfoBox({ label, value }) {
   return (
-    <div className="rounded-xl border border-[#E4E7EC] bg-[#F8FAFC] p-3">
+    <div className="rounded-lg border border-[#E4E7EC] bg-[#F8FAFC] p-3">
       <p className="text-[9px] font-bold uppercase text-[#98A2B3]">{label}</p>
 
       <p className="mt-1 text-xs font-bold text-[#344054]">{value}</p>
@@ -1111,7 +1112,7 @@ function FormField({
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className="h-10 w-full rounded-xl border border-[#E4E7EC] bg-[#FCFCFD] px-3 text-sm outline-none focus:border-[#8346F2]"
+        className="h-10 w-full rounded-lg border border-[#E4E7EC] bg-[#FCFCFD] px-3 text-sm outline-none focus:border-[#1F5FA6]"
       />
     </div>
   );
@@ -1128,7 +1129,7 @@ function SelectField({ label, name, value, onChange, options }) {
         name={name}
         value={value}
         onChange={onChange}
-        className="h-10 w-full rounded-xl border border-[#E4E7EC] bg-[#FCFCFD] px-3 text-sm outline-none focus:border-[#8346F2]"
+        className="h-10 w-full rounded-lg border border-[#E4E7EC] bg-[#FCFCFD] px-3 text-sm outline-none focus:border-[#1F5FA6]"
       >
         {options.map((option) => (
           <option key={option}>{option}</option>

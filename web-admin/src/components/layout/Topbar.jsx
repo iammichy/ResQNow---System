@@ -1,6 +1,6 @@
 import { useContext, useEffect, useRef, useState } from "react";
 
-import { Bell, Search, X } from "lucide-react";
+import { Bell, Menu, Search, X } from "lucide-react";
 
 import {
   getNotifications,
@@ -11,7 +11,7 @@ import {
 
 import LanguageContext from "../../context/LanguageContextValue";
 
-function Topbar() {
+function Topbar({ currentUser, onMenuClick }) {
   const languageContext = useContext(LanguageContext);
 
   const t = languageContext?.t || ((key) => key);
@@ -148,23 +148,31 @@ function Topbar() {
 
   return (
     <header className="relative z-40 shrink-0 border-b border-[var(--border-soft)] bg-[var(--card-white)]">
-      {/* GRADIENT BRAND ACCENT */}
-      <div className="h-1 w-full bg-gradient-to-r from-[#8346F2] via-[#818CF8] to-[#00C9A7]" />
+      
 
-      <div className="flex h-[71px] items-center justify-between px-6">
+      <div className="flex h-16 items-center justify-between gap-3 px-4 sm:px-6">
+        <button
+          type="button"
+          onClick={onMenuClick}
+          aria-label="Open menu"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-[var(--border-soft)] text-[var(--text-secondary)] hover:bg-[var(--canvas-neutral)] lg:hidden"
+        >
+          <Menu size={20} />
+        </button>
+
         {/* SEARCH */}
-        <div className="flex min-w-0 flex-1 items-center">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           <form
             onSubmit={handleSearch}
             className="
               flex h-10 w-full max-w-[500px] items-center gap-3
-              rounded-xl border border-[var(--border-soft)]
+              rounded-lg border border-[var(--border-soft)]
               bg-[var(--canvas-neutral)]
               px-4 transition
-              focus-within:border-[var(--brand-violet)]
+              focus-within:border-[var(--brand-primary)]
               focus-within:bg-white
               focus-within:ring-2
-              focus-within:ring-[var(--brand-violet)]/10
+              focus-within:ring-[var(--brand-primary)]/10
             "
           >
             <Search
@@ -205,7 +213,7 @@ function Topbar() {
         </div>
 
         {/* RIGHT ACTIONS */}
-        <div className="ml-6 flex shrink-0 items-center gap-4">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-4">
           {/* NOTIFICATIONS */}
           <div ref={notificationRef} className="relative">
             <button
@@ -214,11 +222,11 @@ function Topbar() {
               onClick={() => setShowNotifications((current) => !current)}
               className={`
                 relative flex h-10 w-10 items-center justify-center
-                rounded-xl border transition
+                rounded-lg border transition
                 ${
                   showNotifications
-                    ? "border-[var(--brand-violet)] bg-[var(--brand-violet)] text-white shadow-md"
-                    : "border-[var(--border-soft)] bg-white text-[var(--text-muted)] hover:border-[var(--brand-violet)] hover:text-[var(--brand-violet)]"
+                    ? "border-[var(--brand-primary)] bg-[var(--brand-primary)] text-white shadow-md"
+                    : "border-[var(--border-soft)] bg-white text-[var(--text-muted)] hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)]"
                 }
               `}
             >
@@ -234,11 +242,11 @@ function Topbar() {
             {showNotifications && (
               <div
                 className="
-                  absolute right-0 top-12 w-[360px]
-                  overflow-hidden rounded-2xl
+                  absolute right-0 top-12 w-[min(360px,calc(100vw-2rem))]
+                  overflow-hidden rounded-xl
                   border border-[var(--border-soft)]
                   bg-white
-                  shadow-xl shadow-[#1F1D47]/10
+                  shadow-lg
                 "
               >
                 {/* PANEL HEADER */}
@@ -254,7 +262,7 @@ function Topbar() {
                       </p>
                     </div>
 
-                    <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-[var(--brand-violet)] shadow-sm">
+                    <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-[var(--brand-primary)] shadow-sm">
                       {unreadNotificationCount} {t("new")}
                     </span>
                   </div>
@@ -322,7 +330,7 @@ function Topbar() {
                   className="
                     w-full border-t border-[var(--border-soft)]
                     px-4 py-3 text-center text-xs
-                    font-semibold text-[var(--brand-violet)]
+                    font-semibold text-[var(--brand-primary)]
                     transition
                     hover:bg-[var(--soft-blue-mist)]
                     disabled:cursor-not-allowed
@@ -336,28 +344,23 @@ function Topbar() {
           </div>
 
           {/* ADMIN PROFILE */}
-          <div className="flex items-center gap-3 px-2 py-1.5">
-            <div
-              className="
-                flex h-10 w-10 shrink-0 items-center justify-center
-                rounded-full
-                bg-gradient-to-br
-                from-[#8346F2]
-                via-[#818CF8]
-                to-[#00C9A7]
-                text-sm font-bold text-white shadow-md
-              "
-            >
-              A
+          <div className="flex items-center gap-3 pl-1">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#101C2E] text-xs font-semibold text-white">
+              {(currentUser?.name || "A")
+                .split(" ")
+                .map((part) => part[0])
+                .slice(0, 2)
+                .join("")
+                .toUpperCase()}
             </div>
 
-            <div className="hidden min-w-0 sm:block">
-              <p className="truncate text-sm font-semibold text-[var(--text-primary)]">
-                {t("administrator")}
+            <div className="hidden min-w-0 md:block">
+              <p className="truncate text-sm font-medium text-[var(--text-primary)]">
+                {currentUser?.name || t("administrator")}
               </p>
 
-              <p className="truncate text-xs text-[var(--text-muted)]">
-                {t("barangayPersonnel")}
+              <p className="truncate text-xs capitalize text-[var(--text-muted)]">
+                {currentUser?.role || t("barangayPersonnel")}
               </p>
             </div>
           </div>

@@ -1,3 +1,4 @@
+import { Phone, Users, User, Siren, ShieldCheck, Cross, Landmark } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
   CircleMarker,
@@ -28,14 +29,14 @@ const priorityStyles = {
 
 const statusStyles = {
   "Pending Response": "bg-[#FFF4E5] text-[#B54708]",
-  Dispatched: "bg-[#EEF4FF] text-[#3538CD]",
-  "In Progress": "bg-[#F4F3FF] text-[#6941C6]",
+  Dispatched: "bg-[#EEF4FF] text-[#174A86]",
+  "In Progress": "bg-[#EAF1FA] text-[#174A86]",
   Resolved: "bg-[#ECFDF3] text-[#027A48]",
   Closed: "bg-[#F2F4F7] text-[#667085]",
 
   // Legacy statuses kept for display compatibility
-  Responding: "bg-[#EEF4FF] text-[#3538CD]",
-  Assigned: "bg-[#F4F3FF] text-[#6941C6]",
+  Responding: "bg-[#EEF4FF] text-[#174A86]",
+  Assigned: "bg-[#EAF1FA] text-[#174A86]",
   Monitoring: "bg-[#ECFDF3] text-[#027A48]",
 };
 
@@ -432,7 +433,7 @@ useEffect(() => {
     return (
       <div className="flex h-full min-h-[500px] items-center justify-center">
         <div className="text-center">
-          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-[#E9D7FE] border-t-[#8346F2]" />
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-[#D6E4F5] border-t-[#1F5FA6]" />
 
           <p className="mt-4 text-sm font-semibold text-[#667085]">
             {t("loadingIncident")}
@@ -449,7 +450,7 @@ useEffect(() => {
   if (error) {
     return (
       <div className="flex h-full min-h-[500px] items-center justify-center">
-        <div className="rounded-2xl border border-[#FECDCA] bg-white p-8 text-center shadow-sm">
+        <div className="rounded-xl border border-[#FECDCA] bg-white p-8 text-center shadow-sm">
           <p className="text-lg font-bold text-[#D92D20]">
             {t("unableToLoadIncidents")}
           </p>
@@ -459,7 +460,7 @@ useEffect(() => {
           <button
             type="button"
             onClick={loadIncidents}
-            className="mt-5 rounded-xl bg-[#8346F2] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#6D35D8]"
+            className="mt-5 rounded-lg bg-[#1F5FA6] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#6D35D8]"
           >
             {t("tryAgain")}
           </button>
@@ -478,11 +479,11 @@ useEffect(() => {
 
       <div className="flex shrink-0 items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#8346F2]">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#1F5FA6]">
             {t("operationsLabel")}
           </p>
 
-          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[#1F1D47]">
+          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[#101C2E]">
             {t("incidentMapTitle")}
           </h1>
 
@@ -491,7 +492,7 @@ useEffect(() => {
           </p>
         </div>
 
-        <div className="hidden items-center gap-2 rounded-xl border border-[#ABEFC6] bg-[#ECFDF3] px-3 py-2 sm:flex">
+        <div className="hidden items-center gap-2 rounded-lg border border-[#ABEFC6] bg-[#ECFDF3] px-3 py-2 sm:flex">
           <span className="h-2 w-2 rounded-full bg-[#2ED47A]" />
 
           <span className="text-xs font-semibold text-[#027A48]">
@@ -505,12 +506,12 @@ useEffect(() => {
       <div className="grid shrink-0 grid-cols-2 gap-3 xl:grid-cols-4">
         {/* ACTIVE */}
 
-        <div className="rounded-2xl border border-[#E4E7EC] bg-white p-4 shadow-sm">
+        <div className="rounded-xl border border-[#E4E7EC] bg-white p-4 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
             {t("activeIncidents")}
           </p>
 
-          <p className="mt-1 text-2xl font-extrabold text-[#1F1D47]">
+          <p className="mt-1 text-2xl font-extrabold text-[#101C2E]">
             {activeIncidentCount}
           </p>
 
@@ -521,7 +522,7 @@ useEffect(() => {
 
         {/* CRITICAL */}
 
-        <div className="rounded-2xl border border-[#FECDCA] bg-white p-4 shadow-sm">
+        <div className="rounded-xl border border-[#FECDCA] bg-white p-4 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#D92D20]">
             {t("critical")}
           </p>
@@ -537,7 +538,7 @@ useEffect(() => {
 
         {/* HIGH */}
 
-        <div className="rounded-2xl border border-[#FEDF89] bg-white p-4 shadow-sm">
+        <div className="rounded-xl border border-[#FEDF89] bg-white p-4 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#B54708]">
             {t("highPriority")}
           </p>
@@ -553,7 +554,7 @@ useEffect(() => {
 
         {/* MODERATE */}
 
-        <div className="rounded-2xl border border-[#FDE68A] bg-white p-4 shadow-sm">
+        <div className="rounded-xl border border-[#FDE68A] bg-white p-4 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#A15C00]">
             {t("moderate")}
           </p>
@@ -573,12 +574,12 @@ useEffect(() => {
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
         {/* ================= MAP ================= */}
 
-        <section className="flex h-[620px] min-w-0 flex-col overflow-hidden rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
+        <section className="flex h-[620px] min-w-0 flex-col overflow-hidden rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
           {/* MAP HEADER */}
 
           <div className="flex shrink-0 items-center justify-between gap-4 border-b border-[#E4E7EC] px-5 py-4">
             <div>
-              <h2 className="text-sm font-bold text-[#1F1D47]">
+              <h2 className="text-sm font-bold text-[#101C2E]">
                 {t("barangayIncidentOverview")}
               </h2>
 
@@ -593,7 +594,7 @@ useEffect(() => {
                 setPriorityFilter(event.target.value);
                 setSelectedIncidentId(null);
               }}
-              className="h-9 rounded-xl border border-[#E4E7EC] bg-white px-3 text-xs font-semibold text-[#344054] shadow-sm outline-none focus:border-[#8346F2]"
+              className="h-9 rounded-lg border border-[#E4E7EC] bg-white px-3 text-xs font-semibold text-[#344054] shadow-sm outline-none focus:border-[#1F5FA6]"
             >
               <option value="All">{t("allPriorities")}</option>
               <option value="Critical">{t("critical")}</option>
@@ -634,7 +635,7 @@ useEffect(() => {
                       : incident.priority === "High"
                         ? "#F59E0B"
                         : incident.priority === "Moderate"
-                          ? "#8346F2"
+                          ? "#1F5FA6"
                           : "#64748B";
 
                   return (
@@ -654,11 +655,11 @@ useEffect(() => {
                     >
                       <Popup>
                         <div className="min-w-[180px]">
-                          <p className="text-xs font-bold text-[#8346F2]">
+                          <p className="text-xs font-bold text-[#1F5FA6]">
                             {incident.incidentCode}
                           </p>
 
-                          <p className="mt-1 text-sm font-bold text-[#1F1D47]">
+                          <p className="mt-1 text-sm font-bold text-[#101C2E]">
                             {incident.type}
                           </p>
 
@@ -686,7 +687,7 @@ useEffect(() => {
 
             {filteredIncidents.length === 0 && (
               <div className="pointer-events-none absolute inset-0 z-[1000] flex items-center justify-center">
-                <div className="rounded-xl bg-white px-5 py-4 text-center shadow-sm">
+                <div className="rounded-lg bg-white px-5 py-4 text-center shadow-sm">
                   <p className="text-sm font-bold text-[#344054]">
                     {t("noIncidentsFound")}
                   </p>
@@ -700,7 +701,7 @@ useEffect(() => {
 
             {/* MAP LEGEND */}
 
-            <div className="absolute bottom-4 left-4 z-[1000] rounded-xl border border-[#E4E7EC] bg-white/95 p-3 shadow-sm backdrop-blur">
+            <div className="absolute bottom-4 left-4 z-[1000] rounded-lg border border-[#E4E7EC] bg-white/95 p-3 shadow-sm backdrop-blur">
               <p className="mb-2 text-[9px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
                 {t("mapLegend")}
               </p>
@@ -723,7 +724,7 @@ useEffect(() => {
                 </div>
 
                 <div className="flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-full bg-[#8346F2]" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#1F5FA6]" />
 
                   <span className="text-[10px] font-medium text-[#667085]">
                     {t("moderate")}
@@ -744,11 +745,11 @@ useEffect(() => {
 
         {/* ================= INCIDENT LIST ================= */}
 
-      <section className="flex h-[620px] min-w-0 flex-col overflow-hidden rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
+      <section className="flex h-[620px] min-w-0 flex-col overflow-hidden rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
           <div className="shrink-0 border-b border-[#E4E7EC] p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-sm font-bold text-[#1F1D47]">
+                <h2 className="text-sm font-bold text-[#101C2E]">
                   {t("incidents")}
                 </h2>
 
@@ -757,7 +758,7 @@ useEffect(() => {
                 </p>
               </div>
 
-              <span className="rounded-full bg-[#F4F3FF] px-2.5 py-1 text-[10px] font-bold text-[#6941C6]">
+              <span className="rounded-full bg-[#EAF1FA] px-2.5 py-1 text-[10px] font-bold text-[#174A86]">
                 {filteredIncidents.length}
               </span>
             </div>
@@ -773,16 +774,16 @@ useEffect(() => {
                   type="button"
                   onClick={() => setSelectedIncidentId(incident.id)}
                   className={`w-full border-b border-[#E4E7EC] p-4 text-left transition ${
-                    isSelected ? "bg-[#F5F3FF]" : "hover:bg-[#FAF9FF]"
+                    isSelected ? "bg-[#EAF1FA]" : "hover:bg-[#FAF9FF]"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-[10px] font-bold text-[#8346F2]">
+                      <p className="text-[10px] font-bold text-[#1F5FA6]">
                         {incident.incidentCode}
                       </p>
 
-                      <p className="mt-1 truncate text-sm font-bold text-[#1F1D47]">
+                      <p className="mt-1 truncate text-sm font-bold text-[#101C2E]">
                         {incident.type}
                       </p>
 
@@ -844,7 +845,7 @@ useEffect(() => {
                 {t("selectedIncident")}
               </p>
 
-              <p className="mt-1 text-sm font-extrabold text-[#1F1D47]">
+              <p className="mt-1 text-sm font-extrabold text-[#101C2E]">
                 {selectedIncident.type}
               </p>
 
@@ -920,15 +921,15 @@ useEffect(() => {
 
            {/* ================= HOTLINE DIRECTORY ================= */}
 
-      <section className="shrink-0 rounded-2xl border border-[#E4E7EC] bg-white p-5 shadow-sm">
+      <section className="shrink-0 rounded-xl border border-[#E4E7EC] bg-white p-5 shadow-sm">
         {/* HEADER */}
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8346F2]">
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#1F5FA6]">
               Emergency Contacts
             </p>
 
-            <h2 className="mt-1 text-xl font-extrabold tracking-tight text-[#1F1D47]">
+            <h2 className="mt-1 text-xl font-extrabold tracking-tight text-[#101C2E]">
               Hotline Directory
             </h2>
 
@@ -937,8 +938,8 @@ useEffect(() => {
             </p>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2 rounded-full bg-[#F4F3FF] px-3 py-2 text-[10px] font-bold text-[#6941C6]">
-            <span>☎</span>
+          <div className="flex shrink-0 items-center gap-2 rounded-full bg-[#EAF1FA] px-3 py-2 text-[10px] font-bold text-[#174A86]">
+            <Phone size={12} />
             <span>
               {barangayContacts.length + emergencyContacts.length} contacts
             </span>
@@ -947,15 +948,15 @@ useEffect(() => {
 
         {/* ================= BARANGAY CONTACTS ================= */}
 
-        <div className="mt-5 overflow-hidden rounded-2xl border border-[#E4E7EC]">
+        <div className="mt-5 overflow-hidden rounded-xl border border-[#E4E7EC]">
           {/* Section Header */}
-          <div className="flex items-center gap-3 border-b border-[#E4E7EC] bg-[#F7F5FF] px-4 py-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#E9D7FE] text-base text-[#6941C6]">
-              👥
+          <div className="flex items-center gap-3 border-b border-[#E4E7EC] bg-[#F5F8FC] px-4 py-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#D6E4F5] text-base text-[#174A86]">
+              <Users size={18} />
             </div>
 
             <div className="min-w-0">
-              <h3 className="text-sm font-extrabold text-[#1F1D47]">
+              <h3 className="text-sm font-extrabold text-[#101C2E]">
                 Barangay Camunatan Contacts
               </h3>
 
@@ -983,8 +984,8 @@ useEffect(() => {
                 }`}
               >
                 {/* Avatar */}
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F4F3FF] text-sm text-[#6941C6]">
-                  👤
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#EAF1FA] text-sm text-[#174A86]">
+                  <User size={16} />
                 </div>
 
                 {/* Details */}
@@ -1002,9 +1003,9 @@ useEffect(() => {
                 {contact.number ? (
                   <a
                     href={`tel:${contact.number.replace(/\D/g, "")}`}
-                    className="flex shrink-0 items-center gap-1.5 rounded-lg bg-[#F4F3FF] px-3 py-2 text-[10px] font-extrabold text-[#6941C6] transition hover:bg-[#E9D7FE]"
+                    className="flex shrink-0 items-center gap-1.5 rounded-lg bg-[#EAF1FA] px-3 py-2 text-[10px] font-extrabold text-[#174A86] transition hover:bg-[#D6E4F5]"
                   >
-                    <span>☎</span>
+                    <Phone size={12} />
                     <span>{contact.number}</span>
                   </a>
                 ) : (
@@ -1021,13 +1022,13 @@ useEffect(() => {
 
         <div className="mt-6">
           {/* Section Header */}
-          <div className="flex items-center gap-3 rounded-xl border border-[#FECDCA] bg-[#FFF8F7] px-4 py-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#FEE4E2] text-base text-[#D92D20]">
-              ☎
+          <div className="flex items-center gap-3 rounded-lg border border-[#FECDCA] bg-[#FFF8F7] px-4 py-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#FEE4E2] text-base text-[#D92D20]">
+              <Phone size={16} />
             </div>
 
             <div className="min-w-0">
-              <h3 className="text-sm font-extrabold text-[#1F1D47]">
+              <h3 className="text-sm font-extrabold text-[#101C2E]">
                 Emergency & City Services
               </h3>
 
@@ -1042,7 +1043,7 @@ useEffect(() => {
             {[
               {
                 title: "Emergency & Rescue",
-                icon: "🚨",
+                icon: <Siren size={18} />,
                 names: [
                   "Philippine Emergency Hotline",
                   "Ilagan Emergency Hotline",
@@ -1060,7 +1061,7 @@ useEffect(() => {
               },
               {
                 title: "Police & Security",
-                icon: "🛡️",
+                icon: <ShieldCheck size={18} />,
                 names: [
                   "City Police Station - Main",
                   "Isabela Police Provincial Office",
@@ -1068,14 +1069,14 @@ useEffect(() => {
                 ],
                 cardClass: "border-[#C7D7FE]",
                 headerClass: "bg-[#F3F7FF]",
-                iconClass: "bg-[#E0EAFF] text-[#3538CD]",
-                countClass: "bg-white text-[#3538CD]",
+                iconClass: "bg-[#E0EAFF] text-[#174A86]",
+                countClass: "bg-white text-[#174A86]",
                 buttonClass:
-                  "bg-[#EEF4FF] text-[#3538CD] hover:bg-[#E0EAFF]",
+                  "bg-[#EEF4FF] text-[#174A86] hover:bg-[#E0EAFF]",
               },
               {
                 title: "Medical & Health",
-                icon: "✚",
+                icon: <Cross size={18} />,
                 names: [
                   "City Health Office 1",
                   "City Health Office 2",
@@ -1094,7 +1095,7 @@ useEffect(() => {
               },
               {
                 title: "Government & Utilities",
-                icon: "🏛️",
+                icon: <Landmark size={18} />,
                 names: [
                   "Ilagan Mayor's Action Center",
                   "ISELCO II - Head Office",
@@ -1115,7 +1116,7 @@ useEffect(() => {
             ].map((group) => (
               <div
                 key={group.title}
-                className={`overflow-hidden rounded-2xl border bg-white ${group.cardClass}`}
+                className={`overflow-hidden rounded-xl border bg-white ${group.cardClass}`}
               >
                 {/* Card Header */}
                 <div
@@ -1123,13 +1124,13 @@ useEffect(() => {
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <div
-                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-base ${group.iconClass}`}
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-base ${group.iconClass}`}
                     >
                       {group.icon}
                     </div>
 
                     <div className="min-w-0">
-                      <h4 className="text-sm font-extrabold uppercase tracking-[0.03em] text-[#1F1D47]">
+                      <h4 className="text-sm font-extrabold uppercase tracking-[0.03em] text-[#101C2E]">
                         {group.title}
                       </h4>
 
@@ -1190,7 +1191,7 @@ useEffect(() => {
                                 href={`tel:${number.replace(/\D/g, "")}`}
                                 className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-[10px] font-extrabold transition ${group.buttonClass}`}
                               >
-                                <span>☎</span>
+                                <Phone size={12} />
                                 <span>{number}</span>
                               </a>
                             ))}

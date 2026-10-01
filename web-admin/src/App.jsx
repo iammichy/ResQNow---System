@@ -531,12 +531,12 @@ function App() {
       default:
         return (
           <div className="flex min-h-full items-center justify-center">
-            <div className="rounded-2xl border border-[#E4E7EC] bg-white px-8 py-10 text-center shadow-sm">
-              <p className="text-sm font-semibold text-[#8346F2]">
+            <div className="rounded-xl border border-[#E4E7EC] bg-white px-8 py-10 text-center shadow-sm">
+              <p className="text-sm font-semibold text-[#1F5FA6]">
                 ResQNow Web Admin
               </p>
 
-              <h1 className="mt-2 text-2xl font-extrabold text-[#1F1D47]">
+              <h1 className="mt-2 text-2xl font-extrabold text-[#101C2E]">
                 Module Not Implemented Yet
               </h1>
 

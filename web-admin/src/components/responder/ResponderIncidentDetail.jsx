@@ -26,7 +26,7 @@ export default function ResponderIncidentDetail({ incident, onUpdateStatus }) {
     <div className="max-w-3xl mx-auto p-6 bg-white rounded-lg shadow space-y-6">
       <div className="border-b pb-4 flex justify-between items-start">
         <div>
-          <span className="text-xs font-bold text-purple-600 uppercase tracking-wider">
+          <span className="text-xs font-bold text-blue-700 uppercase tracking-wider">
             Assigned Mission
           </span>
           <h2 className="text-2xl font-extrabold text-navy-900 mt-1">
@@ -84,7 +84,7 @@ export default function ResponderIncidentDetail({ incident, onUpdateStatus }) {
             type="button"
             disabled={loading}
             onClick={() => handleQuickAction("acknowledge")}
-            className="p-3 bg-blue-600 text-white font-bold rounded-xl shadow hover:bg-blue-700 disabled:opacity-50 text-center"
+            className="p-3 bg-blue-600 text-white font-bold rounded-lg shadow hover:bg-blue-700 disabled:opacity-50 text-center"
           >
             1. Acknowledge Mission
           </button>
@@ -92,7 +92,7 @@ export default function ResponderIncidentDetail({ incident, onUpdateStatus }) {
             type="button"
             disabled={loading}
             onClick={() => handleQuickAction("en_route")}
-            className="p-3 bg-amber-600 text-white font-bold rounded-xl shadow hover:bg-amber-700 disabled:opacity-50 text-center"
+            className="p-3 bg-amber-600 text-white font-bold rounded-lg shadow hover:bg-amber-700 disabled:opacity-50 text-center"
           >
             2. Mark En Route
           </button>
@@ -100,7 +100,7 @@ export default function ResponderIncidentDetail({ incident, onUpdateStatus }) {
             type="button"
             disabled={loading}
             onClick={() => handleQuickAction("on_scene")}
-            className="p-3 bg-green-600 text-white font-bold rounded-xl shadow hover:bg-green-700 disabled:opacity-50 text-center"
+            className="p-3 bg-green-600 text-white font-bold rounded-lg shadow hover:bg-green-700 disabled:opacity-50 text-center"
           >
             3. Mark On Scene
           </button>

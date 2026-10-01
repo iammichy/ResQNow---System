@@ -1,3 +1,4 @@
+import { User } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
   getAllResidents,
@@ -193,11 +194,11 @@ function ResidentsPage({ onViewResidentReports }) {
       {/* PAGE HEADER */}
       <div className="flex shrink-0 items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#8346F2]">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#1F5FA6]">
             {t("management")}
           </p>
 
-          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[#1F1D47]">
+          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[#101C2E]">
             {t("residentsPageTitle")}
           </h1>
 
@@ -206,7 +207,7 @@ function ResidentsPage({ onViewResidentReports }) {
           </p>
         </div>
 
-        <div className="hidden items-center gap-2 rounded-xl border border-[#E4E7EC] bg-white px-3 py-2 shadow-sm sm:flex">
+        <div className="hidden items-center gap-2 rounded-lg border border-[#E4E7EC] bg-white px-3 py-2 shadow-sm sm:flex">
           <span className="h-2 w-2 rounded-full bg-[#2ED47A]" />
 
           <span className="text-xs font-semibold text-[#344054]">
@@ -217,12 +218,12 @@ function ResidentsPage({ onViewResidentReports }) {
 
       {/* SUMMARY */}
       <div className="grid shrink-0 grid-cols-2 gap-3 xl:grid-cols-4">
-        <div className="rounded-2xl border border-[#E4E7EC] bg-white p-4 shadow-sm">
+        <div className="rounded-xl border border-[#E4E7EC] bg-white p-4 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
             {t("totalResidents")}
           </p>
 
-          <p className="mt-1 text-2xl font-extrabold text-[#1F1D47]">
+          <p className="mt-1 text-2xl font-extrabold text-[#101C2E]">
             {totalResidents}
           </p>
 
@@ -231,7 +232,7 @@ function ResidentsPage({ onViewResidentReports }) {
           </p>
         </div>
 
-        <div className="rounded-2xl border border-[#ABEFC6] bg-white p-4 shadow-sm">
+        <div className="rounded-xl border border-[#ABEFC6] bg-white p-4 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
             {t("activeAccounts")}
           </p>
@@ -243,12 +244,12 @@ function ResidentsPage({ onViewResidentReports }) {
           <p className="mt-1 text-xs text-[#667085]">{t("currentlyActive")}</p>
         </div>
 
-        <div className="rounded-2xl border border-[#DDD6FE] bg-white p-4 shadow-sm">
+        <div className="rounded-xl border border-[#C7D9EF] bg-white p-4 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
             {t("verifiedResidents")}
           </p>
 
-          <p className="mt-1 text-2xl font-extrabold text-[#6941C6]">
+          <p className="mt-1 text-2xl font-extrabold text-[#174A86]">
             {verifiedResidents}
           </p>
 
@@ -257,12 +258,12 @@ function ResidentsPage({ onViewResidentReports }) {
           </p>
         </div>
 
-        <div className="rounded-2xl border border-[#E4E7EC] bg-white p-4 shadow-sm">
+        <div className="rounded-xl border border-[#E4E7EC] bg-white p-4 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
             {t("reportsSubmitted")}
           </p>
 
-          <p className="mt-1 text-2xl font-extrabold text-[#1F1D47]">
+          <p className="mt-1 text-2xl font-extrabold text-[#101C2E]">
             {totalReports}
           </p>
 
@@ -275,11 +276,11 @@ function ResidentsPage({ onViewResidentReports }) {
       {/* MAIN WORKSPACE */}
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.65fr)]">
         {/* RESIDENT TABLE */}
-        <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
+        <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
           {/* TOOLBAR */}
           <div className="flex shrink-0 flex-col gap-3 border-b border-[#E4E7EC] p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 flex-1 items-center gap-3">
-              <div className="flex h-10 min-w-0 flex-1 items-center gap-3 rounded-xl border border-[#E4E7EC] bg-[#F8FAFC] px-3 transition focus-within:border-[#8346F2] focus-within:bg-white">
+              <div className="flex h-10 min-w-0 flex-1 items-center gap-3 rounded-lg border border-[#E4E7EC] bg-[#F8FAFC] px-3 transition focus-within:border-[#1F5FA6] focus-within:bg-white">
                 <span className="text-sm text-[#667085]">⌕</span>
 
                 <input
@@ -287,7 +288,7 @@ function ResidentsPage({ onViewResidentReports }) {
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
                   placeholder={t("searchResidents")}
-                  className="min-w-0 flex-1 bg-transparent text-xs text-[#1F1D47] outline-none placeholder:text-[#98A2B3]"
+                  className="min-w-0 flex-1 bg-transparent text-xs text-[#101C2E] outline-none placeholder:text-[#98A2B3]"
                   aria-label={t("searchResidents")}
                 />
               </div>
@@ -297,7 +298,7 @@ function ResidentsPage({ onViewResidentReports }) {
               <select
                 value={statusFilter}
                 onChange={(event) => setStatusFilter(event.target.value)}
-                className="h-10 rounded-xl border border-[#E4E7EC] bg-white px-3 text-xs font-semibold text-[#344054] outline-none focus:border-[#8346F2]"
+                className="h-10 rounded-lg border border-[#E4E7EC] bg-white px-3 text-xs font-semibold text-[#344054] outline-none focus:border-[#1F5FA6]"
               >
                 <option value="All">{t("allStatus")}</option>
 
@@ -309,7 +310,7 @@ function ResidentsPage({ onViewResidentReports }) {
               <button
                 type="button"
                 onClick={loadResidents}
-                className="h-10 rounded-xl border border-[#DDD6FE] bg-[#F5F3FF] px-3 text-xs font-bold text-[#6941C6] transition hover:bg-[#EDE9FE]"
+                className="h-10 rounded-lg border border-[#C7D9EF] bg-[#EAF1FA] px-3 text-xs font-bold text-[#174A86] transition hover:bg-[#D6E4F5]"
               >
                 {t("refresh")}
               </button>
@@ -320,7 +321,7 @@ function ResidentsPage({ onViewResidentReports }) {
           {loading && (
             <div className="flex min-h-[300px] flex-1 items-center justify-center">
               <div className="text-center">
-                <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-[#EDE9FE] border-t-[#8346F2]" />
+                <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-[#D6E4F5] border-t-[#1F5FA6]" />
 
                 <p className="mt-4 text-sm font-semibold text-[#667085]">
                   {t("loadingResidents")}
@@ -342,7 +343,7 @@ function ResidentsPage({ onViewResidentReports }) {
                 <button
                   type="button"
                   onClick={loadResidents}
-                  className="mt-4 rounded-xl bg-[#8346F2] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#6D32D6]"
+                  className="mt-4 rounded-lg bg-[#1F5FA6] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#6D32D6]"
                 >
                   {t("tryAgainResidents")}
                 </button>
@@ -394,18 +395,18 @@ function ResidentsPage({ onViewResidentReports }) {
                           key={resident.id}
                           onClick={() => setSelectedResidentId(resident.id)}
                           className={`cursor-pointer border-b border-[#E4E7EC] transition ${
-                            isSelected ? "bg-[#F5F3FF]" : "hover:bg-[#FAF9FF]"
+                            isSelected ? "bg-[#EAF1FA]" : "hover:bg-[#FAF9FF]"
                           }`}
                         >
                           {/* RESIDENT */}
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-3">
-                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F4F3FF] text-xs font-bold text-[#6941C6]">
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#EAF1FA] text-xs font-bold text-[#174A86]">
                                 {resident.name.charAt(0).toUpperCase()}
                               </div>
 
                               <div className="min-w-0">
-                                <p className="truncate text-xs font-bold text-[#1F1D47]">
+                                <p className="truncate text-xs font-bold text-[#101C2E]">
                                   {resident.name}
                                 </p>
 
@@ -473,11 +474,11 @@ function ResidentsPage({ onViewResidentReports }) {
                 {filteredResidents.length === 0 && (
                   <div className="flex min-h-[260px] items-center justify-center p-6 text-center">
                     <div>
-                      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#F4F3FF] text-lg text-[#8346F2]">
-                        ♙
+                      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#EAF1FA] text-lg text-[#1F5FA6]">
+                        <User size={22} />
                       </div>
 
-                      <p className="mt-3 text-sm font-bold text-[#1F1D47]">
+                      <p className="mt-3 text-sm font-bold text-[#101C2E]">
                         {t("noResidentsFound")}
                       </p>
 
@@ -508,18 +509,18 @@ function ResidentsPage({ onViewResidentReports }) {
         </section>
 
         {/* DETAILS */}
-        <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
+        <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
           {selectedResident ? (
             <>
               {/* RESIDENT HEADER */}
               <div className="shrink-0 border-b border-[#E4E7EC] p-5">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#8346F2] text-lg font-bold text-white">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#1F5FA6] text-lg font-bold text-white">
                     {selectedResident.name.charAt(0).toUpperCase()}
                   </div>
 
                   <div className="min-w-0">
-                    <p className="truncate text-base font-extrabold text-[#1F1D47]">
+                    <p className="truncate text-base font-extrabold text-[#101C2E]">
                       {selectedResident.name}
                     </p>
 
@@ -553,7 +554,7 @@ function ResidentsPage({ onViewResidentReports }) {
                 <div className="space-y-5">
                   {/* CONTACT */}
                   <div>
-                    <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-[#8346F2]">
+                    <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-[#1F5FA6]">
                       {t("contactInformation")}
                     </h3>
 
@@ -592,22 +593,22 @@ function ResidentsPage({ onViewResidentReports }) {
 
                   {/* ACCOUNT */}
                   <div className="border-t border-[#E4E7EC] pt-5">
-                    <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-[#8346F2]">
+                    <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-[#1F5FA6]">
                       {t("accountInformation")}
                     </h3>
 
                     <div className="mt-3 grid grid-cols-2 gap-3">
-                      <div className="rounded-xl border border-[#E4E7EC] bg-[#F8FAFC] p-3">
+                      <div className="rounded-lg border border-[#E4E7EC] bg-[#F8FAFC] p-3">
                         <p className="text-[9px] font-bold uppercase text-[#98A2B3]">
                           {t("reports")}
                         </p>
 
-                        <p className="mt-1 text-lg font-extrabold text-[#1F1D47]">
+                        <p className="mt-1 text-lg font-extrabold text-[#101C2E]">
                           {selectedResident.reports}
                         </p>
                       </div>
 
-                      <div className="rounded-xl border border-[#E4E7EC] bg-[#F8FAFC] p-3">
+                      <div className="rounded-lg border border-[#E4E7EC] bg-[#F8FAFC] p-3">
                         <p className="text-[9px] font-bold uppercase text-[#98A2B3]">
                           {t("registered")}
                         </p>
@@ -631,14 +632,14 @@ function ResidentsPage({ onViewResidentReports }) {
 
                   {/* REPORT ACTIVITY */}
                   <div className="border-t border-[#E4E7EC] pt-5">
-                    <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-[#8346F2]">
+                    <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-[#1F5FA6]">
                       {t("reportActivity")}
                     </h3>
 
-                    <div className="mt-3 rounded-xl border border-[#E4E7EC] bg-[#F8FAFC] p-4">
+                    <div className="mt-3 rounded-lg border border-[#E4E7EC] bg-[#F8FAFC] p-4">
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <p className="text-sm font-bold text-[#1F1D47]">
+                          <p className="text-sm font-bold text-[#101C2E]">
                             {selectedResident.reports} {t("submittedReports")}
                           </p>
 
@@ -647,7 +648,7 @@ function ResidentsPage({ onViewResidentReports }) {
                           </p>
                         </div>
 
-                        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#F4F3FF] text-sm font-bold text-[#8346F2]">
+                        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#EAF1FA] text-sm font-bold text-[#1F5FA6]">
                           {selectedResident.reports}
                         </span>
                       </div>
@@ -664,7 +665,7 @@ function ResidentsPage({ onViewResidentReports }) {
                       type="button"
                       onClick={() => handleVerification("Rejected")}
                       disabled={verificationLoading}
-                      className="rounded-xl border border-[#FDA29B] bg-white px-4 py-2.5 text-xs font-bold text-[#B42318] transition hover:bg-[#FEF3F2] disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-lg border border-[#FDA29B] bg-white px-4 py-2.5 text-xs font-bold text-[#B42318] transition hover:bg-[#FEF3F2] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {verificationLoading ? "Updating..." : "Reject"}
                     </button>
@@ -673,7 +674,7 @@ function ResidentsPage({ onViewResidentReports }) {
                       type="button"
                       onClick={() => handleVerification("Verified")}
                       disabled={verificationLoading}
-                      className="rounded-xl bg-[#8346F2] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#6D38D9] disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-lg bg-[#1F5FA6] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#6D38D9] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {verificationLoading ? "Updating..." : "Approve"}
                     </button>
@@ -688,7 +689,7 @@ function ResidentsPage({ onViewResidentReports }) {
                     }
                   }}
                   disabled={!selectedResident || !onViewResidentReports}
-                  className="w-full rounded-xl border border-[#8346F2] bg-white px-4 py-2.5 text-xs font-bold text-[#8346F2] transition hover:bg-[#F5F3FF] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="w-full rounded-lg border border-[#1F5FA6] bg-white px-4 py-2.5 text-xs font-bold text-[#1F5FA6] transition hover:bg-[#EAF1FA] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {t("viewResidentReports")}
                 </button>
@@ -697,11 +698,11 @@ function ResidentsPage({ onViewResidentReports }) {
           ) : (
             <div className="flex h-full items-center justify-center p-6 text-center">
               <div>
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#F4F3FF] text-lg text-[#8346F2]">
-                  ♙
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#EAF1FA] text-lg text-[#1F5FA6]">
+                  <User size={22} />
                 </div>
 
-                <p className="mt-3 text-sm font-bold text-[#1F1D47]">
+                <p className="mt-3 text-sm font-bold text-[#101C2E]">
                   {t("noResidentSelected")}
                 </p>
 

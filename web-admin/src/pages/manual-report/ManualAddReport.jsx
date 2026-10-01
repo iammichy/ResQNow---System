@@ -180,11 +180,11 @@ function ManualAddReport() {
       {/* PAGE HEADER */}
       <div className="flex shrink-0 items-start justify-between gap-4 pb-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8346F2]">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#1F5FA6]">
             Report Management
           </p>
 
-          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[#1F1D47]">
+          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[#101C2E]">
             Add Manual Report
           </h1>
 
@@ -193,7 +193,7 @@ function ManualAddReport() {
           </p>
         </div>
 
-        <div className="hidden items-center gap-2 rounded-xl border border-[#E4E7EC] bg-white px-3 py-2 shadow-sm sm:flex">
+        <div className="hidden items-center gap-2 rounded-lg border border-[#E4E7EC] bg-white px-3 py-2 shadow-sm sm:flex">
           <span className="h-2 w-2 rounded-full bg-[#00C9A7]" />
 
           <span className="text-xs font-semibold text-[#475467]">
@@ -425,9 +425,9 @@ function ManualAddReport() {
           >
             <label
               htmlFor="manual-report-photo"
-              className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-[#C7CBD4] bg-[#FCFCFD] px-6 py-8 text-center transition hover:border-[#8346F2] hover:bg-[#F9F7FF]"
+              className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-[#C7CBD4] bg-[#FCFCFD] px-6 py-8 text-center transition hover:border-[#1F5FA6] hover:bg-[#F9F7FF]"
             >
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#F0EBFF] text-[#8346F2]">
+              <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#F0EBFF] text-[#1F5FA6]">
                 <UploadIcon />
               </div>
 
@@ -453,7 +453,7 @@ function ManualAddReport() {
           </FormSection>
 
           {/* FORM FOOTER */}
-          <div className="flex flex-col-reverse gap-3 rounded-2xl border border-[#E4E7EC] bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col-reverse gap-3 rounded-xl border border-[#E4E7EC] bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-2.5">
               <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#E8F8F4] text-[#008F78]">
                 <ShieldIcon />
@@ -483,7 +483,7 @@ function ManualAddReport() {
               <button
                 type="button"
                 onClick={handleSaveDraft}
-                className="h-10 rounded-lg border border-[#8346F2] bg-white px-4 text-sm font-bold text-[#8346F2] transition hover:bg-[#F9F7FF]"
+                className="h-10 rounded-lg border border-[#1F5FA6] bg-white px-4 text-sm font-bold text-[#1F5FA6] transition hover:bg-[#F9F7FF]"
               >
                 Save Draft
               </button>
@@ -492,7 +492,7 @@ function ManualAddReport() {
                 type="button"
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="h-10 rounded-lg bg-[#8346F2] px-5 text-xs font-bold text-white shadow-sm transition hover:bg-[#7138DB] disabled:cursor-not-allowed disabled:opacity-60"
+                className="h-10 rounded-lg bg-[#1F5FA6] px-5 text-xs font-bold text-white shadow-sm transition hover:bg-[#7138DB] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSubmitting ? "Submitting..." : "Submit Report"}
               </button>
@@ -506,14 +506,14 @@ function ManualAddReport() {
 
 function FormSection({ number, title, description, children }) {
   return (
-    <section className="rounded-2xl border border-[#E4E7EC] bg-white p-4 shadow-sm">
+    <section className="rounded-xl border border-[#E4E7EC] bg-white p-4 shadow-sm">
       <div className="mb-4 flex items-start gap-3">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#F0EBFF] text-[10px] font-extrabold text-[#8346F2]">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#F0EBFF] text-[10px] font-extrabold text-[#1F5FA6]">
           {number}
         </div>
 
         <div>
-          <h2 className="text-base font-extrabold text-[#1F1D47]">{title}</h2>
+          <h2 className="text-base font-extrabold text-[#101C2E]">{title}</h2>
 
           <p className="mt-0.5 text-xs leading-4 text-[#667085]">
             {description}
@@ -538,7 +538,7 @@ function TextField({ label, placeholder, value, onChange }) {
         value={value}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
-        className="h-10 w-full rounded-lg border border-[#E4E7EC] bg-[#FCFCFD] px-3 text-sm font-medium text-[#344054] outline-none transition placeholder:text-[#B0B7C3] focus:border-[#8346F2] focus:ring-2 focus:ring-[#8346F2]/10"
+        className="h-10 w-full rounded-lg border border-[#E4E7EC] bg-[#FCFCFD] px-3 text-sm font-medium text-[#344054] outline-none transition placeholder:text-[#B0B7C3] focus:border-[#1F5FA6] focus:ring-2 focus:ring-[#1F5FA6]/10"
       />
     </div>
   );
@@ -556,7 +556,7 @@ function TextAreaField({ label, placeholder, value, onChange, rows = 3 }) {
         value={value}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full resize-none rounded-lg border border-[#E4E7EC] bg-[#FCFCFD] px-3 py-2.5 text-sm font-medium leading-5 text-[#344054] outline-none transition placeholder:text-[#B0B7C3] focus:border-[#8346F2] focus:ring-2 focus:ring-[#8346F2]/10"
+        className="w-full resize-none rounded-lg border border-[#E4E7EC] bg-[#FCFCFD] px-3 py-2.5 text-sm font-medium leading-5 text-[#344054] outline-none transition placeholder:text-[#B0B7C3] focus:border-[#1F5FA6] focus:ring-2 focus:ring-[#1F5FA6]/10"
       />
     </div>
   );
@@ -572,7 +572,7 @@ function SelectField({ label, value, options, onChange }) {
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-10 w-full rounded-lg border border-[#E4E7EC] bg-[#FCFCFD] px-3 text-sm font-medium text-[#344054] outline-none transition focus:border-[#8346F2] focus:ring-2 focus:ring-[#8346F2]/10"
+        className="h-10 w-full rounded-lg border border-[#E4E7EC] bg-[#FCFCFD] px-3 text-sm font-medium text-[#344054] outline-none transition focus:border-[#1F5FA6] focus:ring-2 focus:ring-[#1F5FA6]/10"
       >
         {options.map((option) => (
           <option key={option}>{option}</option>
@@ -591,7 +591,7 @@ function AssessmentField({
 }) {
   return (
     <div
-      className={`rounded-xl border p-3 ${
+      className={`rounded-lg border p-3 ${
         critical
           ? "border-[#F5C2C2] bg-[#FFF8F8]"
           : "border-[#E4E7EC] bg-[#FCFCFD]"
@@ -610,7 +610,7 @@ function AssessmentField({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-9 w-full rounded-lg border border-[#E4E7EC] bg-white px-2.5 text-[11px] font-medium text-[#344054] outline-none transition focus:border-[#8346F2] focus:ring-2 focus:ring-[#8346F2]/10"
+        className="h-9 w-full rounded-lg border border-[#E4E7EC] bg-white px-2.5 text-[11px] font-medium text-[#344054] outline-none transition focus:border-[#1F5FA6] focus:ring-2 focus:ring-[#1F5FA6]/10"
       >
         {options.map((option) => (
           <option key={option}>{option}</option>

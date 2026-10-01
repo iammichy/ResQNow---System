@@ -97,9 +97,9 @@ const statConfig = [
   {
     titleKey: "totalReports",
     icon: FileText,
-    accent: "#8346F2",
+    accent: "#1F5FA6",
     iconBg: "bg-[#F3EEFF]",
-    iconColor: "text-[#8346F2]",
+    iconColor: "text-[#1F5FA6]",
   },
 
   {
@@ -491,8 +491,8 @@ export default function Dashboard({
 
           {/* DATE CARD */}
 
-          <div className="hidden items-center gap-3 rounded-2xl border border-[var(--border-mist)] bg-white px-3.5 py-2.5 shadow-sm md:flex">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F3EEFF] text-[#8346F2]">
+          <div className="hidden items-center gap-3 rounded-xl border border-[var(--border-mist)] bg-white px-3.5 py-2.5 shadow-sm md:flex">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#F3EEFF] text-[#1F5FA6]">
               <CalendarDays size={19} />
             </div>
 
@@ -519,7 +519,7 @@ export default function Dashboard({
             return (
               <div
                 key={stat.titleKey}
-                className="rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3 shadow-sm"
+                className="rounded-xl border border-[var(--border-soft)] bg-white px-4 py-3 shadow-sm"
               >
                 <div className="flex items-start justify-between">
                   <div className="min-w-0">
@@ -533,7 +533,7 @@ export default function Dashboard({
                   </div>
 
                   <div
-                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${stat.iconBg}`}
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${stat.iconBg}`}
                   >
                     <Icon size={20} className={stat.iconColor} />
                   </div>
@@ -551,7 +551,7 @@ export default function Dashboard({
            URGENT EMERGENCY REPORTS
         ===================================================== */}
 
-        <section className="overflow-hidden rounded-2xl border border-[var(--border-soft)] bg-white shadow-sm">
+        <section className="overflow-hidden rounded-xl border border-[var(--border-soft)] bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-[#E8ECF1] px-4 py-3">
             <div className="flex items-center gap-2">
               <AlertTriangle size={19} className="text-[#D90429]" />
@@ -578,7 +578,7 @@ export default function Dashboard({
                 {urgentReports.slice(0, 3).map((report) => (
                   <div
                     key={report.id}
-                    className="flex items-center justify-between gap-4 rounded-xl border border-[#F1D7DC] bg-[#FFF8F9] p-3"
+                    className="flex items-center justify-between gap-4 rounded-lg border border-[#F1D7DC] bg-[#FFF8F9] p-3"
                   >
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
@@ -605,7 +605,7 @@ export default function Dashboard({
                     <button
                       type="button"
                       onClick={() => onNavigate?.("report-details", report)}
-                      className="shrink-0 rounded-lg bg-[#8346F2] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#6F32D8]"
+                      className="shrink-0 rounded-lg bg-[#1F5FA6] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#6F32D8]"
                     >
                       View
                     </button>
@@ -630,7 +630,7 @@ export default function Dashboard({
                ACTIVE INCIDENT
             ================================================ */}
 
-            <section className="overflow-hidden rounded-2xl border border-[var(--border-soft)] bg-white shadow-sm">
+            <section className="overflow-hidden rounded-xl border border-[var(--border-soft)] bg-white shadow-sm">
               {/* HEADER */}
 
               <div className="flex items-center justify-between border-b border-[#E8ECF1] px-4 py-3">
@@ -662,7 +662,7 @@ export default function Dashboard({
                   <>
                     {/* ALERT CARD */}
 
-                    <div className="rounded-2xl bg-gradient-to-r from-[#FF2D55] to-[#D90429] p-5 text-white">
+                    <div className="rounded-xl bg-[#B42318] p-5 text-white">
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-4">
                           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white text-[#D90429]">
@@ -698,7 +698,7 @@ export default function Dashboard({
                     {/* DETAILS */}
 
                     <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
-                      <div className="rounded-xl bg-[#F8FAFC] p-3">
+                      <div className="rounded-lg bg-[#F8FAFC] p-3">
                         <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                           {t("incidentId")}
                         </p>
@@ -709,7 +709,7 @@ export default function Dashboard({
                         </p>
                       </div>
 
-                      <div className="rounded-xl bg-[#F8FAFC] p-3">
+                      <div className="rounded-lg bg-[#F8FAFC] p-3">
                         <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                           {t("location")}
                         </p>
@@ -719,7 +719,7 @@ export default function Dashboard({
                         </p>
                       </div>
 
-                      <div className="rounded-xl bg-[#F8FAFC] p-3">
+                      <div className="rounded-lg bg-[#F8FAFC] p-3">
                         <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                           {t("status")}
                         </p>
@@ -729,7 +729,7 @@ export default function Dashboard({
                         </p>
                       </div>
 
-                      <div className="rounded-xl bg-[#FFF0F3] p-3">
+                      <div className="rounded-lg bg-[#FFF0F3] p-3">
                         <p className="text-[10px] font-bold uppercase tracking-wider text-[#B42318]">
                           {t("priority")}
                         </p>
@@ -760,7 +760,7 @@ export default function Dashboard({
                PRIORITY OVERVIEW
             ================================================ */}
 
-            <section className="flex min-h-[220px] flex-1 flex-col rounded-2xl border border-[var(--border-soft)] bg-white p-4 shadow-sm">
+            <section className="flex min-h-[220px] flex-1 flex-col rounded-xl border border-[var(--border-soft)] bg-white p-4 shadow-sm">
               <h2 className="text-[18px] font-bold text-[var(--text-primary)]">
                 {t("priorityOverview")}
               </h2>
@@ -854,7 +854,7 @@ export default function Dashboard({
              LIVE UPDATES
           =================================================== */}
 
-          <section className="flex min-h-[450px] flex-col overflow-hidden rounded-2xl border border-[var(--border-soft)] bg-white p-4 shadow-sm">
+          <section className="flex min-h-[450px] flex-col overflow-hidden rounded-xl border border-[var(--border-soft)] bg-white p-4 shadow-sm">
             {/* HEADER */}
 
             <div className="flex shrink-0 items-center justify-between border-b border-[#E8ECF1] pb-3">
@@ -867,7 +867,7 @@ export default function Dashboard({
                 onClick={() => onNavigate?.("live-updates")}
                 className="
                   text-sm font-semibold
-                  text-[var(--brand-violet)]
+                  text-[var(--brand-primary)]
                   transition
                   hover:text-[#6F32D8]
                 "
@@ -888,7 +888,7 @@ export default function Dashboard({
                   <button
                     type="button"
                     onClick={loadDashboardData}
-                    className="mt-3 text-sm font-semibold text-[#8346F2]"
+                    className="mt-3 text-sm font-semibold text-[#1F5FA6]"
                   >
                     {t("tryAgain")}
                   </button>

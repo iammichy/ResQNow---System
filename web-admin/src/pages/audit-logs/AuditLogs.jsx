@@ -166,11 +166,11 @@ function AuditLogs({ logs = [] }) {
       {/* PAGE HEADER */}
       <div className="flex shrink-0 items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8346F2]">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#1F5FA6]">
             System Monitoring
           </p>
 
-          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[#1F1D47]">
+          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[#101C2E]">
             {t("auditLogs")}
           </h1>
 
@@ -180,7 +180,7 @@ function AuditLogs({ logs = [] }) {
           </p>
         </div>
 
-        <div className="hidden items-center gap-2 rounded-xl border border-[#E4E7EC] bg-white px-3 py-2 shadow-sm sm:flex">
+        <div className="hidden items-center gap-2 rounded-lg border border-[#E4E7EC] bg-white px-3 py-2 shadow-sm sm:flex">
           <span className="h-2 w-2 rounded-full bg-[#2ED47A]" />
 
           <span className="text-xs font-semibold text-[#475467]">
@@ -223,11 +223,11 @@ function AuditLogs({ logs = [] }) {
       {/* MAIN CONTENT */}
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.8fr)]">
         {/* ACTIVITY HISTORY */}
-        <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
+        <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
           {/* FILTER BAR */}
           <div className="flex shrink-0 flex-col gap-3 border-b border-[#E4E7EC] p-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h2 className="text-sm font-bold text-[#1F1D47]">
+              <h2 className="text-sm font-bold text-[#101C2E]">
                 {t("activityHistory")}
               </h2>
 
@@ -248,7 +248,7 @@ function AuditLogs({ logs = [] }) {
                     setSearchTerm(event.target.value)
                   }
                   placeholder="Search activities..."
-                  className="h-9 w-full rounded-lg border border-[#E4E7EC] bg-[#FCFCFD] pl-9 pr-3 text-xs text-[#1F1D47] outline-none transition focus:border-[#8346F2] focus:ring-2 focus:ring-[#8346F2]/10"
+                  className="h-9 w-full rounded-lg border border-[#E4E7EC] bg-[#FCFCFD] pl-9 pr-3 text-xs text-[#101C2E] outline-none transition focus:border-[#1F5FA6] focus:ring-2 focus:ring-[#1F5FA6]/10"
                 />
               </div>
 
@@ -258,7 +258,7 @@ function AuditLogs({ logs = [] }) {
                 onChange={(event) =>
                   setCategoryFilter(event.target.value)
                 }
-                className="h-9 rounded-lg border border-[#E4E7EC] bg-[#FCFCFD] px-3 text-xs font-medium text-[#475467] outline-none focus:border-[#8346F2] focus:ring-2 focus:ring-[#8346F2]/10"
+                className="h-9 rounded-lg border border-[#E4E7EC] bg-[#FCFCFD] px-3 text-xs font-medium text-[#475467] outline-none focus:border-[#1F5FA6] focus:ring-2 focus:ring-[#1F5FA6]/10"
               >
                 {categoryOptions.map((option) => (
                   <option key={option}>{option}</option>
@@ -327,7 +327,7 @@ function AuditLogs({ logs = [] }) {
                       {/* USER */}
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2.5">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#EDE9FE] text-[10px] font-extrabold text-[#6D28D9]">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#D6E4F5] text-[10px] font-extrabold text-[#1F5FA6]">
                             {getInitials(
                               log.user ||
                                 "Administrator",
@@ -367,11 +367,11 @@ function AuditLogs({ logs = [] }) {
                           <div className="text-xs font-semibold text-[#475467]">
                             {log.oldValue || "—"}
 
-                            <span className="mx-1.5 text-[#8346F2]">
+                            <span className="mx-1.5 text-[#1F5FA6]">
                               →
                             </span>
 
-                            <span className="text-[#1F1D47]">
+                            <span className="text-[#101C2E]">
                               {log.newValue || "—"}
                             </span>
                           </div>
@@ -416,13 +416,13 @@ function AuditLogs({ logs = [] }) {
         </section>
 
         {/* LOG DETAILS */}
-        <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
+        <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
           <div className="shrink-0 border-b border-[#E4E7EC] p-4">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8346F2]">
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#1F5FA6]">
               Log Details
             </p>
 
-            <h2 className="mt-1 text-lg font-extrabold text-[#1F1D47]">
+            <h2 className="mt-1 text-lg font-extrabold text-[#101C2E]">
               {t("activityInformation")}
             </h2>
           </div>
@@ -430,14 +430,14 @@ function AuditLogs({ logs = [] }) {
           {selectedLog ? (
             <div className="min-h-0 flex-1 overflow-auto p-4">
               {/* ACTION */}
-              <div className="rounded-xl border border-[#E4E7EC] bg-[#FCFCFD] p-4">
+              <div className="rounded-lg border border-[#E4E7EC] bg-[#FCFCFD] p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-wide text-[#98A2B3]">
                       Action
                     </p>
 
-                    <p className="mt-1 text-sm font-extrabold text-[#1F1D47]">
+                    <p className="mt-1 text-sm font-extrabold text-[#101C2E]">
                       {selectedLog.action}
                     </p>
                   </div>
@@ -452,7 +452,7 @@ function AuditLogs({ logs = [] }) {
               </div>
 
               {/* CHANGE */}
-              <div className="mt-4 rounded-xl border border-[#E4E7EC] bg-[#FCFCFD] p-4">
+              <div className="mt-4 rounded-lg border border-[#E4E7EC] bg-[#FCFCFD] p-4">
                 <p className="text-[10px] font-bold uppercase tracking-wide text-[#98A2B3]">
                   Change Made
                 </p>
@@ -473,7 +473,7 @@ function AuditLogs({ logs = [] }) {
                     </p>
                   </div>
 
-                  <span className="text-sm font-bold text-[#8346F2]">
+                  <span className="text-sm font-bold text-[#1F5FA6]">
                     →
                   </span>
 
@@ -535,7 +535,7 @@ function AuditLogs({ logs = [] }) {
               </div>
 
               {/* REMARKS */}
-              <div className="mt-4 rounded-xl border border-[#E4E7EC] bg-white p-4">
+              <div className="mt-4 rounded-lg border border-[#E4E7EC] bg-white p-4">
                 <p className="text-[10px] font-bold uppercase tracking-wide text-[#98A2B3]">
                   Reason / Remarks
                 </p>
@@ -547,14 +547,14 @@ function AuditLogs({ logs = [] }) {
               </div>
 
               {/* SECURITY */}
-              <div className="mt-4 rounded-xl border border-[#E4E7EC] bg-[#F9F7FF] p-4">
+              <div className="mt-4 rounded-lg border border-[#E4E7EC] bg-[#F9F7FF] p-4">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#EDE9FE] text-[#8346F2]">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#D6E4F5] text-[#1F5FA6]">
                     <ShieldIcon />
                   </div>
 
                   <div>
-                    <p className="text-xs font-bold text-[#1F1D47]">
+                    <p className="text-xs font-bold text-[#101C2E]">
                       Audit Trail Record
                     </p>
 
@@ -591,14 +591,14 @@ function SummaryCard({
   icon,
 }) {
   return (
-    <div className="rounded-2xl border border-[#E4E7EC] bg-white p-4 shadow-sm">
+    <div className="rounded-xl border border-[#E4E7EC] bg-white p-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold text-[#667085]">
             {label}
           </p>
 
-          <p className="mt-1 text-2xl font-extrabold tracking-tight text-[#1F1D47]">
+          <p className="mt-1 text-2xl font-extrabold tracking-tight text-[#101C2E]">
             {value}
           </p>
 
@@ -607,7 +607,7 @@ function SummaryCard({
           </p>
         </div>
 
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#F0EBFF] text-[#8346F2]">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#F0EBFF] text-[#1F5FA6]">
           {icon}
         </div>
       </div>

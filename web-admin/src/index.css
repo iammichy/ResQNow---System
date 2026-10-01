@@ -8,9 +8,9 @@
   /* =========================================
      BRAND
   ========================================= */
-  --brand-violet: #8346f2;
+  --brand-primary: #1F5FA6;
   --brand-mint: #00c9a7;
-  --brand-indigo: #1f1d47;
+  --brand-ink: #101C2E;
 
   /* =========================================
      EMERGENCY
@@ -35,20 +35,20 @@
   ========================================= */
   --safe-mint: #2ed47a;
   --info-sky: #38bdf8;
-  --insight-periwinkle: #818cf8;
+  --insight-periwinkle: #5B8DC9;
 
   /* =========================================
      BACKGROUNDS
   ========================================= */
-  --warm-ivory: #fff8ed;
+  --warm-ivory: #F3F5F8;
   --soft-blue-mist: #eef8ff;
-  --canvas-neutral: #f8fafc;
+  --canvas-neutral: #F3F5F8;
   --card-white: #ffffff;
 
   /* =========================================
      TEXT
   ========================================= */
-  --text-primary: #1f1d47;
+  --text-primary: #101C2E;
   --text-secondary: #344054;
   --text-muted: #667085;
   --text-placeholder: #98a2b3;
@@ -90,6 +90,16 @@ body,
   min-height: 100%;
   margin: 0;
   overflow: hidden;
+}
+
+button:not(:disabled),
+[role="button"] {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
 }
 
 body {

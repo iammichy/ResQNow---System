@@ -30,22 +30,22 @@ const verificationStyles = {
 const statusStyles = {
   "For Verification": "bg-[#FF8C42]/10 text-[#B54708]",
 
-  "For Prioritization": "bg-[#8346F2]/10 text-[#6941C6]",
+  "For Prioritization": "bg-[#1F5FA6]/10 text-[#174A86]",
 
   Prioritized: "bg-[#2ED47A]/10 text-[#027A48]",
 
-  Assigned: "bg-[#818CF8]/10 text-[#4F46E5]",
+  Assigned: "bg-[#5B8DC9]/10 text-[#4F46E5]",
 
-  "In Progress": "bg-[#818CF8]/10 text-[#4F46E5]",
+  "In Progress": "bg-[#5B8DC9]/10 text-[#4F46E5]",
 
-  "Responders En Route": "bg-[#8346F2]/10 text-[#6941C6]",
+  "Responders En Route": "bg-[#1F5FA6]/10 text-[#174A86]",
 
   Resolved: "bg-[#2ED47A]/10 text-[#027A48]",
 };
 
 function StatCard({ label, value, detail }) {
   return (
-    <div className="rounded-2xl border border-[var(--border-soft)] bg-white px-5 py-4 shadow-sm">
+    <div className="rounded-xl border border-[var(--border-soft)] bg-white px-5 py-4 shadow-sm">
       <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#98A2B3]">
         {label}
       </p>
@@ -232,7 +232,7 @@ function AllReports({ onOpenReport, selectedResident, reportUpdates = {} }) {
     return (
       <div className="flex h-full min-h-0 items-center justify-center">
         <div className="text-center">
-          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-[#E9D7FE] border-t-[#8346F2]" />
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-[#D6E4F5] border-t-[#1F5FA6]" />
 
           <p className="mt-4 text-sm font-medium text-[var(--text-muted)]">
             {t("loadingReports")}
@@ -249,7 +249,7 @@ function AllReports({ onOpenReport, selectedResident, reportUpdates = {} }) {
   if (error) {
     return (
       <div className="flex h-full min-h-0 items-center justify-center">
-        <div className="rounded-2xl border border-[#FECDCA] bg-[#FFFBFA] px-8 py-6 text-center">
+        <div className="rounded-xl border border-[#FECDCA] bg-[#FFFBFA] px-8 py-6 text-center">
           <p className="text-sm font-bold text-[#B42318]">
             {t("unableToLoadReports")}
           </p>
@@ -258,7 +258,7 @@ function AllReports({ onOpenReport, selectedResident, reportUpdates = {} }) {
 
           <button
             onClick={() => loadReports(true)}
-            className="mt-4 rounded-xl bg-[#8346F2] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#6938D3]"
+            className="mt-4 rounded-lg bg-[#1F5FA6] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#6938D3]"
           >
             {t("tryAgain")}
           </button>
@@ -277,7 +277,7 @@ function AllReports({ onOpenReport, selectedResident, reportUpdates = {} }) {
 
       <div className="flex shrink-0 items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-violet)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-primary)]">
             {t("operationsLabel")}
           </p>
 
@@ -293,7 +293,7 @@ function AllReports({ onOpenReport, selectedResident, reportUpdates = {} }) {
         <button
           onClick={() => loadReports(true)}
           disabled={loading}
-          className="inline-flex h-10 items-center gap-2 rounded-xl border border-[var(--border-soft)] bg-white px-4 text-sm font-semibold text-[#475467] shadow-sm transition hover:bg-[#F9FAFB] disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex h-10 items-center gap-2 rounded-lg border border-[var(--border-soft)] bg-white px-4 text-sm font-semibold text-[#475467] shadow-sm transition hover:bg-[#F9FAFB] disabled:cursor-not-allowed disabled:opacity-60"
         >
           <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
 
@@ -331,14 +331,14 @@ function AllReports({ onOpenReport, selectedResident, reportUpdates = {} }) {
 
       {/* ================= REPORT TABLE ================= */}
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[var(--border-soft)] bg-white shadow-sm">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-[var(--border-soft)] bg-white shadow-sm">
         {/* ================= FILTER BAR ================= */}
 
         <div className="flex shrink-0 flex-col gap-3 border-b border-[var(--border-soft)] p-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             {/* SEARCH */}
 
-            <div className="flex h-10 min-w-0 max-w-[420px] flex-1 items-center gap-2 rounded-xl border border-[var(--border-soft)] bg-[#F8FAFC] px-3 transition focus-within:border-[#8346F2] focus-within:bg-white">
+            <div className="flex h-10 min-w-0 max-w-[420px] flex-1 items-center gap-2 rounded-lg border border-[var(--border-soft)] bg-[#F8FAFC] px-3 transition focus-within:border-[#1F5FA6] focus-within:bg-white">
               <Search
                 size={18}
                 className="shrink-0 text-[var(--text-muted)]"
@@ -368,7 +368,7 @@ function AllReports({ onOpenReport, selectedResident, reportUpdates = {} }) {
             <select
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value)}
-              className="h-10 rounded-xl border border-[var(--border-soft)] bg-white px-3 text-sm font-medium text-[#475467] outline-none transition focus:border-[#8346F2]"
+              className="h-10 rounded-lg border border-[var(--border-soft)] bg-white px-3 text-sm font-medium text-[#475467] outline-none transition focus:border-[#1F5FA6]"
             >
               <option value="All">{t("allStatus")}</option>
 
@@ -392,7 +392,7 @@ function AllReports({ onOpenReport, selectedResident, reportUpdates = {} }) {
             <select
               value={priorityFilter}
               onChange={(event) => setPriorityFilter(event.target.value)}
-              className="h-10 rounded-xl border border-[var(--border-soft)] bg-white px-3 text-sm font-medium text-[#475467] outline-none transition focus:border-[#8346F2]"
+              className="h-10 rounded-lg border border-[var(--border-soft)] bg-white px-3 text-sm font-medium text-[#475467] outline-none transition focus:border-[#1F5FA6]"
             >
               <option value="All">{t("allPriority")}</option>
 
@@ -471,7 +471,7 @@ function AllReports({ onOpenReport, selectedResident, reportUpdates = {} }) {
 
                     <td className="px-4 py-3.5">
                       <div className="flex min-w-[220px] items-center gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#F4F3FF] text-sm font-bold text-[#6941C6]">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#EAF1FA] text-sm font-bold text-[#174A86]">
                           {report.type?.charAt(0) || "R"}
                         </div>
 
@@ -580,7 +580,7 @@ function AllReports({ onOpenReport, selectedResident, reportUpdates = {} }) {
                     <td className="px-3 py-3.5 text-right">
                       <ChevronRight
                         size={18}
-                        className="text-[#98A2B3] transition group-hover:text-[#8346F2]"
+                        className="text-[#98A2B3] transition group-hover:text-[#1F5FA6]"
                       />
                     </td>
                   </tr>
@@ -593,7 +593,7 @@ function AllReports({ onOpenReport, selectedResident, reportUpdates = {} }) {
                 <tr>
                   <td colSpan="8" className="px-6 py-16 text-center">
                     <div className="mx-auto max-w-sm">
-                      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#F4F3FF] text-[#8346F2]">
+                      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#EAF1FA] text-[#1F5FA6]">
                         <Search size={22} strokeWidth={2} />
                       </div>
 

@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 
@@ -12,31 +14,50 @@ function AdminLayout({
   can,
   systemSettings,
 }) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const closeMenu = () => setIsMenuOpen(false);
+
+  const withClose = (handler) => (...args) => {
+    closeMenu();
+    handler?.(...args);
+  };
+
   return (
-    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-[#8346F2] via-[#4F7DF3] to-[#16BFA8] p-[2px]">
-      <div className="flex h-full w-full overflow-hidden bg-[#FFF8ED]">
+    <div className="flex h-dvh overflow-hidden bg-[var(--canvas-neutral)]">
+      {/* MOBILE BACKDROP */}
+      {isMenuOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-[#101C2E]/50 lg:hidden"
+          onClick={closeMenu}
+          aria-hidden="true"
+        />
+      )}
+
       <Sidebar
-  activePage={activePage}
-  onNavigate={onNavigate}
-  onLogout={onLogout}
-  onAddManualReport={onAddManualReport}
-  // RBAC
-  currentUser={currentUser}
-  can={can}
-  systemSettings={systemSettings}
-/>
+        activePage={activePage}
+        onNavigate={withClose(onNavigate)}
+        onLogout={onLogout}
+        onAddManualReport={withClose(onAddManualReport)}
+        // RBAC
+        currentUser={currentUser}
+        can={can}
+        systemSettings={systemSettings}
+        // MOBILE DRAWER
+        isOpen={isMenuOpen}
+        onClose={closeMenu}
+      />
 
-        <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          <Topbar
-  currentUser={currentUser}
-  systemSettings={systemSettings}
-/>
+      <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <Topbar
+          currentUser={currentUser}
+          onMenuClick={() => setIsMenuOpen(true)}
+        />
 
-          <section className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
-            {children}
-          </section>
-        </main>
-      </div>
+        <section className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
+          {children}
+        </section>
+      </main>
     </div>
   );
 }

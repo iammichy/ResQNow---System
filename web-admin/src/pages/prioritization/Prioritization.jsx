@@ -1,3 +1,4 @@
+import { Check, Zap } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
   getReportsForPrioritization,
@@ -16,7 +17,7 @@ const priorityStyles = {
 
 function TriageItem({ label, value, critical = false }) {
   return (
-    <div className="rounded-xl border border-[#E4E7EC] bg-white p-3">
+    <div className="rounded-lg border border-[#E4E7EC] bg-white p-3">
       <p className="text-[10px] font-bold uppercase tracking-[0.07em] text-[#98A2B3]">
         {label}
       </p>
@@ -235,11 +236,11 @@ function Prioritization({ onPriorityUpdate }) {
 
       <div className="flex shrink-0 items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#8346F2]">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#1F5FA6]">
             {t("operationsLabel")}
           </p>
 
-          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[#1F1D47]">
+          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[#101C2E]">
             {t("prioritization")}
           </h1>
 
@@ -248,7 +249,7 @@ function Prioritization({ onPriorityUpdate }) {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 rounded-2xl border border-[#ABEFC6] bg-[#ECFDF3] px-4 py-2">
+        <div className="flex items-center gap-2 rounded-xl border border-[#ABEFC6] bg-[#ECFDF3] px-4 py-2">
           <span className="h-2 w-2 rounded-full bg-[#12B76A]" />
 
           <span className="text-sm font-semibold text-[#027A48]">
@@ -260,12 +261,12 @@ function Prioritization({ onPriorityUpdate }) {
       {/* SUMMARY CARDS */}
 
       <div className="grid shrink-0 grid-cols-1 gap-3 md:grid-cols-5">
-        <div className="rounded-2xl border border-[#E4E7EC] bg-white p-4 shadow-sm">
+        <div className="rounded-xl border border-[#E4E7EC] bg-white p-4 shadow-sm">
           <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#667085]">
             {t("pendingReview")}
           </p>
 
-          <p className="mt-2 text-2xl font-extrabold text-[#1F1D47]">
+          <p className="mt-2 text-2xl font-extrabold text-[#101C2E]">
             {pendingCount}
           </p>
 
@@ -274,7 +275,7 @@ function Prioritization({ onPriorityUpdate }) {
           </p>
         </div>
 
-        <div className="rounded-2xl border border-[#FECDCA] bg-white p-4 shadow-sm">
+        <div className="rounded-xl border border-[#FECDCA] bg-white p-4 shadow-sm">
           <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#667085]">
             {t("critical")}
           </p>
@@ -288,7 +289,7 @@ function Prioritization({ onPriorityUpdate }) {
           </p>
         </div>
 
-        <div className="rounded-2xl border border-[#FEDF89] bg-white p-4 shadow-sm">
+        <div className="rounded-xl border border-[#FEDF89] bg-white p-4 shadow-sm">
           <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#667085]">
             {t("high")}
           </p>
@@ -300,7 +301,7 @@ function Prioritization({ onPriorityUpdate }) {
           <p className="mt-1 text-sm text-[#667085]">{t("priorityResponse")}</p>
         </div>
 
-        <div className="rounded-2xl border border-[#FDE68A] bg-white p-4 shadow-sm">
+        <div className="rounded-xl border border-[#FDE68A] bg-white p-4 shadow-sm">
           <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#667085]">
             {t("moderate")}
           </p>
@@ -311,7 +312,7 @@ function Prioritization({ onPriorityUpdate }) {
 
           <p className="mt-1 text-sm text-[#667085]">{t("routineResponse")}</p>
         </div>
-        <div className="rounded-2xl border border-[#E4E7EC] bg-white p-4 shadow-sm">
+        <div className="rounded-xl border border-[#E4E7EC] bg-white p-4 shadow-sm">
           <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#667085]">
             {t("low")}
           </p>
@@ -331,11 +332,11 @@ function Prioritization({ onPriorityUpdate }) {
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
         {/* LEFT QUEUE */}
 
-        <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
+        <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
           <div className="border-b border-[#E4E7EC] p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-base font-bold text-[#1F1D47]">
+                <h2 className="text-base font-bold text-[#101C2E]">
                   {t("prioritizationQueue")}
                 </h2>
 
@@ -344,7 +345,7 @@ function Prioritization({ onPriorityUpdate }) {
                 </p>
               </div>
 
-              <span className="rounded-full bg-[#F4F3FF] px-3 py-1 text-xs font-bold text-[#6941C6]">
+              <span className="rounded-full bg-[#EAF1FA] px-3 py-1 text-xs font-bold text-[#174A86]">
                 {filteredReports.length} {t("reportsCount")}
               </span>
             </div>
@@ -352,7 +353,7 @@ function Prioritization({ onPriorityUpdate }) {
             <select
               value={filter}
               onChange={(event) => setFilter(event.target.value)}
-              className="mt-4 w-full rounded-xl border border-[#D0D5DD] bg-white px-4 py-3 text-sm font-medium text-[#344054] outline-none"
+              className="mt-4 w-full rounded-lg border border-[#D0D5DD] bg-white px-4 py-3 text-sm font-medium text-[#344054] outline-none"
             >
               <option value="All">{t("allPriorities")}</option>
 
@@ -382,7 +383,7 @@ function Prioritization({ onPriorityUpdate }) {
                 <button
                   type="button"
                   onClick={loadReports}
-                  className="mt-3 rounded-lg bg-[#8346F2] px-4 py-2 text-sm font-semibold text-white"
+                  className="mt-3 rounded-lg bg-[#1F5FA6] px-4 py-2 text-sm font-semibold text-white"
                 >
                   {t("tryAgain")}
                 </button>
@@ -394,11 +395,11 @@ function Prioritization({ onPriorityUpdate }) {
               filteredReports.length === 0 && (
                 <div className="flex h-full min-h-[250px] items-center justify-center p-6">
                   <div className="text-center">
-                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#F4F3FF] text-xl">
-                      ✓
+                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#EAF1FA] text-xl">
+                      <Check size={24} />
                     </div>
 
-                    <h3 className="mt-4 font-bold text-[#1F1D47]">
+                    <h3 className="mt-4 font-bold text-[#101C2E]">
                       {t("noReportsAwaitingPrioritization")}
                     </h3>
 
@@ -441,17 +442,17 @@ function Prioritization({ onPriorityUpdate }) {
                     }}
                     className={`w-full border-b border-[#E4E7EC] p-5 text-left transition ${
                       isSelected
-                        ? "bg-[#F9F8FF] ring-1 ring-inset ring-[#8346F2]"
+                        ? "bg-[#F9F8FF] ring-1 ring-inset ring-[#1F5FA6]"
                         : "hover:bg-[#F9FAFB]"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-sm font-bold text-[#6941C6]">
+                        <p className="text-sm font-bold text-[#174A86]">
                           {report.id}
                         </p>
 
-                        <h3 className="mt-1 font-bold text-[#1F1D47]">
+                        <h3 className="mt-1 font-bold text-[#101C2E]">
                           {report.type}
                         </h3>
                       </div>
@@ -477,12 +478,12 @@ function Prioritization({ onPriorityUpdate }) {
         {/* RIGHT DETAILS */}
 
         {selectedReport ? (
-          <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
+          <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
             <div className="border-b border-[#E4E7EC] p-6">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2 text-sm">
-                    <span className="font-bold text-[#6941C6]">
+                    <span className="font-bold text-[#174A86]">
                       {selectedReport.id}
                     </span>
 
@@ -493,7 +494,7 @@ function Prioritization({ onPriorityUpdate }) {
                     </span>
                   </div>
 
-                  <h2 className="mt-2 text-2xl font-extrabold text-[#1F1D47]">
+                  <h2 className="mt-2 text-2xl font-extrabold text-[#101C2E]">
                     {selectedReport.type}
                   </h2>
 
@@ -547,7 +548,7 @@ function Prioritization({ onPriorityUpdate }) {
 
               {/* DESCRIPTION */}
 
-              <div className="mt-4 rounded-xl border border-[#E4E7EC] bg-[#F9FAFB] p-4">
+              <div className="mt-4 rounded-lg border border-[#E4E7EC] bg-[#F9FAFB] p-4">
                 <p className="text-xs font-bold uppercase tracking-[0.07em] text-[#98A2B3]">
                   {t("reportDescription")}
                 </p>
@@ -559,9 +560,9 @@ function Prioritization({ onPriorityUpdate }) {
 
               {/* TRIAGE ASSESSMENT */}
 
-              <div className="mt-4 rounded-2xl border border-[#E4E7EC] bg-white p-5">
+              <div className="mt-4 rounded-xl border border-[#E4E7EC] bg-white p-5">
                 <div>
-                  <h3 className="font-bold text-[#1F1D47]">
+                  <h3 className="font-bold text-[#101C2E]">
                     Triage Assessment
                   </h3>
 
@@ -586,7 +587,7 @@ function Prioritization({ onPriorityUpdate }) {
                           water_level: event.target.value,
                         }))
                       }
-                      className="mt-2 w-full rounded-xl border border-[#D0D5DD] bg-white px-4 py-3 text-sm text-[#344054] outline-none"
+                      className="mt-2 w-full rounded-lg border border-[#D0D5DD] bg-white px-4 py-3 text-sm text-[#344054] outline-none"
                     >
                       <option value="">Select water level</option>
                       <option value="None">None</option>
@@ -614,7 +615,7 @@ function Prioritization({ onPriorityUpdate }) {
                           road_passability: event.target.value,
                         }))
                       }
-                      className="mt-2 w-full rounded-xl border border-[#D0D5DD] bg-white px-4 py-3 text-sm text-[#344054] outline-none"
+                      className="mt-2 w-full rounded-lg border border-[#D0D5DD] bg-white px-4 py-3 text-sm text-[#344054] outline-none"
                     >
                       <option value="">Select road condition</option>
                       <option value="Fully passable">Fully passable</option>
@@ -648,7 +649,7 @@ function Prioritization({ onPriorityUpdate }) {
                         }))
                       }
                       placeholder="Enter number of affected residents"
-                      className="mt-2 w-full rounded-xl border border-[#D0D5DD] bg-white px-4 py-3 text-sm text-[#344054] outline-none"
+                      className="mt-2 w-full rounded-lg border border-[#D0D5DD] bg-white px-4 py-3 text-sm text-[#344054] outline-none"
                     />
                   </div>
 
@@ -666,7 +667,7 @@ function Prioritization({ onPriorityUpdate }) {
                           location_risk: event.target.value,
                         }))
                       }
-                      className="mt-2 w-full rounded-xl border border-[#D0D5DD] bg-white px-4 py-3 text-sm text-[#344054] outline-none"
+                      className="mt-2 w-full rounded-lg border border-[#D0D5DD] bg-white px-4 py-3 text-sm text-[#344054] outline-none"
                     >
                       <option value="">Select location risk</option>
                       <option value="Low">Low</option>
@@ -690,7 +691,7 @@ function Prioritization({ onPriorityUpdate }) {
                           assistance_evacuation_need: event.target.value,
                         }))
                       }
-                      className="mt-2 w-full rounded-xl border border-[#D0D5DD] bg-white px-4 py-3 text-sm text-[#344054] outline-none"
+                      className="mt-2 w-full rounded-lg border border-[#D0D5DD] bg-white px-4 py-3 text-sm text-[#344054] outline-none"
                     >
                       <option value="">Select assistance need</option>
                       <option value="No immediate assistance needed">
@@ -727,7 +728,7 @@ function Prioritization({ onPriorityUpdate }) {
                         }))
                       }
                       placeholder="Add fact-checking or assessment remarks..."
-                      className="mt-2 w-full resize-none rounded-xl border border-[#D0D5DD] bg-white px-4 py-3 text-sm text-[#344054] outline-none"
+                      className="mt-2 w-full resize-none rounded-lg border border-[#D0D5DD] bg-white px-4 py-3 text-sm text-[#344054] outline-none"
                     />
                   </div>
                 </div>
@@ -745,7 +746,7 @@ function Prioritization({ onPriorityUpdate }) {
                       !triageData.location_risk ||
                       !triageData.assistance_evacuation_need
                     }
-                    className="rounded-xl bg-[#1F1D47] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#161433] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-lg bg-[#101C2E] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#161433] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {isAssessingTriage
                       ? "Computing System Triage..."
@@ -755,14 +756,14 @@ function Prioritization({ onPriorityUpdate }) {
 
                 {/* TRIAGE RESULT (SYSTEM COMPUTED) */}
                 {triageResult && (
-                  <div className="mt-4 rounded-xl border border-[#D9D6FE] bg-[#F9F8FF] p-4">
+                  <div className="mt-4 rounded-lg border border-[#C7D9EF] bg-[#F9F8FF] p-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
                         <p className="text-xs font-bold uppercase tracking-[0.07em] text-[#667085]">
                           System Triage Score
                         </p>
 
-                        <p className="mt-1 text-2xl font-extrabold text-[#1F1D47]">
+                        <p className="mt-1 text-2xl font-extrabold text-[#101C2E]">
                           {triageResult.score} / 20
                         </p>
                       </div>
@@ -788,8 +789,8 @@ function Prioritization({ onPriorityUpdate }) {
 
               {/* ZERO-BIAS SYSTEM PRIORITY DISPLAY (READ-ONLY) */}
 
-              <div className="mt-4 rounded-2xl border border-[#E4E7EC] bg-[#FCFCFD] p-5">
-                <h3 className="font-bold text-[#1F1D47]">
+              <div className="mt-4 rounded-xl border border-[#E4E7EC] bg-[#FCFCFD] p-5">
+                <h3 className="font-bold text-[#101C2E]">
                   System-Computed Priority Level
                 </h3>
 
@@ -829,7 +830,7 @@ function Prioritization({ onPriorityUpdate }) {
                 type="button"
                 onClick={handleConfirmPriority}
                 disabled={!triageResult || !selectedPriority || isSaving}
-                className="w-full rounded-xl bg-[#8346F2] px-5 py-4 text-sm font-bold text-white transition hover:bg-[#6938D3] disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded-lg bg-[#1F5FA6] px-5 py-4 text-sm font-bold text-white transition hover:bg-[#6938D3] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSaving
                   ? "Saving System Priority..."
@@ -838,13 +839,13 @@ function Prioritization({ onPriorityUpdate }) {
             </div>
           </section>
         ) : (
-          <section className="flex min-h-0 items-center justify-center rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
+          <section className="flex min-h-0 items-center justify-center rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
             <div className="text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#F4F3FF] text-xl text-[#8346F2]">
-                ⚡
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#EAF1FA] text-xl text-[#1F5FA6]">
+                <Zap size={24} />
               </div>
 
-              <h2 className="mt-3 text-sm font-bold text-[#1F1D47]">
+              <h2 className="mt-3 text-sm font-bold text-[#101C2E]">
                 {t("noReportSelected")}
               </h2>
 

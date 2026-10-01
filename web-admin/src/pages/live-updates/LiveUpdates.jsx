@@ -1,3 +1,4 @@
+import { AlertTriangle, Ambulance, Zap, Check, AlertCircle, MapPin, Search, Megaphone } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { getAllIncidents } from "../../services/reportsService";
 
@@ -18,14 +19,14 @@ function formatIncidentUpdate(incident) {
 
   const icon =
     incident.status === "Pending Response"
-      ? "⚠"
+      ? <AlertTriangle size={20} />
       : incident.status === "Dispatched"
-      ? "🚑"
+      ? <Ambulance size={20} />
       : incident.status === "In Progress"
-      ? "⚡"
+      ? <Zap size={20} />
       : incident.status === "Resolved"
-      ? "✓"
-      : "!";
+      ? <Check size={20} />
+      : <AlertCircle size={20} />;
 
   return {
     id: incident.id,
@@ -97,9 +98,9 @@ const typeStyles = {
   },
 
   Verification: {
-    bg: "bg-purple-50",
-    text: "text-purple-600",
-    border: "border-purple-100",
+    bg: "bg-blue-50",
+    text: "text-blue-700",
+    border: "border-blue-100",
   },
 };
 
@@ -244,18 +245,18 @@ useEffect(() => {
         <button
           type="button"
           onClick={onBack}
-          className="mb-4 flex items-center gap-2 text-sm font-semibold text-[#667085] transition hover:text-[#8346F2]"
+          className="mb-4 flex items-center gap-2 text-sm font-semibold text-[#667085] transition hover:text-[#1F5FA6]"
         >
           ← Back to Dashboard
         </button>
 
         {/* PAGE HEADER */}
         <div className="mb-5">
-          <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#8346F2]">
+          <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#1F5FA6]">
             Operations
           </p>
 
-          <h1 className="mt-1 text-3xl font-bold text-[#1F1D47]">
+          <h1 className="mt-1 text-3xl font-bold text-[#101C2E]">
             Live Updates
           </h1>
 
@@ -268,12 +269,12 @@ useEffect(() => {
         <div className="mb-5 grid grid-cols-1 gap-4 md:grid-cols-3">
 
           {/* TOTAL */}
-          <div className="rounded-2xl border border-[#E4E7EC] bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-[#E4E7EC] bg-white p-5 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-wider text-[#667085]">
               Total Incidents
             </p>
 
-            <p className="mt-2 text-3xl font-bold text-[#1F1D47]">
+            <p className="mt-2 text-3xl font-bold text-[#101C2E]">
               {updatesData.length}
             </p>
 
@@ -283,7 +284,7 @@ useEffect(() => {
           </div>
 
           {/* ACTIVE */}
-          <div className="rounded-2xl border border-red-100 bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-red-100 bg-white p-5 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-wider text-[#667085]">
               Active Incidents
             </p>
@@ -298,7 +299,7 @@ useEffect(() => {
           </div>
 
           {/* RESOLVED */}
-          <div className="rounded-2xl border border-green-100 bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-green-100 bg-white p-5 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-wider text-[#667085]">
               Resolved Incidents
             </p>
@@ -315,7 +316,7 @@ useEffect(() => {
 
         {/* ERROR MESSAGE */}
         {error && (
-          <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+          <div className="mb-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-600">
             {error}
           </div>
         )}
@@ -324,13 +325,13 @@ useEffect(() => {
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_360px]">
 
           {/* UPDATES LIST */}
-          <div className="rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
+          <div className="rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
 
             {/* CONTROLS */}
             <div className="flex flex-col gap-3 border-b border-[#E4E7EC] p-5 md:flex-row md:items-center md:justify-between">
 
               <div>
-                <h2 className="text-lg font-bold text-[#1F1D47]">
+                <h2 className="text-lg font-bold text-[#101C2E]">
                   Latest Activity
                 </h2>
 
@@ -349,7 +350,7 @@ useEffect(() => {
                     setSearch(event.target.value)
                   }
                   placeholder="Search updates..."
-                  className="rounded-xl border border-[#D0D5DD] px-4 py-2.5 text-sm text-[#344054] outline-none transition focus:border-[#8346F2]"
+                  className="rounded-lg border border-[#D0D5DD] px-4 py-2.5 text-sm text-[#344054] outline-none transition focus:border-[#1F5FA6]"
                 />
 
                 <select
@@ -357,7 +358,7 @@ useEffect(() => {
                   onChange={(event) =>
                     setSelectedType(event.target.value)
                   }
-                  className="rounded-xl border border-[#D0D5DD] bg-white px-4 py-2.5 text-sm text-[#344054] outline-none focus:border-[#8346F2]"
+                  className="rounded-lg border border-[#D0D5DD] bg-white px-4 py-2.5 text-sm text-[#344054] outline-none focus:border-[#1F5FA6]"
                 >
                   <option value="All">
                     All Updates
@@ -413,7 +414,7 @@ useEffect(() => {
                           onClick={() =>
                             setSelectedUpdate(update)
                           }
-                          className={`relative flex w-full gap-4 rounded-xl p-3 text-left transition hover:bg-[#F9FAFB] ${
+                          className={`relative flex w-full gap-4 rounded-lg p-3 text-left transition hover:bg-[#F9FAFB] ${
                             selectedUpdate?.id === update.id
                               ? "bg-[#F7F4FF]"
                               : ""
@@ -447,7 +448,7 @@ useEffect(() => {
 
                             </div>
 
-                            <h3 className="mt-1 text-base font-bold text-[#1F1D47]">
+                            <h3 className="mt-1 text-base font-bold text-[#101C2E]">
                               {update.title}
                             </h3>
 
@@ -458,7 +459,7 @@ useEffect(() => {
                             <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#667085]">
 
                               <span>
-                                📍 {update.location}
+                                <MapPin size={13} className="mr-1 inline -mt-0.5" />{update.location}
                               </span>
 
                               <span>
@@ -481,10 +482,10 @@ useEffect(() => {
                 <div className="flex min-h-[300px] flex-col items-center justify-center text-center">
 
                   <div className="text-4xl">
-                    🔍
+                    <Search size={36} strokeWidth={1.5} className="mx-auto text-[#98A2B3]" />
                   </div>
 
-                  <h3 className="mt-4 font-bold text-[#1F1D47]">
+                  <h3 className="mt-4 font-bold text-[#101C2E]">
                     No updates found
                   </h3>
 
@@ -500,13 +501,13 @@ useEffect(() => {
           </div>
 
           {/* UPDATE DETAILS */}
-          <div className="rounded-2xl border border-[#E4E7EC] bg-white shadow-sm">
+          <div className="rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
 
             {selectedUpdate ? (
 
               <div className="p-6">
 
-                <p className="text-xs font-bold uppercase tracking-wider text-[#8346F2]">
+                <p className="text-xs font-bold uppercase tracking-wider text-[#1F5FA6]">
                   Incident Details
                 </p>
 
@@ -528,7 +529,7 @@ useEffect(() => {
                       {selectedUpdate.type}
                     </p>
 
-                    <h2 className="font-bold text-[#1F1D47]">
+                    <h2 className="font-bold text-[#101C2E]">
                       {selectedUpdate.title}
                     </h2>
 
@@ -544,7 +545,7 @@ useEffect(() => {
                       Status
                     </p>
 
-                    <p className="mt-2 text-sm font-bold text-[#1F1D47]">
+                    <p className="mt-2 text-sm font-bold text-[#101C2E]">
                       {selectedUpdate.status}
                     </p>
 
@@ -556,7 +557,7 @@ useEffect(() => {
                       Priority
                     </p>
 
-                    <p className="mt-2 text-sm font-bold text-[#1F1D47]">
+                    <p className="mt-2 text-sm font-bold text-[#101C2E]">
                       {selectedUpdate.priority}
                     </p>
 
@@ -592,7 +593,7 @@ useEffect(() => {
                       Incident Code
                     </p>
 
-                    <p className="mt-2 text-sm font-bold text-[#8346F2]">
+                    <p className="mt-2 text-sm font-bold text-[#1F5FA6]">
                       {selectedUpdate.relatedReport}
                     </p>
 
@@ -635,10 +636,10 @@ useEffect(() => {
               <div className="flex min-h-[500px] flex-col items-center justify-center p-6 text-center">
 
                 <div className="text-4xl">
-                  📢
+                  <Megaphone size={36} strokeWidth={1.5} className="mx-auto text-[#98A2B3]" />
                 </div>
 
-                <h3 className="mt-4 font-bold text-[#1F1D47]">
+                <h3 className="mt-4 font-bold text-[#101C2E]">
                   Select an incident
                 </h3>
 

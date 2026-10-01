@@ -191,7 +191,7 @@ function Verification({ onVerificationUpdate }) {
       {/* Page header */}
 
       <div>
-        <h1 className="text-2xl font-extrabold text-[#1F1D47]">
+        <h1 className="text-2xl font-extrabold text-[#101C2E]">
           {t("verificationCenter")}
         </h1>
 
@@ -202,12 +202,12 @@ function Verification({ onVerificationUpdate }) {
       {/* Report verification */}
 
       <div className="flex">
-        <div className="w-full max-w-xs rounded-2xl border border-[#E4E7EC] bg-white p-5 shadow-sm">
+        <div className="w-full max-w-xs rounded-xl border border-[#E4E7EC] bg-white p-5 shadow-sm">
           <p className="text-sm font-semibold text-[#667085]">
             {t("pendingReports")}
           </p>
 
-          <p className="mt-3 text-3xl font-extrabold text-[#1F1D47]">
+          <p className="mt-3 text-3xl font-extrabold text-[#101C2E]">
             {pendingCount}
           </p>
         </div>
@@ -216,9 +216,9 @@ function Verification({ onVerificationUpdate }) {
       <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
         {/* Report list */}
 
-        <div className="rounded-2xl border border-[#E4E7EC] bg-white p-5">
+        <div className="rounded-xl border border-[#E4E7EC] bg-white p-5">
           <div className="mb-4">
-            <h2 className="text-lg font-extrabold text-[#1F1D47]">
+            <h2 className="text-lg font-extrabold text-[#101C2E]">
               {t("pendingReports")}
             </h2>
 
@@ -233,13 +233,13 @@ function Verification({ onVerificationUpdate }) {
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder={t("searchReports")}
-              className="w-full rounded-xl border border-[#D0D5DD] px-4 py-3 text-sm outline-none focus:border-[#8346F2]"
+              className="w-full rounded-lg border border-[#D0D5DD] px-4 py-3 text-sm outline-none focus:border-[#1F5FA6]"
             />
 
             <select
               value={categoryFilter}
               onChange={(event) => setCategoryFilter(event.target.value)}
-              className="w-full rounded-xl border border-[#D0D5DD] px-4 py-3 text-sm outline-none focus:border-[#8346F2]"
+              className="w-full rounded-lg border border-[#D0D5DD] px-4 py-3 text-sm outline-none focus:border-[#1F5FA6]"
             >
               <option value="All">{t("allCategories")}</option>
 
@@ -275,15 +275,15 @@ function Verification({ onVerificationUpdate }) {
                 key={report.id}
                 type="button"
                 onClick={() => handleSelectReport(report.id)}
-                className={`w-full rounded-xl border p-4 text-left transition ${
+                className={`w-full rounded-lg border p-4 text-left transition ${
                   selectedId === report.id
-                    ? "border-[#8346F2] bg-[#F5F3FF]"
+                    ? "border-[#1F5FA6] bg-[#EAF1FA]"
                     : "border-[#E4E7EC] bg-white hover:border-[#C7B9FF]"
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-extrabold text-[#1F1D47]">
+                    <p className="text-sm font-extrabold text-[#101C2E]">
                       {report.id}
                     </p>
 
@@ -317,16 +317,16 @@ function Verification({ onVerificationUpdate }) {
 
         {/* Report details */}
 
-        <div className="rounded-2xl border border-[#E4E7EC] bg-white p-6">
+        <div className="rounded-xl border border-[#E4E7EC] bg-white p-6">
           {selectedReport ? (
             <>
               <div className="flex flex-col gap-4 border-b border-[#E4E7EC] pb-5 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <p className="text-sm font-bold text-[#8346F2]">
+                  <p className="text-sm font-bold text-[#1F5FA6]">
                     {selectedReport.id}
                   </p>
 
-                  <h2 className="mt-1 text-2xl font-extrabold text-[#1F1D47]">
+                  <h2 className="mt-1 text-2xl font-extrabold text-[#101C2E]">
                     {selectedReport.type}
                   </h2>
 
@@ -341,7 +341,7 @@ function Verification({ onVerificationUpdate }) {
               </div>
 
               {actionMessage && (
-                <div className="mt-5 rounded-xl bg-[#F5F3FF] p-4 text-sm font-semibold text-[#5B21B6]">
+                <div className="mt-5 rounded-lg bg-[#EAF1FA] p-4 text-sm font-semibold text-[#174A86]">
                   {actionMessage}
                 </div>
               )}
@@ -393,7 +393,7 @@ function Verification({ onVerificationUpdate }) {
                   {t("description")}
                 </p>
 
-                <p className="mt-2 rounded-xl bg-[#F9FAFB] p-4 text-sm leading-6 text-[#475467]">
+                <p className="mt-2 rounded-lg bg-[#F9FAFB] p-4 text-sm leading-6 text-[#475467]">
                   {selectedReport.description || t("noDescriptionProvided")}
                 </p>
               </div>
@@ -402,7 +402,7 @@ function Verification({ onVerificationUpdate }) {
                 <button
                   type="button"
                   onClick={openReturnModal}
-                  className="rounded-xl border border-[#FECDCA] px-5 py-3 text-sm font-bold text-[#D92D20] hover:bg-[#FEF3F2]"
+                  className="rounded-lg border border-[#FECDCA] px-5 py-3 text-sm font-bold text-[#D92D20] hover:bg-[#FEF3F2]"
                 >
                   {t("returnForReview")}
                 </button>
@@ -410,7 +410,7 @@ function Verification({ onVerificationUpdate }) {
                 <button
                   type="button"
                   onClick={handleVerify}
-                  className="rounded-xl bg-[#8346F2] px-5 py-3 text-sm font-bold text-white hover:bg-[#7035DB]"
+                  className="rounded-lg bg-[#1F5FA6] px-5 py-3 text-sm font-bold text-white hover:bg-[#7035DB]"
                 >
                   {t("verifyReport")}
                 </button>
@@ -429,11 +429,11 @@ function Verification({ onVerificationUpdate }) {
       {/* RETURN FOR REVIEW MODAL */}
 
       {showReturnModal && selectedReport && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1F1D47]/40 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#101C2E]/40 p-4">
+          <div className="w-full max-w-md rounded-xl bg-white shadow-lg">
             <div className="flex items-center justify-between border-b border-[#E4E7EC] px-6 py-4">
               <div>
-                <h2 className="text-lg font-bold text-[#1F1D47]">
+                <h2 className="text-lg font-bold text-[#101C2E]">
                   {t("returnForReview")}
                 </h2>
 
@@ -465,12 +465,12 @@ function Verification({ onVerificationUpdate }) {
                     setReturnError("");
                   }}
                   placeholder={t("returnRemarksPlaceholder")}
-                  className="mt-2 w-full resize-none rounded-xl border border-[#D0D5DD] bg-white px-4 py-3 text-sm text-[#344054] outline-none focus:border-[#8346F2]"
+                  className="mt-2 w-full resize-none rounded-lg border border-[#D0D5DD] bg-white px-4 py-3 text-sm text-[#344054] outline-none focus:border-[#1F5FA6]"
                 />
               </div>
 
               {returnError && (
-                <p className="rounded-xl border border-[#FECDCA] bg-[#FEF3F2] px-3 py-2 text-xs font-semibold text-[#B42318]">
+                <p className="rounded-lg border border-[#FECDCA] bg-[#FEF3F2] px-3 py-2 text-xs font-semibold text-[#B42318]">
                   {returnError}
                 </p>
               )}
@@ -480,7 +480,7 @@ function Verification({ onVerificationUpdate }) {
               <button
                 type="button"
                 onClick={() => setShowReturnModal(false)}
-                className="rounded-xl border border-[#E4E7EC] px-4 py-2.5 text-sm font-semibold text-[#475467]"
+                className="rounded-lg border border-[#E4E7EC] px-4 py-2.5 text-sm font-semibold text-[#475467]"
               >
                 {t("cancel")}
               </button>
@@ -489,7 +489,7 @@ function Verification({ onVerificationUpdate }) {
                 type="button"
                 onClick={handleConfirmReturn}
                 disabled={isReturning}
-                className="rounded-xl bg-[#D92D20] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#B42318] disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-lg bg-[#D92D20] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#B42318] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isReturning ? t("returningReport") : t("confirmReturn")}
               </button>

@@ -10,6 +10,8 @@ import {
   ClipboardList,
   Settings,
   Plus,
+  LogOut,
+  X,
 } from "lucide-react";
 
 import { useEffect, useState } from "react";
@@ -26,6 +28,9 @@ function Sidebar({
   can,
   // GLOBAL SYSTEM SETTINGS
   systemSettings,
+  // MOBILE DRAWER
+  isOpen = false,
+  onClose,
 }) {
   const { t } = useLanguage();
   const [systemStatus, setSystemStatus] = useState("operational");
@@ -206,39 +211,54 @@ function Sidebar({
 
   const canCreateReport = can ? can("reports.create") : true;
 
+  const initials = (currentUser?.name || "A")
+    .split(" ")
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
   return (
     <aside
-      className="
-        flex h-screen w-62.5 shrink-0 flex-col overflow-hidden
-        bg-gradient-to-b
-        from-[#8346F2]
-        via-[#818CF8]
-        to-[#00C9A7]
-        text-white
-      "
+      className={`
+        fixed inset-y-0 left-0 z-50 flex h-dvh w-64 shrink-0 flex-col
+        bg-[#101C2E] text-white
+        transition-transform duration-200 ease-out
+        lg:static lg:z-auto lg:translate-x-0
+        ${isOpen ? "translate-x-0" : "-translate-x-full"}
+      `}
     >
       {/* BRAND */}
-      <div className="shrink-0 border-b border-white/20 bg-black/5 px-5 py-4 backdrop-blur-sm">
-        <div className="text-[25px] font-extrabold leading-none tracking-tight">
-          {systemSettings?.systemName || "ResQNow"}
+      <div className="flex h-16 shrink-0 items-center justify-between border-b border-white/10 px-5">
+        <div className="min-w-0">
+          <div className="truncate text-lg font-bold leading-none tracking-tight">
+            {systemSettings?.systemName || "ResQNow"}
+          </div>
+
+          <p className="mt-1 truncate text-[11px] text-white/55">
+            {t("barangayWebAdmin")}
+          </p>
         </div>
 
-        <p className="mt-1.5 text-xs font-medium text-white/75">
-          {t("barangayWebAdmin")}
-        </p>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close menu"
+          className="rounded-md p-1.5 text-white/60 hover:bg-white/10 hover:text-white lg:hidden"
+        >
+          <X size={18} />
+        </button>
       </div>
 
       {/* NAVIGATION */}
       <nav className="flex-1 overflow-y-auto px-3 py-4">
         {visibleNavigationGroups.map((group) => (
-          <div key={group.label} className="mb-4 last:mb-0">
-            {/* GROUP LABEL */}
-            <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-white/60">
+          <div key={group.label} className="mb-5 last:mb-0">
+            <p className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-wider text-white/40">
               {group.label}
             </p>
 
-            {/* GROUP ITEMS */}
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               {group.items.map((item) => {
                 const isActive = activePage === item.id;
                 const Icon = item.icon;
@@ -248,30 +268,22 @@ function Sidebar({
                     key={item.id}
                     type="button"
                     onClick={() => handleNavigation(item.id)}
+                    aria-current={isActive ? "page" : undefined}
                     className={`
-                      group flex h-10 w-full items-center gap-3
-                      rounded-xl px-3 text-left text-sm
-                      transition-all duration-200
+                      relative flex h-9 w-full items-center gap-3
+                      rounded-md px-3 text-left text-sm transition-colors
                       ${
                         isActive
-                          ? "bg-white font-semibold text-[#1F1D47] shadow-lg shadow-black/10"
-                          : "font-medium text-white/80 hover:bg-white/15 hover:text-white"
+                          ? "bg-white/10 font-medium text-white"
+                          : "text-white/65 hover:bg-white/5 hover:text-white"
                       }
                     `}
                   >
-                    <span
-                      className={`
-                        flex h-7 w-7 shrink-0 items-center justify-center
-                        rounded-lg transition
-                        ${
-                          isActive
-                            ? "bg-[#8346F2]/10 text-[#8346F2]"
-                            : "bg-white/10 text-white/80 group-hover:bg-white/20 group-hover:text-white"
-                        }
-                      `}
-                    >
-                      <Icon size={17} strokeWidth={2} />
-                    </span>
+                    {isActive && (
+                      <span className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-[#5B8DC9]" />
+                    )}
+
+                    <Icon size={17} strokeWidth={1.75} className="shrink-0" />
 
                     <span className="truncate">{item.label}</span>
                   </button>
@@ -283,81 +295,65 @@ function Sidebar({
       </nav>
 
       {/* BOTTOM AREA */}
-      <div className="shrink-0 border-t border-white/20 bg-black/5 p-3 backdrop-blur-sm">
-        {/* ADD MANUAL REPORT */}
+      <div className="shrink-0 space-y-3 border-t border-white/10 p-3">
         {canCreateReport && (
           <button
             type="button"
             onClick={handleManualReport}
             className="
-              flex h-11 w-full items-center justify-center gap-2
-              rounded-xl
-              bg-gradient-to-r
-              from-[#FF5A36]
-              to-[#FF8C42]
-              px-4 text-sm font-bold text-white
-              shadow-lg shadow-black/15
-              transition-all duration-200
-              hover:scale-[1.01]
-              hover:shadow-xl
-              active:scale-[0.98]
+              flex h-10 w-full items-center justify-center gap-2
+              rounded-md bg-[#D92D20] px-4 text-sm font-semibold text-white
+              transition-colors hover:bg-[#B42318]
             "
           >
-            <Plus size={18} strokeWidth={2.5} />
+            <Plus size={16} strokeWidth={2.25} />
 
             <span>{t("addManualReport")}</span>
           </button>
         )}
 
-        {/* CURRENT ROLE */}
-        <div className="mt-3 rounded-xl border border-white/15 bg-white/10 px-3 py-2">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-white/55">
-            {t("currentAccess")}
-          </p>
+        {/* USER */}
+        <div className="flex items-center gap-3 rounded-md px-2 py-1.5">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-semibold">
+            {initials}
+          </div>
 
-          <p className="mt-1 truncate text-xs font-bold text-white">
-            {currentUser?.role || t("administrator")}
-          </p>
-        </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium">
+              {currentUser?.name || t("administrator")}
+            </p>
 
-        {/* SIGN OUT */}
-        <div className="mt-2 px-3">
+            <p className="truncate text-[11px] capitalize text-white/50">
+              {currentUser?.role || t("administrator")}
+            </p>
+          </div>
+
           <button
             type="button"
             onClick={onLogout}
-            className="
-              w-full rounded-xl px-3 py-2.5
-              text-left text-sm font-semibold text-white/75
-              transition
-              hover:bg-white/15
-              hover:text-white
-            "
+            aria-label={t("signOut")}
+            title={t("signOut")}
+            className="rounded-md p-1.5 text-white/60 transition-colors hover:bg-white/10 hover:text-white"
           >
-            {t("signOut")}
+            <LogOut size={16} />
           </button>
         </div>
 
         {/* SYSTEM STATUS */}
-        <div className="mt-3 rounded-xl border border-white/20 bg-white/10 px-3 py-2.5 backdrop-blur-sm">
-          <div className="flex items-center gap-2">
-            <span
-              className={`h-2.5 w-2.5 shrink-0 rounded-full shadow-sm ${
-                systemStatus === "operational"
-                  ? "bg-[#2ED47A] shadow-[#2ED47A]/50"
-                  : "bg-[#FF2D55] shadow-[#FF2D55]/50"
-              }`}
-            />
+        <div className="flex items-center gap-2 px-2 text-[11px] text-white/55">
+          <span
+            className={`h-2 w-2 shrink-0 rounded-full ${
+              systemStatus === "operational" ? "bg-[#2ED47A]" : "bg-[#F04438]"
+            }`}
+          />
 
-            <span className="text-xs font-semibold text-white">
-              {systemStatus === "operational"
-                ? t("allSystemsOperational")
-                : "System connection issue"}
-            </span>
-          </div>
-
-          <p className="mt-1 pl-4 text-[10px] text-white/65">
-            {t("lastSync")}: {getLastSyncText()}
-          </p>
+          <span className="truncate">
+            {systemStatus === "operational"
+              ? t("allSystemsOperational")
+              : "System connection issue"}
+            {" · "}
+            {getLastSyncText()}
+          </span>
         </div>
       </div>
     </aside>
