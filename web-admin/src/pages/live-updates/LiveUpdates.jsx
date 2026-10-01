@@ -252,11 +252,7 @@ useEffect(() => {
 
         {/* PAGE HEADER */}
         <div className="mb-5">
-          <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#1F5FA6]">
-            Operations
-          </p>
-
-          <h1 className="mt-1 text-3xl font-bold text-[#101C2E]">
+          <h1 className="text-3xl font-bold text-[#101C2E]">
             Live Updates
           </h1>
 
@@ -416,7 +412,7 @@ useEffect(() => {
                           }
                           className={`relative flex w-full gap-4 rounded-lg p-3 text-left transition hover:bg-[#F9FAFB] ${
                             selectedUpdate?.id === update.id
-                              ? "bg-[#F7F4FF]"
+                              ? "bg-[#EAF1FA]"
                               : ""
                           }`}
                         >

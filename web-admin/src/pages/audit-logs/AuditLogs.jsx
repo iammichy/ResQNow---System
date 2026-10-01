@@ -164,13 +164,9 @@ function AuditLogs({ logs = [] }) {
   return (
     <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden">
       {/* PAGE HEADER */}
-      <div className="flex shrink-0 items-start justify-between gap-4">
+      <div className="flex shrink-0 flex-wrap items-start justify-between gap-3 sm:gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#1F5FA6]">
-            System Monitoring
-          </p>
-
-          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[#101C2E]">
+          <h1 className="text-2xl font-bold tracking-tight text-[#101C2E]">
             {t("auditLogs")}
           </h1>
 
@@ -309,7 +305,7 @@ function AuditLogs({ logs = [] }) {
                       }
                       className={`cursor-pointer border-b border-[#F0F1F3] transition hover:bg-[#F9F7FF] ${
                         isSelected
-                          ? "bg-[#F7F3FF]"
+                          ? "bg-[#EAF1FA]"
                           : "bg-white"
                       }`}
                     >
@@ -319,7 +315,7 @@ function AuditLogs({ logs = [] }) {
                           {formatDateTime(log.dateTime)}
                         </div>
 
-                        <div className="mt-0.5 text-[10px] font-medium text-[#98A2B3]">
+                        <div className="mt-0.5 text-[11px] font-medium text-[#98A2B3]">
                           {log.id}
                         </div>
                       </td>
@@ -327,7 +323,7 @@ function AuditLogs({ logs = [] }) {
                       {/* USER */}
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2.5">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#D6E4F5] text-[10px] font-extrabold text-[#1F5FA6]">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#D6E4F5] text-[11px] font-bold text-[#1F5FA6]">
                             {getInitials(
                               log.user ||
                                 "Administrator",
@@ -340,7 +336,7 @@ function AuditLogs({ logs = [] }) {
                                 "Administrator"}
                             </p>
 
-                            <p className="truncate text-[10px] text-[#98A2B3]">
+                            <p className="truncate text-[11px] text-[#98A2B3]">
                               {log.role ||
                                 "Barangay Administrator"}
                             </p>
@@ -351,7 +347,7 @@ function AuditLogs({ logs = [] }) {
                       {/* ACTION */}
                       <td className="px-4 py-3">
                         <span
-                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold ${style.badge}`}
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${style.badge}`}
                         >
                           <span
                             className={`h-1.5 w-1.5 rounded-full ${style.dot}`}
@@ -376,7 +372,7 @@ function AuditLogs({ logs = [] }) {
                             </span>
                           </div>
 
-                          <p className="mt-1 text-[10px] text-[#98A2B3]">
+                          <p className="mt-1 text-[11px] text-[#98A2B3]">
                             {log.field ||
                               "System Activity"}
                           </p>
@@ -385,7 +381,7 @@ function AuditLogs({ logs = [] }) {
 
                       {/* TARGET */}
                       <td className="px-4 py-3">
-                        <span className="rounded-md bg-[#F2F4F7] px-2 py-1 font-mono text-[10px] font-semibold text-[#475467]">
+                        <span className="rounded-md bg-[#F2F4F7] px-2 py-1 font-mono text-[11px] font-semibold text-[#475467]">
                           {log.target || "—"}
                         </span>
                       </td>
@@ -418,11 +414,11 @@ function AuditLogs({ logs = [] }) {
         {/* LOG DETAILS */}
         <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
           <div className="shrink-0 border-b border-[#E4E7EC] p-4">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#1F5FA6]">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-[#1F5FA6]">
               Log Details
             </p>
 
-            <h2 className="mt-1 text-lg font-extrabold text-[#101C2E]">
+            <h2 className="mt-1 text-lg font-bold text-[#101C2E]">
               {t("activityInformation")}
             </h2>
           </div>
@@ -433,16 +429,16 @@ function AuditLogs({ logs = [] }) {
               <div className="rounded-lg border border-[#E4E7EC] bg-[#FCFCFD] p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#98A2B3]">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-[#98A2B3]">
                       Action
                     </p>
 
-                    <p className="mt-1 text-sm font-extrabold text-[#101C2E]">
+                    <p className="mt-1 text-sm font-bold text-[#101C2E]">
                       {selectedLog.action}
                     </p>
                   </div>
 
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E8F8F4] px-2.5 py-1 text-[10px] font-bold text-[#008F78]">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E8F8F4] px-2.5 py-1 text-[11px] font-bold text-[#008F78]">
                     <span className="h-1.5 w-1.5 rounded-full bg-[#2ED47A]" />
 
                     {selectedLog.status ||
@@ -453,7 +449,7 @@ function AuditLogs({ logs = [] }) {
 
               {/* CHANGE */}
               <div className="mt-4 rounded-lg border border-[#E4E7EC] bg-[#FCFCFD] p-4">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#98A2B3]">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-[#98A2B3]">
                   Change Made
                 </p>
 
@@ -464,7 +460,7 @@ function AuditLogs({ logs = [] }) {
 
                 <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
                   <div className="rounded-lg border border-[#FECACA] bg-[#FEF2F2] p-3">
-                    <p className="text-[9px] font-bold uppercase text-[#B42318]">
+                    <p className="text-[11px] font-bold uppercase text-[#B42318]">
                       Old Value
                     </p>
 
@@ -478,7 +474,7 @@ function AuditLogs({ logs = [] }) {
                   </span>
 
                   <div className="rounded-lg border border-[#A7F3D0] bg-[#ECFDF3] p-3">
-                    <p className="text-[9px] font-bold uppercase text-[#027A48]">
+                    <p className="text-[11px] font-bold uppercase text-[#027A48]">
                       New Value
                     </p>
 
@@ -536,7 +532,7 @@ function AuditLogs({ logs = [] }) {
 
               {/* REMARKS */}
               <div className="mt-4 rounded-lg border border-[#E4E7EC] bg-white p-4">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#98A2B3]">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-[#98A2B3]">
                   Reason / Remarks
                 </p>
 
@@ -598,16 +594,16 @@ function SummaryCard({
             {label}
           </p>
 
-          <p className="mt-1 text-2xl font-extrabold tracking-tight text-[#101C2E]">
+          <p className="mt-1 text-2xl font-bold tracking-tight text-[#101C2E]">
             {value}
           </p>
 
-          <p className="mt-0.5 text-[10px] font-medium text-[#98A2B3]">
+          <p className="mt-0.5 text-[11px] font-medium text-[#98A2B3]">
             {description}
           </p>
         </div>
 
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#F0EBFF] text-[#1F5FA6]">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#EAF1FA] text-[#1F5FA6]">
           {icon}
         </div>
       </div>
@@ -622,7 +618,7 @@ function DetailRow({
 }) {
   return (
     <div className="flex items-center justify-between gap-4 border-b border-[#F0F1F3] py-2.5 last:border-b-0">
-      <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-[#98A2B3]">
+      <span className="shrink-0 text-[11px] font-bold uppercase tracking-wide text-[#98A2B3]">
         {label}
       </span>
 

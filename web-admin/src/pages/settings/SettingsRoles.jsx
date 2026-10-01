@@ -240,13 +240,9 @@ useEffect(() => {
   return (
     <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden">
       {/* PAGE HEADER */}
-      <div className="flex shrink-0 items-start justify-between gap-4">
+      <div className="flex shrink-0 flex-wrap items-start justify-between gap-3 sm:gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#1F5FA6]">
-            System
-          </p>
-
-          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[#101C2E]">
+          <h1 className="text-2xl font-bold tracking-tight text-[#101C2E]">
             Settings & Roles
           </h1>
 
@@ -269,7 +265,7 @@ useEffect(() => {
         {/* LEFT NAVIGATION */}
         <aside className="min-h-0 overflow-auto rounded-xl border border-[#E4E7EC] bg-white p-2 shadow-sm">
           <div className="px-3 pb-2 pt-2">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#98A2B3]">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]">
               Configuration
             </p>
           </div>
@@ -285,7 +281,7 @@ useEffect(() => {
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition ${
                     isActive
-                      ? "bg-[#F0EBFF] text-[#1F5FA6]"
+                      ? "bg-[#EAF1FA] text-[#1F5FA6]"
                       : "text-[#475467] hover:bg-[#F9FAFB]"
                   }`}
                 >
@@ -305,7 +301,7 @@ useEffect(() => {
                     </span>
 
                     <span
-                      className={`mt-0.5 block text-[10px] leading-4 ${
+                      className={`mt-0.5 block text-[11px] leading-4 ${
                         isActive ? "text-[#1F5FA6]" : "text-[#98A2B3]"
                       }`}
                     >
@@ -329,7 +325,7 @@ useEffect(() => {
                   Access Protected
                 </p>
 
-                <p className="mt-0.5 text-[10px] leading-4 text-[#98A2B3]">
+                <p className="mt-0.5 text-[11px] leading-4 text-[#98A2B3]">
                   Only authorized barangay personnel can manage these settings.
                 </p>
               </div>
@@ -601,12 +597,12 @@ function RolesSettings({
                   Personnel Accounts
                 </p>
 
-                <p className="mt-0.5 text-[10px] text-[#98A2B3]">
+                <p className="mt-0.5 text-[11px] text-[#98A2B3]">
                   {personnel.length} authorized personnel
                 </p>
               </div>
 
-              <span className="rounded-full bg-[#E8F8F4] px-2.5 py-1 text-[10px] font-bold text-[#008F78]">
+              <span className="rounded-full bg-[#E8F8F4] px-2.5 py-1 text-[11px] font-bold text-[#008F78]">
                 Access Controlled
               </span>
             </div>
@@ -637,11 +633,11 @@ function RolesSettings({
                       onClick={() => setSelectedPersonnel(person)}
                       className={`flex w-full items-center gap-3 rounded-lg border p-3 text-left transition ${
                         isSelected
-                          ? "border-[#D9C8FF] bg-[#F7F3FF]"
+                          ? "border-[#C7D9EF] bg-[#EAF1FA]"
                           : "border-[#E4E7EC] bg-white hover:bg-[#FCFCFD]"
                       }`}
                     >
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#D6E4F5] text-[10px] font-extrabold text-[#1F5FA6]">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#D6E4F5] text-[11px] font-bold text-[#1F5FA6]">
                         {getInitials(person.name)}
                       </div>
 
@@ -650,12 +646,12 @@ function RolesSettings({
                           {person.name}
                         </p>
 
-                        <p className="truncate text-[10px] text-[#98A2B3]">
+                        <p className="truncate text-[11px] text-[#98A2B3]">
                           {person.role}
                         </p>
                       </div>
 
-                      <span className="shrink-0 rounded-full bg-[#E8F8F4] px-2 py-1 text-[9px] font-bold text-[#008F78]">
+                      <span className="shrink-0 rounded-full bg-[#E8F8F4] px-2 py-1 text-[11px] font-bold text-[#008F78]">
                         {person.status}
                       </span>
                     </button>
@@ -671,16 +667,16 @@ function RolesSettings({
             <>
               <div className="rounded-lg border border-[#E4E7EC] bg-[#FCFCFD] p-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#1F5FA6] text-sm font-extrabold text-white">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#1F5FA6] text-sm font-bold text-white">
                     {getInitials(selectedPersonnel.name)}
                   </div>
 
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-extrabold text-[#101C2E]">
+                    <p className="truncate text-sm font-bold text-[#101C2E]">
                       {selectedPersonnel.name}
                     </p>
 
-                    <p className="mt-0.5 text-[10px] text-[#667085]">
+                    <p className="mt-0.5 text-[11px] text-[#667085]">
                       {selectedPersonnel.id}
                     </p>
                   </div>
@@ -707,7 +703,7 @@ function RolesSettings({
               </div>
 
               <div className="mt-4 rounded-lg border border-[#E4E7EC] bg-white p-4">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#98A2B3]">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-[#98A2B3]">
                   Current Permissions
                 </p>
 
@@ -750,11 +746,11 @@ function RolesSettings({
 function SectionHeader({ eyebrow, title, description }) {
   return (
     <div className="shrink-0 border-b border-[#E4E7EC] px-5 py-4">
-      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#1F5FA6]">
+      <p className="text-[11px] font-bold uppercase tracking-wider text-[#1F5FA6]">
         {eyebrow}
       </p>
 
-      <h2 className="mt-1 text-lg font-extrabold text-[#101C2E]">{title}</h2>
+      <h2 className="mt-1 text-lg font-bold text-[#101C2E]">{title}</h2>
 
       <p className="mt-1 text-xs text-[#667085]">{description}</p>
     </div>
@@ -806,7 +802,7 @@ function ToggleRow({
       <div className="min-w-0">
         <p className="text-xs font-bold text-[#344054]">{label}</p>
 
-        <p className="mt-0.5 max-w-2xl text-[10px] leading-4 text-[#98A2B3]">
+        <p className="mt-0.5 max-w-2xl text-[11px] leading-4 text-[#98A2B3]">
           {description}
         </p>
       </div>
@@ -833,7 +829,7 @@ function ToggleRow({
 function DetailRow({ label, value }) {
   return (
     <div className="flex items-center justify-between gap-4 border-b border-[#F0F1F3] py-2.5 last:border-b-0">
-      <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-[#98A2B3]">
+      <span className="shrink-0 text-[11px] font-bold uppercase tracking-wide text-[#98A2B3]">
         {label}
       </span>
 
@@ -846,7 +842,7 @@ function DetailRow({ label, value }) {
 
 function PermissionBadge({ label }) {
   return (
-    <span className="rounded-full bg-[#F0EBFF] px-2.5 py-1 text-[10px] font-semibold text-[#1F5FA6]">
+    <span className="rounded-full bg-[#EAF1FA] px-2.5 py-1 text-[11px] font-semibold text-[#1F5FA6]">
       {label}
     </span>
   );

@@ -46,12 +46,12 @@ const statusStyles = {
 function StatCard({ label, value, detail }) {
   return (
     <div className="rounded-xl border border-[var(--border-soft)] bg-white px-5 py-4 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#98A2B3]">
+      <p className="text-xs font-semibold uppercase tracking-wider text-[#98A2B3]">
         {label}
       </p>
 
       <div className="mt-2 flex items-end justify-between gap-3">
-        <p className="text-2xl font-extrabold leading-none text-[var(--text-primary)]">
+        <p className="text-2xl font-bold leading-none text-[var(--text-primary)]">
           {value}
         </p>
 
@@ -258,7 +258,7 @@ function AllReports({ onOpenReport, selectedResident, reportUpdates = {} }) {
 
           <button
             onClick={() => loadReports(true)}
-            className="mt-4 rounded-lg bg-[#1F5FA6] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#6938D3]"
+            className="mt-4 rounded-lg bg-[#1F5FA6] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1F5FA6]"
           >
             {t("tryAgain")}
           </button>
@@ -275,13 +275,9 @@ function AllReports({ onOpenReport, selectedResident, reportUpdates = {} }) {
     <div className="flex h-full min-h-0 flex-col gap-4">
       {/* ================= HEADER ================= */}
 
-      <div className="flex shrink-0 items-start justify-between gap-4">
+      <div className="flex shrink-0 flex-wrap items-start justify-between gap-3 sm:gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-primary)]">
-            {t("operationsLabel")}
-          </p>
-
-          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[var(--text-primary)]">
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">
             {t("allReportsPageTitle")}
           </h1>
 
@@ -415,31 +411,31 @@ function AllReports({ onOpenReport, selectedResident, reportUpdates = {} }) {
           <table className="w-full min-w-[1220px] border-collapse text-left">
             <thead className="sticky top-0 z-10 bg-[#F8FAFC]">
               <tr className="border-b border-[var(--border-soft)]">
-                <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                   {t("report")}
                 </th>
 
-                <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                   {t("location")}
                 </th>
 
-                <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                   {t("submitted")}
                 </th>
 
-                <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                   {t("priority")}
                 </th>
 
-                <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                   {t("verification")}
                 </th>
 
-                <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                   {t("status")}
                 </th>
 
-                <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                   Incident
                 </th>
 
@@ -561,7 +557,7 @@ function AllReports({ onOpenReport, selectedResident, reportUpdates = {} }) {
                                 : report.incident.status === "Dispatched"
                                   ? "bg-[#EEF8FF] text-[#2563EB]"
                                   : report.incident.status === "In Progress"
-                                    ? "bg-[#F3EEFF] text-[#6F32D8]"
+                                    ? "bg-[#EAF1FA] text-[#1F5FA6]"
                                     : "bg-[#FFF0F3] text-[#D90429]"
                             }`}
                           >

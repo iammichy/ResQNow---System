@@ -18,7 +18,7 @@ const priorityStyles = {
 function TriageItem({ label, value, critical = false }) {
   return (
     <div className="rounded-lg border border-[#E4E7EC] bg-white p-3">
-      <p className="text-[10px] font-bold uppercase tracking-[0.07em] text-[#98A2B3]">
+      <p className="text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]">
         {label}
       </p>
 
@@ -234,13 +234,9 @@ function Prioritization({ onPriorityUpdate }) {
     <div className="flex h-full min-h-0 flex-col gap-4">
       {/* PAGE HEADER */}
 
-      <div className="flex shrink-0 items-start justify-between gap-4">
+      <div className="flex shrink-0 flex-wrap items-start justify-between gap-3 sm:gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#1F5FA6]">
-            {t("operationsLabel")}
-          </p>
-
-          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[#101C2E]">
+          <h1 className="text-2xl font-bold tracking-tight text-[#101C2E]">
             {t("prioritization")}
           </h1>
 
@@ -262,11 +258,11 @@ function Prioritization({ onPriorityUpdate }) {
 
       <div className="grid shrink-0 grid-cols-1 gap-3 md:grid-cols-5">
         <div className="rounded-xl border border-[#E4E7EC] bg-white p-4 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#667085]">
+          <p className="text-xs font-bold uppercase tracking-wider text-[#667085]">
             {t("pendingReview")}
           </p>
 
-          <p className="mt-2 text-2xl font-extrabold text-[#101C2E]">
+          <p className="mt-2 text-2xl font-bold text-[#101C2E]">
             {pendingCount}
           </p>
 
@@ -276,11 +272,11 @@ function Prioritization({ onPriorityUpdate }) {
         </div>
 
         <div className="rounded-xl border border-[#FECDCA] bg-white p-4 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#667085]">
+          <p className="text-xs font-bold uppercase tracking-wider text-[#667085]">
             {t("critical")}
           </p>
 
-          <p className="mt-2 text-2xl font-extrabold text-[#D92D20]">
+          <p className="mt-2 text-2xl font-bold text-[#D92D20]">
             {criticalCount}
           </p>
 
@@ -290,11 +286,11 @@ function Prioritization({ onPriorityUpdate }) {
         </div>
 
         <div className="rounded-xl border border-[#FEDF89] bg-white p-4 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#667085]">
+          <p className="text-xs font-bold uppercase tracking-wider text-[#667085]">
             {t("high")}
           </p>
 
-          <p className="mt-2 text-2xl font-extrabold text-[#B54708]">
+          <p className="mt-2 text-2xl font-bold text-[#B54708]">
             {highCount}
           </p>
 
@@ -302,22 +298,22 @@ function Prioritization({ onPriorityUpdate }) {
         </div>
 
         <div className="rounded-xl border border-[#FDE68A] bg-white p-4 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#667085]">
+          <p className="text-xs font-bold uppercase tracking-wider text-[#667085]">
             {t("moderate")}
           </p>
 
-          <p className="mt-2 text-2xl font-extrabold text-[#A15C00]">
+          <p className="mt-2 text-2xl font-bold text-[#A15C00]">
             {moderateCount}
           </p>
 
           <p className="mt-1 text-sm text-[#667085]">{t("routineResponse")}</p>
         </div>
         <div className="rounded-xl border border-[#E4E7EC] bg-white p-4 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#667085]">
+          <p className="text-xs font-bold uppercase tracking-wider text-[#667085]">
             {t("low")}
           </p>
 
-          <p className="mt-2 text-2xl font-extrabold text-[#667085]">
+          <p className="mt-2 text-2xl font-bold text-[#667085]">
             {lowCount}
           </p>
 
@@ -494,7 +490,7 @@ function Prioritization({ onPriorityUpdate }) {
                     </span>
                   </div>
 
-                  <h2 className="mt-2 text-2xl font-extrabold text-[#101C2E]">
+                  <h2 className="mt-2 text-2xl font-bold text-[#101C2E]">
                     {selectedReport.type}
                   </h2>
 
@@ -549,7 +545,7 @@ function Prioritization({ onPriorityUpdate }) {
               {/* DESCRIPTION */}
 
               <div className="mt-4 rounded-lg border border-[#E4E7EC] bg-[#F9FAFB] p-4">
-                <p className="text-xs font-bold uppercase tracking-[0.07em] text-[#98A2B3]">
+                <p className="text-xs font-bold uppercase tracking-wider text-[#98A2B3]">
                   {t("reportDescription")}
                 </p>
 
@@ -575,7 +571,7 @@ function Prioritization({ onPriorityUpdate }) {
                 <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                   {/* WATER LEVEL */}
                   <div>
-                    <label className="text-xs font-bold uppercase tracking-[0.07em] text-[#667085]">
+                    <label className="text-xs font-bold uppercase tracking-wider text-[#667085]">
                       Water Level
                     </label>
 
@@ -603,7 +599,7 @@ function Prioritization({ onPriorityUpdate }) {
 
                   {/* ROAD PASSABILITY */}
                   <div>
-                    <label className="text-xs font-bold uppercase tracking-[0.07em] text-[#667085]">
+                    <label className="text-xs font-bold uppercase tracking-wider text-[#667085]">
                       Road Passability
                     </label>
 
@@ -634,7 +630,7 @@ function Prioritization({ onPriorityUpdate }) {
 
                   {/* AFFECTED RESIDENTS */}
                   <div>
-                    <label className="text-xs font-bold uppercase tracking-[0.07em] text-[#667085]">
+                    <label className="text-xs font-bold uppercase tracking-wider text-[#667085]">
                       Affected Residents
                     </label>
 
@@ -655,7 +651,7 @@ function Prioritization({ onPriorityUpdate }) {
 
                   {/* LOCATION RISK */}
                   <div>
-                    <label className="text-xs font-bold uppercase tracking-[0.07em] text-[#667085]">
+                    <label className="text-xs font-bold uppercase tracking-wider text-[#667085]">
                       Location Risk
                     </label>
 
@@ -679,7 +675,7 @@ function Prioritization({ onPriorityUpdate }) {
 
                   {/* ASSISTANCE / EVACUATION */}
                   <div className="md:col-span-2">
-                    <label className="text-xs font-bold uppercase tracking-[0.07em] text-[#667085]">
+                    <label className="text-xs font-bold uppercase tracking-wider text-[#667085]">
                       Assistance / Evacuation Need
                     </label>
 
@@ -714,7 +710,7 @@ function Prioritization({ onPriorityUpdate }) {
 
                   {/* REMARKS */}
                   <div className="md:col-span-2">
-                    <label className="text-xs font-bold uppercase tracking-[0.07em] text-[#667085]">
+                    <label className="text-xs font-bold uppercase tracking-wider text-[#667085]">
                       Verification & Assessment Remarks
                     </label>
 
@@ -759,17 +755,17 @@ function Prioritization({ onPriorityUpdate }) {
                   <div className="mt-4 rounded-lg border border-[#C7D9EF] bg-[#F9F8FF] p-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
-                        <p className="text-xs font-bold uppercase tracking-[0.07em] text-[#667085]">
+                        <p className="text-xs font-bold uppercase tracking-wider text-[#667085]">
                           System Triage Score
                         </p>
 
-                        <p className="mt-1 text-2xl font-extrabold text-[#101C2E]">
+                        <p className="mt-1 text-2xl font-bold text-[#101C2E]">
                           {triageResult.score} / 20
                         </p>
                       </div>
 
                       <div>
-                        <p className="text-xs font-bold uppercase tracking-[0.07em] text-[#667085]">
+                        <p className="text-xs font-bold uppercase tracking-wider text-[#667085]">
                           System Computed Recommendation
                         </p>
 
@@ -830,7 +826,7 @@ function Prioritization({ onPriorityUpdate }) {
                 type="button"
                 onClick={handleConfirmPriority}
                 disabled={!triageResult || !selectedPriority || isSaving}
-                className="w-full rounded-lg bg-[#1F5FA6] px-5 py-4 text-sm font-bold text-white transition hover:bg-[#6938D3] disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded-lg bg-[#1F5FA6] px-5 py-4 text-sm font-bold text-white transition hover:bg-[#1F5FA6] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSaving
                   ? "Saving System Priority..."

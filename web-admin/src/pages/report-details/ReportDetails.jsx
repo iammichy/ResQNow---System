@@ -32,7 +32,7 @@ const statusStyles = {
 function InfoItem({ label, value }) {
   return (
     <div>
-      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
+      <p className="text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]">
         {label}
       </p>
 
@@ -92,7 +92,7 @@ function AutomatedRiskItem({ label, value, score, highlighted = false }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-[0.07em] text-[#98A2B3]">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]">
             {label}
           </p>
 
@@ -102,7 +102,7 @@ function AutomatedRiskItem({ label, value, score, highlighted = false }) {
         </div>
 
         {score !== null && score !== undefined && (
-          <span className="shrink-0 rounded-lg bg-[#EEF2FF] px-2 py-1 text-[10px] font-extrabold text-[#4F46E5]">
+          <span className="shrink-0 rounded-lg bg-[#EEF2FF] px-2 py-1 text-[11px] font-bold text-[#4F46E5]">
             +{score}
           </span>
         )}
@@ -865,7 +865,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
           </button>
 
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#1F5FA6]">
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#1F5FA6]">
               Report Details
             </p>
 
@@ -877,7 +877,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
           </div>
 
           <div className="mt-1 flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-extrabold tracking-tight text-[#101C2E]">
+            <h1 className="text-2xl font-bold tracking-tight text-[#101C2E]">
               {report.type}
             </h1>
 
@@ -958,7 +958,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
               <div className="border-b border-[#E4E7EC] px-5 py-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#F0EBFF] text-[#1F5FA6]">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#EAF1FA] text-[#1F5FA6]">
                       <svg
                         className="h-5 w-5"
                         viewBox="0 0 24 24"
@@ -990,13 +990,13 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                           .container
                       }`}
                     >
-                      <p className="text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-[#667085]">
                         Assessment Status
                       </p>
 
                       <div className="mt-1 flex items-center justify-between gap-4">
                         <span
-                          className={`text-sm font-extrabold ${
+                          className={`text-sm font-bold ${
                             getRecommendationStyle(report.triage.recommendation)
                               .text
                           }`}
@@ -1012,7 +1012,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                       </div>
                     </div>
                   ) : (
-                    <span className="rounded-full bg-[#F2F4F7] px-3 py-1.5 text-[10px] font-bold text-[#667085]">
+                    <span className="rounded-full bg-[#F2F4F7] px-3 py-1.5 text-[11px] font-bold text-[#667085]">
                       Assessment Pending
                     </span>
                   )}
@@ -1075,7 +1075,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
 
                   {report.triage.remarks && (
                     <div className="mx-5 mb-5 rounded-lg border border-[#E4E7EC] bg-[#F8FAFC] p-4">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]">
                         Assessment Remarks
                       </p>
 
@@ -1092,7 +1092,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                       </div>
 
                       <div>
-                        <p className="text-xs font-extrabold text-[#7A2E0E]">
+                        <p className="text-xs font-bold text-[#7A2E0E]">
                           Automated recommendation
                         </p>
 
@@ -1180,11 +1180,11 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
 
               <div className="p-5">
                 <div className="rounded-lg bg-[#EEF4FF] p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#667085]">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-[#667085]">
                     Response Status
                   </p>
 
-                  <p className="mt-1 text-lg font-extrabold text-[#174A86]">
+                  <p className="mt-1 text-lg font-bold text-[#174A86]">
                     {status}
                   </p>
 
@@ -1196,7 +1196,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                 <div className="mt-4">
                   <label
                     htmlFor="report-status"
-                    className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]"
+                    className="text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]"
                   >
                     Update Status
                   </label>
@@ -1255,12 +1255,12 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                       : "border-[#E4E7EC] bg-[#F8FAFC]"
                   }`}
                 >
-                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#667085]">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-[#667085]">
                     Assessment Status
                   </p>
 
                   <div className="mt-1 flex items-center justify-between gap-3">
-                    <p className="text-lg font-extrabold text-[#101C2E]">
+                    <p className="text-lg font-bold text-[#101C2E]">
                       {report.triage.recommendation || "Not assessed"}
                     </p>
 
@@ -1274,7 +1274,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                 </div>
 
                 <div>
-                  <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
+                  <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]">
                     Final Priority
                   </p>
 
@@ -1301,7 +1301,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                 </div>
 
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]">
                     Decision
                   </p>
 
@@ -1326,7 +1326,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                   disabled={
                     priorityLoading || !canAssignPriority || !selectedPriority
                   }
-                  className="w-full rounded-lg bg-[#1F5FA6] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#7138DB] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="w-full rounded-lg bg-[#1F5FA6] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#1F5FA6] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {priorityLoading ? "Saving Priority..." : "Confirm Priority"}
                 </button>
@@ -1356,7 +1356,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                     type="button"
                     onClick={handleCreateIncident}
                     disabled={assignmentLoading}
-                    className="w-full rounded-lg bg-[#1F5FA6] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#7138DB] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="w-full rounded-lg bg-[#1F5FA6] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1F5FA6] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {assignmentLoading
                       ? "Creating Incident..."
@@ -1399,7 +1399,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                   </div>
 
                   <span
-                    className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                    className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
                       report.verification === "Verified"
                         ? "bg-[#ECFDF3] text-[#027A48]"
                         : "bg-[#FFF7ED] text-[#B54708]"
@@ -1456,7 +1456,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                             {item.detail}
                           </p>
 
-                          <p className="mt-1 text-[10px] font-semibold text-[#98A2B3]">
+                          <p className="mt-1 text-[11px] font-semibold text-[#98A2B3]">
                             {item.time}
                           </p>
                         </div>
@@ -1476,7 +1476,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
               <button
                 type="button"
                 onClick={() => handleStatusChange(nextIncidentStatus)}
-                className="w-full rounded-lg bg-[#1F5FA6] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#7138DB]"
+                className="w-full rounded-lg bg-[#1F5FA6] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#1F5FA6]"
               >
                 {nextIncidentStatus === "Dispatched"
                   ? "Dispatch Incident"
@@ -1594,7 +1594,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                 type="button"
                 onClick={handleSaveAssignment}
                 disabled={assignmentLoading || !selectedPersonnel}
-                className="rounded-lg bg-[#1F5FA6] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#7335E6] disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-lg bg-[#1F5FA6] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1F5FA6] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {assignmentLoading ? "Saving..." : "Save Assignment"}
               </button>

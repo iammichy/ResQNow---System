@@ -460,7 +460,7 @@ useEffect(() => {
           <button
             type="button"
             onClick={loadIncidents}
-            className="mt-5 rounded-lg bg-[#1F5FA6] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#6D35D8]"
+            className="mt-5 rounded-lg bg-[#1F5FA6] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#1F5FA6]"
           >
             {t("tryAgain")}
           </button>
@@ -477,13 +477,9 @@ useEffect(() => {
     <div className="flex min-h-full flex-col gap-4 pb-6">
       {/* ================= PAGE HEADER ================= */}
 
-      <div className="flex shrink-0 items-start justify-between gap-4">
+      <div className="flex shrink-0 flex-wrap items-start justify-between gap-3 sm:gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#1F5FA6]">
-            {t("operationsLabel")}
-          </p>
-
-          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[#101C2E]">
+          <h1 className="text-2xl font-bold tracking-tight text-[#101C2E]">
             {t("incidentMapTitle")}
           </h1>
 
@@ -507,11 +503,11 @@ useEffect(() => {
         {/* ACTIVE */}
 
         <div className="rounded-xl border border-[#E4E7EC] bg-white p-4 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]">
             {t("activeIncidents")}
           </p>
 
-          <p className="mt-1 text-2xl font-extrabold text-[#101C2E]">
+          <p className="mt-1 text-2xl font-bold text-[#101C2E]">
             {activeIncidentCount}
           </p>
 
@@ -523,11 +519,11 @@ useEffect(() => {
         {/* CRITICAL */}
 
         <div className="rounded-xl border border-[#FECDCA] bg-white p-4 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#D92D20]">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-[#D92D20]">
             {t("critical")}
           </p>
 
-          <p className="mt-1 text-2xl font-extrabold text-[#D92D20]">
+          <p className="mt-1 text-2xl font-bold text-[#D92D20]">
             {criticalCount}
           </p>
 
@@ -539,11 +535,11 @@ useEffect(() => {
         {/* HIGH */}
 
         <div className="rounded-xl border border-[#FEDF89] bg-white p-4 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#B54708]">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-[#B54708]">
             {t("highPriority")}
           </p>
 
-          <p className="mt-1 text-2xl font-extrabold text-[#B54708]">
+          <p className="mt-1 text-2xl font-bold text-[#B54708]">
             {highCount}
           </p>
 
@@ -555,11 +551,11 @@ useEffect(() => {
         {/* MODERATE */}
 
         <div className="rounded-xl border border-[#FDE68A] bg-white p-4 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#A15C00]">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-[#A15C00]">
             {t("moderate")}
           </p>
 
-          <p className="mt-1 text-2xl font-extrabold text-[#A15C00]">
+          <p className="mt-1 text-2xl font-bold text-[#A15C00]">
             {moderateCount}
           </p>
 
@@ -583,7 +579,7 @@ useEffect(() => {
                 {t("barangayIncidentOverview")}
               </h2>
 
-              <p className="mt-0.5 text-[10px] text-[#667085]">
+              <p className="mt-0.5 text-[11px] text-[#667085]">
                 Barangay Camunatan, City of Ilagan
               </p>
             </div>
@@ -702,7 +698,7 @@ useEffect(() => {
             {/* MAP LEGEND */}
 
             <div className="absolute bottom-4 left-4 z-[1000] rounded-lg border border-[#E4E7EC] bg-white/95 p-3 shadow-sm backdrop-blur">
-              <p className="mb-2 text-[9px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
+              <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]">
                 {t("mapLegend")}
               </p>
 
@@ -710,7 +706,7 @@ useEffect(() => {
                 <div className="flex items-center gap-1.5">
                   <span className="h-2.5 w-2.5 rounded-full bg-[#EF4444]" />
 
-                  <span className="text-[10px] font-medium text-[#667085]">
+                  <span className="text-[11px] font-medium text-[#667085]">
                     {t("critical")}
                   </span>
                 </div>
@@ -718,7 +714,7 @@ useEffect(() => {
                 <div className="flex items-center gap-1.5">
                   <span className="h-2.5 w-2.5 rounded-full bg-[#F59E0B]" />
 
-                  <span className="text-[10px] font-medium text-[#667085]">
+                  <span className="text-[11px] font-medium text-[#667085]">
                     {t("high")}
                   </span>
                 </div>
@@ -726,7 +722,7 @@ useEffect(() => {
                 <div className="flex items-center gap-1.5">
                   <span className="h-2.5 w-2.5 rounded-full bg-[#1F5FA6]" />
 
-                  <span className="text-[10px] font-medium text-[#667085]">
+                  <span className="text-[11px] font-medium text-[#667085]">
                     {t("moderate")}
                   </span>
                 </div>
@@ -734,7 +730,7 @@ useEffect(() => {
                 <div className="flex items-center gap-1.5">
                   <span className="h-2.5 w-2.5 rounded-full bg-[#64748B]" />
 
-                  <span className="text-[10px] font-medium text-[#667085]">
+                  <span className="text-[11px] font-medium text-[#667085]">
                     {t("low")}
                   </span>
                 </div>
@@ -758,7 +754,7 @@ useEffect(() => {
                 </p>
               </div>
 
-              <span className="rounded-full bg-[#EAF1FA] px-2.5 py-1 text-[10px] font-bold text-[#174A86]">
+              <span className="rounded-full bg-[#EAF1FA] px-2.5 py-1 text-[11px] font-bold text-[#174A86]">
                 {filteredIncidents.length}
               </span>
             </div>
@@ -779,7 +775,7 @@ useEffect(() => {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-[10px] font-bold text-[#1F5FA6]">
+                      <p className="text-[11px] font-bold text-[#1F5FA6]">
                         {incident.incidentCode}
                       </p>
 
@@ -793,7 +789,7 @@ useEffect(() => {
                     </div>
 
                     <span
-                      className={`shrink-0 rounded-full border px-2 py-1 text-[10px] font-bold ${
+                      className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-bold ${
                         priorityStyles[incident.priority] ||
                         priorityStyles.Moderate
                       }`}
@@ -812,7 +808,7 @@ useEffect(() => {
 
                   <div className="mt-3 flex items-center justify-between gap-2">
                     <span
-                      className={`rounded-full px-2 py-1 text-[10px] font-bold ${
+                      className={`rounded-full px-2 py-1 text-[11px] font-bold ${
                         statusStyles[incident.status] ||
                         "bg-[#F2F4F7] text-[#667085]"
                       }`}
@@ -820,7 +816,7 @@ useEffect(() => {
                       {incident.status}
                     </span>
 
-                    <span className="text-[10px] text-[#98A2B3]">
+                    <span className="text-[11px] text-[#98A2B3]">
                       {incident.category}
                     </span>
                   </div>
@@ -841,11 +837,11 @@ useEffect(() => {
 
           {selectedIncident && (
             <div className="shrink-0 border-t border-[#E4E7EC] bg-[#F8FAFC] p-4">
-              <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]">
                 {t("selectedIncident")}
               </p>
 
-              <p className="mt-1 text-sm font-extrabold text-[#101C2E]">
+              <p className="mt-1 text-sm font-bold text-[#101C2E]">
                 {selectedIncident.type}
               </p>
 
@@ -855,7 +851,7 @@ useEffect(() => {
 
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <div className="rounded-lg border border-[#E4E7EC] bg-white p-2.5">
-                  <p className="text-[9px] font-bold uppercase text-[#98A2B3]">
+                  <p className="text-[11px] font-bold uppercase text-[#98A2B3]">
                     {t("priority")}
                   </p>
 
@@ -873,7 +869,7 @@ useEffect(() => {
                 </div>
 
                 <div className="rounded-lg border border-[#E4E7EC] bg-white p-2.5">
-                  <p className="text-[9px] font-bold uppercase text-[#98A2B3]">
+                  <p className="text-[11px] font-bold uppercase text-[#98A2B3]">
                     {t("status")}
                   </p>
 
@@ -884,7 +880,7 @@ useEffect(() => {
               </div>
 
               <div className="mt-2 rounded-lg border border-[#E4E7EC] bg-white p-2.5">
-                <p className="text-[9px] font-bold uppercase text-[#98A2B3]">
+                <p className="text-[11px] font-bold uppercase text-[#98A2B3]">
                   {t("description")}
                 </p>
 
@@ -895,7 +891,7 @@ useEffect(() => {
 
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <div className="rounded-lg border border-[#E4E7EC] bg-white p-2.5">
-                  <p className="text-[9px] font-bold uppercase text-[#98A2B3]">
+                  <p className="text-[11px] font-bold uppercase text-[#98A2B3]">
                     {t("latitude")}
                   </p>
 
@@ -905,7 +901,7 @@ useEffect(() => {
                 </div>
 
                 <div className="rounded-lg border border-[#E4E7EC] bg-white p-2.5">
-                  <p className="text-[9px] font-bold uppercase text-[#98A2B3]">
+                  <p className="text-[11px] font-bold uppercase text-[#98A2B3]">
                     {t("longitude")}
                   </p>
 
@@ -925,11 +921,11 @@ useEffect(() => {
         {/* HEADER */}
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#1F5FA6]">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-[#1F5FA6]">
               Emergency Contacts
             </p>
 
-            <h2 className="mt-1 text-xl font-extrabold tracking-tight text-[#101C2E]">
+            <h2 className="mt-1 text-xl font-bold tracking-tight text-[#101C2E]">
               Hotline Directory
             </h2>
 
@@ -938,7 +934,7 @@ useEffect(() => {
             </p>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2 rounded-full bg-[#EAF1FA] px-3 py-2 text-[10px] font-bold text-[#174A86]">
+          <div className="flex shrink-0 items-center gap-2 rounded-full bg-[#EAF1FA] px-3 py-2 text-[11px] font-bold text-[#174A86]">
             <Phone size={12} />
             <span>
               {barangayContacts.length + emergencyContacts.length} contacts
@@ -956,11 +952,11 @@ useEffect(() => {
             </div>
 
             <div className="min-w-0">
-              <h3 className="text-sm font-extrabold text-[#101C2E]">
+              <h3 className="text-sm font-bold text-[#101C2E]">
                 Barangay Camunatan Contacts
               </h3>
 
-              <p className="mt-0.5 text-[10px] text-[#667085]">
+              <p className="mt-0.5 text-[11px] text-[#667085]">
                 Barangay officials and local response contacts
               </p>
             </div>
@@ -994,7 +990,7 @@ useEffect(() => {
                     {contact.name}
                   </p>
 
-                  <p className="text-[10px] leading-4 text-[#667085]">
+                  <p className="text-[11px] leading-4 text-[#667085]">
                     {contact.note}
                   </p>
                 </div>
@@ -1003,13 +999,13 @@ useEffect(() => {
                 {contact.number ? (
                   <a
                     href={`tel:${contact.number.replace(/\D/g, "")}`}
-                    className="flex shrink-0 items-center gap-1.5 rounded-lg bg-[#EAF1FA] px-3 py-2 text-[10px] font-extrabold text-[#174A86] transition hover:bg-[#D6E4F5]"
+                    className="flex shrink-0 items-center gap-1.5 rounded-lg bg-[#EAF1FA] px-3 py-2 text-[11px] font-bold text-[#174A86] transition hover:bg-[#D6E4F5]"
                   >
                     <Phone size={12} />
                     <span>{contact.number}</span>
                   </a>
                 ) : (
-                  <span className="shrink-0 rounded-lg bg-[#F2F4F7] px-3 py-2 text-[10px] font-semibold text-[#98A2B3]">
+                  <span className="shrink-0 rounded-lg bg-[#F2F4F7] px-3 py-2 text-[11px] font-semibold text-[#98A2B3]">
                     Not provided
                   </span>
                 )}
@@ -1028,11 +1024,11 @@ useEffect(() => {
             </div>
 
             <div className="min-w-0">
-              <h3 className="text-sm font-extrabold text-[#101C2E]">
+              <h3 className="text-sm font-bold text-[#101C2E]">
                 Emergency & City Services
               </h3>
 
-              <p className="mt-0.5 text-[10px] text-[#667085]">
+              <p className="mt-0.5 text-[11px] text-[#667085]">
                 Emergency, security, medical, government, and utility contacts
               </p>
             </div>
@@ -1130,18 +1126,18 @@ useEffect(() => {
                     </div>
 
                     <div className="min-w-0">
-                      <h4 className="text-sm font-extrabold uppercase tracking-[0.03em] text-[#101C2E]">
+                      <h4 className="text-sm font-bold uppercase tracking-wider text-[#101C2E]">
                         {group.title}
                       </h4>
 
-                      <p className="mt-0.5 text-[10px] text-[#667085]">
+                      <p className="mt-0.5 text-[11px] text-[#667085]">
                         {group.title}
                       </p>
                     </div>
                   </div>
 
                   <span
-                    className={`flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full px-2 text-[10px] font-extrabold ${group.countClass}`}
+                    className={`flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full px-2 text-[11px] font-bold ${group.countClass}`}
                   >
                     {group.names.length}
                   </span>
@@ -1178,7 +1174,7 @@ useEffect(() => {
                               {contact.name}
                             </p>
 
-                            <p className="mt-0.5 text-[10px] text-[#98A2B3]">
+                            <p className="mt-0.5 text-[11px] text-[#98A2B3]">
                               Emergency contact
                             </p>
                           </div>
@@ -1189,7 +1185,7 @@ useEffect(() => {
                               <a
                                 key={`${contact.name}-${number}`}
                                 href={`tel:${number.replace(/\D/g, "")}`}
-                                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-[10px] font-extrabold transition ${group.buttonClass}`}
+                                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-bold transition ${group.buttonClass}`}
                               >
                                 <Phone size={12} />
                                 <span>{number}</span>

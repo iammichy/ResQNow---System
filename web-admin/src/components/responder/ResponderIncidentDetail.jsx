@@ -29,7 +29,7 @@ export default function ResponderIncidentDetail({ incident, onUpdateStatus }) {
           <span className="text-xs font-bold text-blue-700 uppercase tracking-wider">
             Assigned Mission
           </span>
-          <h2 className="text-2xl font-extrabold text-navy-900 mt-1">
+          <h2 className="text-2xl font-bold text-navy-900 mt-1">
             {incident?.report_code || "RPT-2026-0001"}
           </h2>
           <p className="text-sm text-gray-600">

@@ -192,13 +192,9 @@ function ResidentsPage({ onViewResidentReports }) {
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
       {/* PAGE HEADER */}
-      <div className="flex shrink-0 items-start justify-between gap-4">
+      <div className="flex shrink-0 flex-wrap items-start justify-between gap-3 sm:gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#1F5FA6]">
-            {t("management")}
-          </p>
-
-          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[#101C2E]">
+          <h1 className="text-2xl font-bold tracking-tight text-[#101C2E]">
             {t("residentsPageTitle")}
           </h1>
 
@@ -219,11 +215,11 @@ function ResidentsPage({ onViewResidentReports }) {
       {/* SUMMARY */}
       <div className="grid shrink-0 grid-cols-2 gap-3 xl:grid-cols-4">
         <div className="rounded-xl border border-[#E4E7EC] bg-white p-4 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]">
             {t("totalResidents")}
           </p>
 
-          <p className="mt-1 text-2xl font-extrabold text-[#101C2E]">
+          <p className="mt-1 text-2xl font-bold text-[#101C2E]">
             {totalResidents}
           </p>
 
@@ -233,11 +229,11 @@ function ResidentsPage({ onViewResidentReports }) {
         </div>
 
         <div className="rounded-xl border border-[#ABEFC6] bg-white p-4 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]">
             {t("activeAccounts")}
           </p>
 
-          <p className="mt-1 text-2xl font-extrabold text-[#027A48]">
+          <p className="mt-1 text-2xl font-bold text-[#027A48]">
             {activeResidents}
           </p>
 
@@ -245,11 +241,11 @@ function ResidentsPage({ onViewResidentReports }) {
         </div>
 
         <div className="rounded-xl border border-[#C7D9EF] bg-white p-4 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]">
             {t("verifiedResidents")}
           </p>
 
-          <p className="mt-1 text-2xl font-extrabold text-[#174A86]">
+          <p className="mt-1 text-2xl font-bold text-[#174A86]">
             {verifiedResidents}
           </p>
 
@@ -259,11 +255,11 @@ function ResidentsPage({ onViewResidentReports }) {
         </div>
 
         <div className="rounded-xl border border-[#E4E7EC] bg-white p-4 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]">
             {t("reportsSubmitted")}
           </p>
 
-          <p className="mt-1 text-2xl font-extrabold text-[#101C2E]">
+          <p className="mt-1 text-2xl font-bold text-[#101C2E]">
             {totalReports}
           </p>
 
@@ -343,7 +339,7 @@ function ResidentsPage({ onViewResidentReports }) {
                 <button
                   type="button"
                   onClick={loadResidents}
-                  className="mt-4 rounded-lg bg-[#1F5FA6] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#6D32D6]"
+                  className="mt-4 rounded-lg bg-[#1F5FA6] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#1F5FA6]"
                 >
                   {t("tryAgainResidents")}
                 </button>
@@ -358,27 +354,27 @@ function ResidentsPage({ onViewResidentReports }) {
                 <table className="w-full min-w-[760px] border-collapse">
                   <thead className="sticky top-0 z-10 bg-[#F8FAFC]">
                     <tr className="border-b border-[#E4E7EC]">
-                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
+                      <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#667085]">
                         {t("resident")}
                       </th>
 
-                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
+                      <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#667085]">
                         {t("contact")}
                       </th>
 
-                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
+                      <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#667085]">
                         {t("role")}
                       </th>
 
-                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
+                      <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#667085]">
                         {t("verification")}
                       </th>
 
-                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
+                      <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#667085]">
                         {t("status")}
                       </th>
 
-                      <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
+                      <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wider text-[#667085]">
                         {t("reports")}
                       </th>
 
@@ -410,7 +406,7 @@ function ResidentsPage({ onViewResidentReports }) {
                                   {resident.name}
                                 </p>
 
-                                <p className="mt-0.5 text-[10px] text-[#667085]">
+                                <p className="mt-0.5 text-[11px] text-[#667085]">
                                   {resident.id}
                                 </p>
                               </div>
@@ -423,7 +419,7 @@ function ResidentsPage({ onViewResidentReports }) {
                               {resident.email}
                             </p>
 
-                            <p className="mt-0.5 text-[10px] text-[#98A2B3]">
+                            <p className="mt-0.5 text-[11px] text-[#98A2B3]">
                               {resident.mobile}
                             </p>
                           </td>
@@ -438,7 +434,7 @@ function ResidentsPage({ onViewResidentReports }) {
                           {/* VERIFICATION */}
                           <td className="px-4 py-3">
                             <span
-                              className={`rounded-full border px-2 py-1 text-[10px] font-bold ${
+                              className={`rounded-full border px-2 py-1 text-[11px] font-bold ${
                                 verificationStyles[resident.verification]
                               }`}
                             >
@@ -449,7 +445,7 @@ function ResidentsPage({ onViewResidentReports }) {
                           {/* STATUS */}
                           <td className="px-4 py-3">
                             <span
-                              className={`rounded-full px-2 py-1 text-[10px] font-bold ${
+                              className={`rounded-full px-2 py-1 text-[11px] font-bold ${
                                 statusStyles[resident.status]
                               }`}
                             >
@@ -500,7 +496,7 @@ function ResidentsPage({ onViewResidentReports }) {
                   {t("of")} {totalResidents} {t("residents").toLowerCase()}
                 </p>
 
-                <p className="hidden text-[10px] text-[#98A2B3] sm:block">
+                <p className="hidden text-[11px] text-[#98A2B3] sm:block">
                   {t("selectResidentToViewDetails")}
                 </p>
               </div>
@@ -520,7 +516,7 @@ function ResidentsPage({ onViewResidentReports }) {
                   </div>
 
                   <div className="min-w-0">
-                    <p className="truncate text-base font-extrabold text-[#101C2E]">
+                    <p className="truncate text-base font-bold text-[#101C2E]">
                       {selectedResident.name}
                     </p>
 
@@ -532,7 +528,7 @@ function ResidentsPage({ onViewResidentReports }) {
 
                 <div className="mt-4 flex items-center gap-2">
                   <span
-                    className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                    className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
                       statusStyles[selectedResident.status]
                     }`}
                   >
@@ -540,7 +536,7 @@ function ResidentsPage({ onViewResidentReports }) {
                   </span>
 
                   <span
-                    className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${
+                    className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${
                       verificationStyles[selectedResident.verification]
                     }`}
                   >
@@ -554,13 +550,13 @@ function ResidentsPage({ onViewResidentReports }) {
                 <div className="space-y-5">
                   {/* CONTACT */}
                   <div>
-                    <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-[#1F5FA6]">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#1F5FA6]">
                       {t("contactInformation")}
                     </h3>
 
                     <div className="mt-3 space-y-3">
                       <div>
-                        <p className="text-[10px] font-bold uppercase text-[#98A2B3]">
+                        <p className="text-[11px] font-bold uppercase text-[#98A2B3]">
                           {t("emailAddress")}
                         </p>
 
@@ -570,7 +566,7 @@ function ResidentsPage({ onViewResidentReports }) {
                       </div>
 
                       <div>
-                        <p className="text-[10px] font-bold uppercase text-[#98A2B3]">
+                        <p className="text-[11px] font-bold uppercase text-[#98A2B3]">
                           {t("mobileNumber")}
                         </p>
 
@@ -580,7 +576,7 @@ function ResidentsPage({ onViewResidentReports }) {
                       </div>
 
                       <div>
-                        <p className="text-[10px] font-bold uppercase text-[#98A2B3]">
+                        <p className="text-[11px] font-bold uppercase text-[#98A2B3]">
                           {t("address")}
                         </p>
 
@@ -593,23 +589,23 @@ function ResidentsPage({ onViewResidentReports }) {
 
                   {/* ACCOUNT */}
                   <div className="border-t border-[#E4E7EC] pt-5">
-                    <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-[#1F5FA6]">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#1F5FA6]">
                       {t("accountInformation")}
                     </h3>
 
                     <div className="mt-3 grid grid-cols-2 gap-3">
                       <div className="rounded-lg border border-[#E4E7EC] bg-[#F8FAFC] p-3">
-                        <p className="text-[9px] font-bold uppercase text-[#98A2B3]">
+                        <p className="text-[11px] font-bold uppercase text-[#98A2B3]">
                           {t("reports")}
                         </p>
 
-                        <p className="mt-1 text-lg font-extrabold text-[#101C2E]">
+                        <p className="mt-1 text-lg font-bold text-[#101C2E]">
                           {selectedResident.reports}
                         </p>
                       </div>
 
                       <div className="rounded-lg border border-[#E4E7EC] bg-[#F8FAFC] p-3">
-                        <p className="text-[9px] font-bold uppercase text-[#98A2B3]">
+                        <p className="text-[11px] font-bold uppercase text-[#98A2B3]">
                           {t("registered")}
                         </p>
 
@@ -620,7 +616,7 @@ function ResidentsPage({ onViewResidentReports }) {
                     </div>
 
                     <div className="mt-3">
-                      <p className="text-[10px] font-bold uppercase text-[#98A2B3]">
+                      <p className="text-[11px] font-bold uppercase text-[#98A2B3]">
                         {t("accountRole")}
                       </p>
 
@@ -632,7 +628,7 @@ function ResidentsPage({ onViewResidentReports }) {
 
                   {/* REPORT ACTIVITY */}
                   <div className="border-t border-[#E4E7EC] pt-5">
-                    <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-[#1F5FA6]">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#1F5FA6]">
                       {t("reportActivity")}
                     </h3>
 
@@ -674,7 +670,7 @@ function ResidentsPage({ onViewResidentReports }) {
                       type="button"
                       onClick={() => handleVerification("Verified")}
                       disabled={verificationLoading}
-                      className="rounded-lg bg-[#1F5FA6] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#6D38D9] disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-lg bg-[#1F5FA6] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#1F5FA6] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {verificationLoading ? "Updating..." : "Approve"}
                     </button>

@@ -162,13 +162,9 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
       {/* PAGE HEADER */}
-      <div className="flex shrink-0 items-start justify-between gap-4">
+      <div className="flex shrink-0 flex-wrap items-start justify-between gap-3 sm:gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#1F5FA6]">
-            {t("management")}
-          </p>
-
-          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[#101C2E]">
+          <h1 className="text-2xl font-bold tracking-tight text-[#101C2E]">
             {t("personnelPageTitle")}
           </h1>
 
@@ -189,11 +185,11 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
       {/* SUMMARY */}
       <div className="grid shrink-0 grid-cols-2 gap-3 xl:grid-cols-4">
         <div className="rounded-xl border border-[#E4E7EC] bg-white p-4 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]">
             {t("totalPersonnel")}
           </p>
 
-          <p className="mt-1 text-2xl font-extrabold text-[#101C2E]">
+          <p className="mt-1 text-2xl font-bold text-[#101C2E]">
             {totalPersonnel}
           </p>
 
@@ -203,11 +199,11 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
         </div>
 
         <div className="rounded-xl border border-[#ABEFC6] bg-white p-4 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]">
             {t("activePersonnel")}
           </p>
 
-          <p className="mt-1 text-2xl font-extrabold text-[#027A48]">
+          <p className="mt-1 text-2xl font-bold text-[#027A48]">
             {activePersonnel}
           </p>
 
@@ -217,11 +213,11 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
         </div>
 
         <div className="rounded-xl border border-[#ABEFC6] bg-white p-4 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]">
             {t("available")}
           </p>
 
-          <p className="mt-1 text-2xl font-extrabold text-[#027A48]">
+          <p className="mt-1 text-2xl font-bold text-[#027A48]">
             {availablePersonnel}
           </p>
 
@@ -231,11 +227,11 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
         </div>
 
         <div className="rounded-xl border border-[#C7D9EF] bg-white p-4 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]">
             {t("assigned")}
           </p>
 
-          <p className="mt-1 text-2xl font-extrabold text-[#174A86]">
+          <p className="mt-1 text-2xl font-bold text-[#174A86]">
             {assignedPersonnel}
           </p>
 
@@ -295,27 +291,27 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
               <table className="w-full min-w-[820px] border-collapse">
                 <thead className="sticky top-0 z-10 bg-[#F8FAFC]">
                   <tr className="border-b border-[#E4E7EC]">
-                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
+                    <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#667085]">
                       {t("personnel")}
                     </th>
 
-                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
+                    <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#667085]">
                       {t("role")}
                     </th>
 
-                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
+                    <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#667085]">
                       {t("team")}
                     </th>
 
-                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
+                    <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#667085]">
                       {t("availability")}
                     </th>
 
-                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
+                    <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#667085]">
                       {t("status")}
                     </th>
 
-                    <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-[0.07em] text-[#667085]">
+                    <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wider text-[#667085]">
                       {t("assignment")}
                     </th>
 
@@ -351,7 +347,7 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
                                 {person.name}
                               </p>
 
-                              <p className="mt-0.5 text-[10px] text-[#667085]">
+                              <p className="mt-0.5 text-[11px] text-[#667085]">
                                 {person.id}
                               </p>
                             </div>
@@ -363,7 +359,7 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
                             {person.role}
                           </p>
 
-                          <p className="mt-0.5 text-[10px] text-[#667085]">
+                          <p className="mt-0.5 text-[11px] text-[#667085]">
                             {person.mobile}
                           </p>
                         </td>
@@ -376,7 +372,7 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
 
                         <td className="px-4 py-3">
                           <span
-                            className={`rounded-full border px-2 py-1 text-[10px] font-bold ${
+                            className={`rounded-full border px-2 py-1 text-[11px] font-bold ${
                               availabilityStyles[person.availability]
                             }`}
                           >
@@ -386,7 +382,7 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
 
                         <td className="px-4 py-3">
                           <span
-                            className={`rounded-full px-2 py-1 text-[10px] font-bold ${
+                            className={`rounded-full px-2 py-1 text-[11px] font-bold ${
                               statusStyles[person.status]
                             }`}
                           >
@@ -441,7 +437,7 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
               {t("of")} {totalPersonnel} {t("personnel").toLowerCase()}
             </p>
 
-            <p className="hidden text-[10px] text-[#98A2B3] sm:block">
+            <p className="hidden text-[11px] text-[#98A2B3] sm:block">
               {t("selectPersonnelToViewDetails")}
             </p>
           </div>
@@ -458,7 +454,7 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
                   </div>
 
                   <div className="min-w-0">
-                    <p className="truncate text-base font-extrabold text-[#101C2E]">
+                    <p className="truncate text-base font-bold text-[#101C2E]">
                       {selectedPersonnel.name}
                     </p>
 
@@ -470,7 +466,7 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
 
                 <div className="mt-4 flex items-center gap-2">
                   <span
-                    className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                    className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
                       statusStyles[selectedPersonnel.status]
                     }`}
                   >
@@ -478,7 +474,7 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
                   </span>
 
                   <span
-                    className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${
+                    className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${
                       availabilityStyles[
                         selectedPersonnel.availability
                       ]
@@ -494,13 +490,13 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
               <div className="min-h-0 flex-1 overflow-auto p-5">
                 <div className="space-y-5">
                   <div>
-                    <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-[#1F5FA6]">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#1F5FA6]">
                       {t("personnelInformation")}
                     </h3>
 
                     <div className="mt-3 space-y-3">
                       <div>
-                        <p className="text-[10px] font-bold uppercase text-[#98A2B3]">
+                        <p className="text-[11px] font-bold uppercase text-[#98A2B3]">
                           {t("role")}
                         </p>
 
@@ -510,7 +506,7 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
                       </div>
 
                       <div>
-                        <p className="text-[10px] font-bold uppercase text-[#98A2B3]">
+                        <p className="text-[11px] font-bold uppercase text-[#98A2B3]">
                           {t("responseTeam")}
                         </p>
 
@@ -520,7 +516,7 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
                       </div>
 
                       <div>
-                        <p className="text-[10px] font-bold uppercase text-[#98A2B3]">
+                        <p className="text-[11px] font-bold uppercase text-[#98A2B3]">
                           {t("mobileNumber")}
                         </p>
 
@@ -532,18 +528,18 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
                   </div>
 
                   <div className="border-t border-[#E4E7EC] pt-5">
-                    <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-[#1F5FA6]">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#1F5FA6]">
                       {t("currentAssignment")}
                     </h3>
 
                     <div className="mt-3 rounded-lg border border-[#E4E7EC] bg-[#F8FAFC] p-4">
                       {selectedPersonnel.assignment ? (
                         <>
-                          <p className="text-[10px] font-bold uppercase text-[#98A2B3]">
+                          <p className="text-[11px] font-bold uppercase text-[#98A2B3]">
                             {t("activeReport")}
                           </p>
 
-                          <p className="mt-1 text-sm font-extrabold text-[#174A86]">
+                          <p className="mt-1 text-sm font-bold text-[#174A86]">
                             {selectedPersonnel.assignment}
                           </p>
 
@@ -569,13 +565,13 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
                   </div>
 
                   <div className="border-t border-[#E4E7EC] pt-5">
-                    <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-[#1F5FA6]">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#1F5FA6]">
                       {t("accountInformation")}
                     </h3>
 
                     <div className="mt-3 grid grid-cols-2 gap-3">
                       <div className="rounded-lg border border-[#E4E7EC] bg-[#F8FAFC] p-3">
-                        <p className="text-[9px] font-bold uppercase text-[#98A2B3]">
+                        <p className="text-[11px] font-bold uppercase text-[#98A2B3]">
                           {t("status")}
                         </p>
 
@@ -585,7 +581,7 @@ function PersonnelPage({ onOpenReport, reportUpdates }) {
                       </div>
 
                       <div className="rounded-lg border border-[#E4E7EC] bg-[#F8FAFC] p-3">
-                        <p className="text-[9px] font-bold uppercase text-[#98A2B3]">
+                        <p className="text-[11px] font-bold uppercase text-[#98A2B3]">
                           {t("joined")}
                         </p>
 

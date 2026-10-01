@@ -79,7 +79,7 @@ function getStatusBadgeStyle(status) {
       return "bg-[#EEF8FF] text-[#2563EB]";
 
     case "In Progress":
-      return "bg-[#F3EEFF] text-[#6F32D8]";
+      return "bg-[#EAF1FA] text-[#1F5FA6]";
 
     case "Pending Response":
       return "bg-[#FFF0F3] text-[#D90429]";
@@ -98,7 +98,7 @@ const statConfig = [
     titleKey: "totalReports",
     icon: FileText,
     accent: "#1F5FA6",
-    iconBg: "bg-[#F3EEFF]",
+    iconBg: "bg-[#EAF1FA]",
     iconColor: "text-[#1F5FA6]",
   },
 
@@ -474,13 +474,9 @@ export default function Dashboard({
            HEADER
         ===================================================== */}
 
-        <div className="flex shrink-0 items-start justify-between gap-4">
+        <div className="flex shrink-0 flex-wrap items-start justify-between gap-3 sm:gap-4">
           <div>
-            <p className="mb-1 text-[11px] font-bold tracking-wide text-[#45648B]">
-              {t("dashboardAdminLabel")}
-            </p>
-
-           <h1 className="text-[24px] font-extrabold leading-tight text-[var(--text-primary)]">
+            <h1 className="text-[24px] font-bold leading-tight text-[var(--text-primary)]">
   {t(greetingKey)}
 </h1>
 
@@ -492,7 +488,7 @@ export default function Dashboard({
           {/* DATE CARD */}
 
           <div className="hidden items-center gap-3 rounded-xl border border-[var(--border-mist)] bg-white px-3.5 py-2.5 shadow-sm md:flex">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#F3EEFF] text-[#1F5FA6]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#EAF1FA] text-[#1F5FA6]">
               <CalendarDays size={19} />
             </div>
 
@@ -527,7 +523,7 @@ export default function Dashboard({
                       {t(stat.titleKey)}
                     </p>
 
-                    <p className="mt-1 text-[26px] font-extrabold leading-none text-[var(--text-primary)]">
+                    <p className="mt-1 text-[26px] font-bold leading-none text-[var(--text-primary)]">
                       {stat.value}
                     </p>
                   </div>
@@ -605,7 +601,7 @@ export default function Dashboard({
                     <button
                       type="button"
                       onClick={() => onNavigate?.("report-details", report)}
-                      className="shrink-0 rounded-lg bg-[#1F5FA6] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#6F32D8]"
+                      className="shrink-0 rounded-lg bg-[#1F5FA6] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#1F5FA6]"
                     >
                       View
                     </button>
@@ -670,7 +666,7 @@ export default function Dashboard({
                           </div>
 
                           <div>
-                            <h3 className="text-[21px] font-extrabold">
+                            <h3 className="text-[21px] font-bold">
                               {activeIncident.title ||
                                 activeIncident.type ||
                                 t("emergencyIncident")}
@@ -688,7 +684,7 @@ export default function Dashboard({
                             {t("currentStatus")}
                           </p>
 
-                          <p className="mt-1 text-lg font-extrabold">
+                          <p className="mt-1 text-lg font-bold">
                             {activeIncident.status}
                           </p>
                         </div>
@@ -699,7 +695,7 @@ export default function Dashboard({
 
                     <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
                       <div className="rounded-lg bg-[#F8FAFC] p-3">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                        <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                           {t("incidentId")}
                         </p>
 
@@ -710,7 +706,7 @@ export default function Dashboard({
                       </div>
 
                       <div className="rounded-lg bg-[#F8FAFC] p-3">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                        <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                           {t("location")}
                         </p>
 
@@ -720,7 +716,7 @@ export default function Dashboard({
                       </div>
 
                       <div className="rounded-lg bg-[#F8FAFC] p-3">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                        <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                           {t("status")}
                         </p>
 
@@ -730,7 +726,7 @@ export default function Dashboard({
                       </div>
 
                       <div className="rounded-lg bg-[#FFF0F3] p-3">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-[#B42318]">
+                        <p className="text-[11px] font-bold uppercase tracking-wider text-[#B42318]">
                           {t("priority")}
                         </p>
 
@@ -802,11 +798,11 @@ export default function Dashboard({
                     }}
                   >
                     <div className="absolute inset-[21px] flex flex-col items-center justify-center rounded-full bg-white">
-                      <span className="text-[25px] font-extrabold text-[var(--text-primary)]">
+                      <span className="text-[25px] font-bold text-[var(--text-primary)]">
                         {priorityTotal}
                       </span>
 
-                      <span className="text-[10px] text-[var(--text-muted)]">
+                      <span className="text-[11px] text-[var(--text-muted)]">
                         {t("prioritizedReportsLabel")}
                       </span>
                     </div>
@@ -869,7 +865,7 @@ export default function Dashboard({
                   text-sm font-semibold
                   text-[var(--brand-primary)]
                   transition
-                  hover:text-[#6F32D8]
+                  hover:text-[#1F5FA6]
                 "
               >
                 {t("viewAllUpdates")} →

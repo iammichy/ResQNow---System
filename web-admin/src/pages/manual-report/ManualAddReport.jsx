@@ -178,13 +178,9 @@ function ManualAddReport() {
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
       {/* PAGE HEADER */}
-      <div className="flex shrink-0 items-start justify-between gap-4 pb-4">
+      <div className="flex shrink-0 flex-wrap items-start justify-between gap-3 sm:gap-4 pb-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#1F5FA6]">
-            Report Management
-          </p>
-
-          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[#101C2E]">
+          <h1 className="text-2xl font-bold tracking-tight text-[#101C2E]">
             Add Manual Report
           </h1>
 
@@ -427,7 +423,7 @@ function ManualAddReport() {
               htmlFor="manual-report-photo"
               className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-[#C7CBD4] bg-[#FCFCFD] px-6 py-8 text-center transition hover:border-[#1F5FA6] hover:bg-[#F9F7FF]"
             >
-              <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#F0EBFF] text-[#1F5FA6]">
+              <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#EAF1FA] text-[#1F5FA6]">
                 <UploadIcon />
               </div>
 
@@ -492,7 +488,7 @@ function ManualAddReport() {
                 type="button"
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="h-10 rounded-lg bg-[#1F5FA6] px-5 text-xs font-bold text-white shadow-sm transition hover:bg-[#7138DB] disabled:cursor-not-allowed disabled:opacity-60"
+                className="h-10 rounded-lg bg-[#1F5FA6] px-5 text-xs font-bold text-white shadow-sm transition hover:bg-[#1F5FA6] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSubmitting ? "Submitting..." : "Submit Report"}
               </button>
@@ -508,12 +504,12 @@ function FormSection({ number, title, description, children }) {
   return (
     <section className="rounded-xl border border-[#E4E7EC] bg-white p-4 shadow-sm">
       <div className="mb-4 flex items-start gap-3">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#F0EBFF] text-[10px] font-extrabold text-[#1F5FA6]">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#EAF1FA] text-[11px] font-bold text-[#1F5FA6]">
           {number}
         </div>
 
         <div>
-          <h2 className="text-base font-extrabold text-[#101C2E]">{title}</h2>
+          <h2 className="text-base font-bold text-[#101C2E]">{title}</h2>
 
           <p className="mt-0.5 text-xs leading-4 text-[#667085]">
             {description}
@@ -601,7 +597,7 @@ function AssessmentField({
         <label className="text-xs font-bold text-[#344054]">{label}</label>
 
         {critical && (
-          <span className="rounded-full bg-[#FEECEC] px-2 py-0.5 text-[9px] font-bold text-[#C53030]">
+          <span className="rounded-full bg-[#FEECEC] px-2 py-0.5 text-[11px] font-bold text-[#C53030]">
             Attention
           </span>
         )}

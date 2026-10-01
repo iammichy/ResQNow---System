@@ -21,7 +21,7 @@ function InfoItem({ label, value }) {
 
   return (
     <div>
-      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
+      <p className="text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]">
         {label}
       </p>
 
@@ -191,7 +191,7 @@ function Verification({ onVerificationUpdate }) {
       {/* Page header */}
 
       <div>
-        <h1 className="text-2xl font-extrabold text-[#101C2E]">
+        <h1 className="text-2xl font-bold text-[#101C2E]">
           {t("verificationCenter")}
         </h1>
 
@@ -207,7 +207,7 @@ function Verification({ onVerificationUpdate }) {
             {t("pendingReports")}
           </p>
 
-          <p className="mt-3 text-3xl font-extrabold text-[#101C2E]">
+          <p className="mt-3 text-3xl font-bold text-[#101C2E]">
             {pendingCount}
           </p>
         </div>
@@ -218,7 +218,7 @@ function Verification({ onVerificationUpdate }) {
 
         <div className="rounded-xl border border-[#E4E7EC] bg-white p-5">
           <div className="mb-4">
-            <h2 className="text-lg font-extrabold text-[#101C2E]">
+            <h2 className="text-lg font-bold text-[#101C2E]">
               {t("pendingReports")}
             </h2>
 
@@ -283,7 +283,7 @@ function Verification({ onVerificationUpdate }) {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-extrabold text-[#101C2E]">
+                    <p className="text-sm font-bold text-[#101C2E]">
                       {report.id}
                     </p>
 
@@ -326,7 +326,7 @@ function Verification({ onVerificationUpdate }) {
                     {selectedReport.id}
                   </p>
 
-                  <h2 className="mt-1 text-2xl font-extrabold text-[#101C2E]">
+                  <h2 className="mt-1 text-2xl font-bold text-[#101C2E]">
                     {selectedReport.type}
                   </h2>
 
@@ -389,7 +389,7 @@ function Verification({ onVerificationUpdate }) {
               </div>
 
               <div className="mt-6">
-                <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#98A2B3]">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]">
                   {t("description")}
                 </p>
 
@@ -410,7 +410,7 @@ function Verification({ onVerificationUpdate }) {
                 <button
                   type="button"
                   onClick={handleVerify}
-                  className="rounded-lg bg-[#1F5FA6] px-5 py-3 text-sm font-bold text-white hover:bg-[#7035DB]"
+                  className="rounded-lg bg-[#1F5FA6] px-5 py-3 text-sm font-bold text-white hover:bg-[#1F5FA6]"
                 >
                   {t("verifyReport")}
                 </button>
