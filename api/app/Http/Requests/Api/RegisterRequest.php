@@ -97,6 +97,18 @@ class RegisterRequest extends FormRequest
                 'boolean',
             ],
 
+            'emergencyContactName' => [
+                'nullable',
+                'string',
+                'max:150',
+            ],
+
+            'emergencyContactNumber' => [
+                'nullable',
+                'string',
+                'regex:/^(09|\+639)\d{9}$/',
+            ],
+
             'homeLatitude' => [
                 'nullable',
                 'numeric',

@@ -19,6 +19,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'has_pregnant_person',
     'home_latitude',
     'home_longitude',
+    'emergency_contact_name',
+    'emergency_contact_number',
 ])]
 class ResidentProfile extends Model
 {

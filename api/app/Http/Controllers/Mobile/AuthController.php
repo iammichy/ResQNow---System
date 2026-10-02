@@ -45,6 +45,8 @@ class AuthController extends Controller
 
                 $user->profile()->create([
                     'contact_number' => $data['contactNumber'],
+                    'emergency_contact_name' => $data['emergencyContactName'] ?? null,
+                    'emergency_contact_number' => $data['emergencyContactNumber'] ?? null,
                     'purok' => $data['purok'],
                     'address' => $data['address'],
                     'household_count' => $data['householdCount'] ?? 1,

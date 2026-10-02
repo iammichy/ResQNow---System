@@ -37,6 +37,12 @@ class UserResource extends JsonResource
             'contactNumber' =>
                 $profile?->contact_number,
 
+            'emergencyContactName' =>
+                $profile?->emergency_contact_name,
+
+            'emergencyContactNumber' =>
+                $profile?->emergency_contact_number,
+
             'address' =>
                 $profile?->address,
 

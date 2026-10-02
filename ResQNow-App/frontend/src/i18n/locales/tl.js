@@ -963,6 +963,33 @@ const tl = {
 
   // ============ REGISTER ============
   register: {
+    personalHint: 'Gamitin ang tunay mong pangalan. Itinutugma ito ng barangay sa talaan ng sambahayan.',
+    locationHint: 'Tinutulungan ng pin ang mga responder na mahanap agad ang bahay mo. Puwede mo itong baguhin mamaya.',
+    householdHint: 'Para maihanda ng barangay ang tamang tulong kapag may emergency.',
+    householdInvalid: 'Maglagay ng numero mula 1 hanggang 100',
+    emergencyContact: 'Emergency contact',
+    emergencyContactHint: 'Taong matatawagan namin kung hindi ka namin makontak. Opsyonal pero inirerekomenda.',
+    contactName: 'Pangalan ng contact',
+    contactNamePlaceholder: 'Kapamilya o kapitbahay',
+    accountHint: 'Mag-sign in gamit ang email mo at ang password na ito.',
+    optional: 'opsyonal',
+    loadingMap: 'Niloload ang mapa…',
+    useMyLocation: 'Gamitin ang kasalukuyan kong lokasyon',
+    locating: 'Hinahanap ka…',
+    removePin: 'Alisin ang pin',
+    mapHint: 'I-tap ang mapa para maglagay ng pin, tapos i-drag ito sa eksaktong bahay mo.',
+    locationUnavailable: 'Hindi available ang lokasyon sa device na ito.',
+    locationDenied: 'Hindi namin makuha ang lokasyon mo. I-tap na lang ang mapa para maglagay ng pin.',
+    haveAccount: 'Nakarehistro ka na?',
+    privacy: 'Ang mga detalye mo ay gagamitin lang ng mga tauhan ng barangay para i-verify ang account mo at tumugon sa mga report mo. Hindi ito ipinapakita sa publiko.',
+    heroTitle: 'Ang emergency response ng barangay mo, nasa bulsa mo.',
+    heroText: 'Magrehistro nang isang beses para mag-report, magpadala ng SOS at tumanggap ng anunsyo mula sa Barangay Camunatan.',
+    stepCreate: 'Gumawa ng account',
+    stepCreateText: 'Ilagay ang detalye ng sambahayan at i-pin ang bahay mo sa mapa.',
+    stepVerify: 'Beripikasyon ng barangay',
+    stepVerifyText: 'Rerepasuhin ng mga tauhan ng barangay ang detalye mo bago ka makapag-sign in.',
+    stepReport: 'Magsimulang mag-report',
+    stepReportText: 'Magpadala ng SOS o report at sundan ang bawat update.',
     createAccount:
       'Gumawa ng Account',
 
