@@ -7,7 +7,7 @@ import {
   useState,
 } from 'react';
 
-import { getAuthToken } from '../services/api';
+import { clearAuthToken, getAuthToken } from '../services/api';
 import {
   getCurrentUser,
   loginResident,
@@ -15,6 +15,10 @@ import {
   registerResident,
   updateResidentProfile,
 } from '../services/authService';
+
+// Only residents and responders use this app; administrators sign in at
+// the web admin.
+const APP_ROLES = ['resident', 'responder'];
 
 const AuthContext =
   createContext(null);
@@ -61,9 +65,15 @@ export function AuthProvider({
           await getCurrentUser();
 
         if (isMounted) {
-          setUser(
-            currentUser
-          );
+          if (APP_ROLES.includes(currentUser?.role)) {
+            setUser(
+              currentUser
+            );
+          } else {
+            // A token from another portal (for example an admin): drop it.
+            clearAuthToken();
+            setUser(null);
+          }
         }
       } catch (error) {
         if (isMounted) {
@@ -106,6 +116,19 @@ export function AuthProvider({
       await loginResident(
         credentials
       );
+
+    if (!APP_ROLES.includes(loggedInUser?.role)) {
+      clearAuthToken();
+
+      const rejected = new Error(
+        'Administrator accounts sign in at the ResQNow web admin.'
+      );
+
+      rejected.status = 403;
+      rejected.data = { adminPortal: true };
+
+      throw rejected;
+    }
 
     setUser(
       loggedInUser
