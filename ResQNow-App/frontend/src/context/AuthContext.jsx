@@ -7,6 +7,7 @@ import {
   useState,
 } from 'react';
 
+import { getAuthToken } from '../services/api';
 import {
   getCurrentUser,
   loginResident,
@@ -44,6 +45,16 @@ export function AuthProvider({
       localStorage.removeItem(
         'resqnow_resident'
       );
+
+      // Signed out: skip the network round-trip entirely.
+      if (!getAuthToken()) {
+        if (isMounted) {
+          setUser(null);
+          setIsLoading(false);
+        }
+
+        return;
+      }
 
       try {
         const currentUser =

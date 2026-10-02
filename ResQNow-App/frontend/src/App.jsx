@@ -1,3 +1,4 @@
+import { Suspense, lazy } from 'react';
 import {
   BrowserRouter,
   Navigate,
@@ -15,28 +16,28 @@ import LoadingSpinner from './components/common/LoadingSpinner';
 import Login from './components/resident/Login';
 import Register from './components/resident/Register';
 import ResidentLayout from './components/resident/ResidentLayout';
-import Dashboard from './components/resident/Dashboard';
-import SubmitReportChoice from './components/resident/SubmitReportChoice';
-import EmergencyReport from './components/resident/EmergencyReport';
-import NonEmergencyReport from './components/resident/NonEmergencyReport';
-import TrackReports from './components/resident/TrackReports';
-import ReportDetail from './components/resident/ReportDetail';
-import EmergencyContacts from './components/resident/EmergencyContacts';
-import Notifications from './components/resident/Notifications';
-import Settings from './components/resident/Settings';
-import SafetyTips from './components/resident/SafetyTips';
-import Updates from './components/resident/Updates';
-import UpdateDetail from './components/resident/UpdateDetail';
+const Dashboard = lazy(() => import('./components/resident/Dashboard'));
+const SubmitReportChoice = lazy(() => import('./components/resident/SubmitReportChoice'));
+const EmergencyReport = lazy(() => import('./components/resident/EmergencyReport'));
+const NonEmergencyReport = lazy(() => import('./components/resident/NonEmergencyReport'));
+const TrackReports = lazy(() => import('./components/resident/TrackReports'));
+const ReportDetail = lazy(() => import('./components/resident/ReportDetail'));
+const EmergencyContacts = lazy(() => import('./components/resident/EmergencyContacts'));
+const Notifications = lazy(() => import('./components/resident/Notifications'));
+const Settings = lazy(() => import('./components/resident/Settings'));
+const SafetyTips = lazy(() => import('./components/resident/SafetyTips'));
+const Updates = lazy(() => import('./components/resident/Updates'));
+const UpdateDetail = lazy(() => import('./components/resident/UpdateDetail'));
 
 import ResponderLogin from './components/responder/ResponderLogin';
 import ResponderLayout from './components/responder/ResponderLayout';
-import ResponderDashboard from './components/responder/ResponderDashboard';
-import ResponderTrack from './components/responder/ResponderTrack';
-import ResponderFullMap from './components/responder/ResponderFullMap';
-import ResponderIncidentDetail from './components/responder/ResponderIncidentDetail';
-import ResponderContacts from './components/responder/ResponderContacts';
-import ResponderUpdates from './components/responder/ResponderUpdates';
-import ResponderProfile from './components/responder/ResponderProfile';
+const ResponderDashboard = lazy(() => import('./components/responder/ResponderDashboard'));
+const ResponderTrack = lazy(() => import('./components/responder/ResponderTrack'));
+const ResponderFullMap = lazy(() => import('./components/responder/ResponderFullMap'));
+const ResponderIncidentDetail = lazy(() => import('./components/responder/ResponderIncidentDetail'));
+const ResponderContacts = lazy(() => import('./components/responder/ResponderContacts'));
+const ResponderUpdates = lazy(() => import('./components/responder/ResponderUpdates'));
+const ResponderProfile = lazy(() => import('./components/responder/ResponderProfile'));
 
 function homeForRole(role) {
   if (role === 'responder') {
@@ -143,7 +144,8 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
+        <Suspense fallback={<LoadingSpinner message="Loading..." />}>
+<Routes>
 
           {/* ============ PUBLIC ============ */}
 
@@ -299,6 +301,7 @@ export default function App() {
           />
 
         </Routes>
+</Suspense>
       </AuthProvider>
     </BrowserRouter>
   );

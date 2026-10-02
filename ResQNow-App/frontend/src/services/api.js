@@ -42,6 +42,13 @@ export function clearAuthToken() {
   setAuthToken(null);
 }
 
+// ============ WAKE SERVER ============
+// Render's free tier sleeps when idle. Ping the health check on app open so
+// the server is already awake by the time the user logs in or submits.
+export function wakeServer() {
+  fetch(`${API_URL}/up`, { mode: 'no-cors' }).catch(() => {});
+}
+
 // ============ RESPONSE HELPER ============
 // Read JSON response when available
 async function readResponse(response) {
