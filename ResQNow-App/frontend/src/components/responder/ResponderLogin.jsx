@@ -13,6 +13,7 @@ import {
 
 import { useAuth } from '../../context/AuthContext';
 import AuthAside from '../common/AuthAside';
+import { ADMIN_URL } from '../../services/api';
 
 const REMEMBER_KEY = 'resqnow_responder_email';
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -55,6 +56,7 @@ export default function ResponderLogin() {
   const [remember, setRemember] = useState(Boolean(remembered));
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [adminPortal, setAdminPortal] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -83,6 +85,7 @@ export default function ResponderLogin() {
 
     setIsSubmitting(true);
     setError('');
+    setAdminPortal(false);
 
     try {
       const account = await login({ email: cleanEmail, password });
@@ -96,6 +99,7 @@ export default function ResponderLogin() {
       writeRemembered(remember ? cleanEmail : '');
       navigate('/responder/dashboard', { replace: true });
     } catch (loginError) {
+      setAdminPortal(Boolean(loginError?.data?.adminPortal));
       setError(
         loginError?.message || 'Unable to sign in to the responder portal.'
       );
@@ -139,7 +143,20 @@ export default function ResponderLogin() {
               className="mt-6 flex items-start gap-2.5 rounded-md border border-[#FECDCA] bg-[#FEF3F2] px-3.5 py-3 text-sm text-[#B42318]"
             >
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>{error}</span>
+              <span>
+                {error}
+                {adminPortal && (
+                  <>
+                    {' '}
+                    <a
+                      href={ADMIN_URL}
+                      className="font-semibold underline"
+                    >
+                      Go to the web admin
+                    </a>
+                  </>
+                )}
+              </span>
             </div>
           )}
 

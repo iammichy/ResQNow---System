@@ -98,10 +98,17 @@ class AuthController extends Controller
             ], 422);
         }
 
+        if ($user->role === 'admin') {
+            return response()->json([
+                'message' => 'Administrator accounts sign in at the ResQNow web admin.',
+                'adminPortal' => true,
+            ], 403);
+        }
+
         if (
             ! in_array(
                 $user->role,
-                ['resident', 'responder', 'admin'],
+                ['resident', 'responder'],
                 true
             )
         ) {
