@@ -20,6 +20,7 @@ class Personnel extends Model
         'assignment',
         'location',
         'joined_at',
+        'user_id',
     ];
 
     protected function casts(): array

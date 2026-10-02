@@ -9,6 +9,9 @@ sed -ri "s/<VirtualHost \*:80>/<VirtualHost *:${PORT}>/" /etc/apache2/sites-avai
 php artisan config:clear
 php artisan migrate --force
 php artisan db:seed --class=AdminSeeder --force
+php artisan db:seed --class=ResponderSeeder --force
+php artisan db:seed --class=ContactDirectorySeeder --force
+php artisan storage:link || true
 php artisan config:cache
 php artisan route:cache
 

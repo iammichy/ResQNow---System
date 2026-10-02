@@ -256,3 +256,13 @@ Route::middleware('auth:sanctum')->group(function () {
     )->middleware('permission:personnel.manage');
 
 });
+
+
+/*
+|--------------------------------------------------------------------------
+| ResQNow Mobile App (resident + responder) — /api/app/*
+|--------------------------------------------------------------------------
+| Same database and users as the web admin. Bearer-token (Sanctum) auth.
+*/
+
+Route::prefix('app')->group(base_path('routes/mobile/api.php'));

@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use App\Models\Report;
 use App\Services\TriageService;
 use App\Services\NotificationService;
+use App\Support\ReportBridge;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -68,6 +69,13 @@ class ReportController extends Controller
             'status' => 'Success',
         ]);
 
+        ReportBridge::record(
+            $report,
+            'Verified',
+            'Your report has been verified by barangay personnel.',
+            $admin?->id
+        );
+
         return response()->json([
             'success' => true,
             'message' => 'Report verified successfully.',
@@ -109,6 +117,14 @@ class ReportController extends Controller
             'user_role' => $admin?->role,
             'status' => 'Success',
         ]);
+
+        ReportBridge::record(
+            $report,
+            'Pending Verification',
+            $validated['remarks'],
+            $admin?->id,
+            'Returned for review'
+        );
 
         return response()->json([
             'success' => true,

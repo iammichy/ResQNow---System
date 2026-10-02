@@ -175,6 +175,12 @@ $notificationService->notifyPersonnelAssignment(
     $personnel
 );
 
+\App\Support\ReportBridge::assigned(
+    $incident->fresh()->load('report'),
+    $personnel,
+    $admin
+);
+
     return response()->json([
         'success' => true,
         'message' => 'Personnel assigned to incident successfully.',
@@ -278,6 +284,11 @@ $notificationService->notifyPersonnelAssignment(
 }
 
     $admin = $request->user();
+
+    \App\Support\ReportBridge::incidentStatus(
+        $incident->fresh()->load('report'),
+        $admin
+    );
 
     AuditLog::create([
         'action' => 'Incident Status Updated',

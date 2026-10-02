@@ -39,3 +39,13 @@ services:
         value: stderr
       - key: MYSQL_ATTR_SSL_CA
         value: /etc/ssl/certs/ca-certificates.crt
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: RESPONDER_EMAIL     # optional: creates a responder account for the mobile app
+        sync: false
+      - key: RESPONDER_PASSWORD
+        sync: false
+      - key: RESPONDER_NAME
+        sync: false
