@@ -98,11 +98,12 @@ class AuthController extends Controller
             ], 422);
         }
 
+        // Administrators never sign in here. Answer exactly like a wrong
+        // password so the app reveals nothing about admin accounts.
         if ($user->role === 'admin') {
             return response()->json([
-                'message' => 'Administrator accounts sign in at the ResQNow web admin.',
-                'adminPortal' => true,
-            ], 403);
+                'message' => 'The email or password you entered is incorrect.',
+            ], 422);
         }
 
         if (

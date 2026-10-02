@@ -13,7 +13,6 @@ import {
 
 import { useAuth } from '../../context/AuthContext';
 import AuthAside from '../common/AuthAside';
-import { ADMIN_URL } from '../../services/api';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const REMEMBER_KEY = 'resqnow_remembered_email';
@@ -56,7 +55,6 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(Boolean(remembered));
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [adminPortal, setAdminPortal] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -96,7 +94,6 @@ export default function Login() {
 
     setIsSubmitting(true);
     setError('');
-    setAdminPortal(false);
 
     try {
       const user = await login({
@@ -111,7 +108,6 @@ export default function Login() {
         { replace: true }
       );
     } catch (loginError) {
-      setAdminPortal(Boolean(loginError?.data?.adminPortal));
       setError(
         loginError.status === 0
           ? loginError.message
@@ -149,20 +145,7 @@ export default function Login() {
               className="mt-6 flex items-start gap-2.5 rounded-md border border-[#FECDCA] bg-[#FEF3F2] px-3.5 py-3 text-sm text-[#B42318]"
             >
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>
-                {error}
-                {adminPortal && (
-                  <>
-                    {' '}
-                    <a
-                      href={ADMIN_URL}
-                      className="font-semibold underline"
-                    >
-                      Go to the web admin
-                    </a>
-                  </>
-                )}
-              </span>
+              <span>{error}</span>
             </div>
           )}
 

@@ -121,11 +121,10 @@ export function AuthProvider({
       clearAuthToken();
 
       const rejected = new Error(
-        'Administrator accounts sign in at the ResQNow web admin.'
+        'The email or password you entered is incorrect.'
       );
 
-      rejected.status = 403;
-      rejected.data = { adminPortal: true };
+      rejected.status = 422;
 
       throw rejected;
     }

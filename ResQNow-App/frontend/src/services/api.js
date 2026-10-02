@@ -13,11 +13,6 @@ function toAppEndpoint(endpoint) {
     : endpoint;
 }
 
-// Where administrators sign in (they do not use this app).
-export const ADMIN_URL = (
-  import.meta.env.VITE_ADMIN_URL || 'https://resqnowph.vercel.app'
-).replace(/\/+$/, '');
-
 // ============ AUTH TOKEN ============
 // The app (Vercel) and the API (Render) are different sites, so a cookie
 // session would be blocked as third-party. Sanctum bearer tokens are used.
