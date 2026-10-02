@@ -15,6 +15,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -93,6 +94,15 @@ class AuthController extends Controller
             ! $user ||
             ! Hash::check($data['password'], $user->password)
         ) {
+            // Server log only (never sent to the client): why the sign-in failed.
+            Log::warning('app.login failed', [
+                'reason' => $user ? 'bad_password' : 'no_such_user',
+                'email' => strtolower($data['email']),
+                'role' => $user?->role,
+                'hash_prefix' => $user ? substr((string) $user->password, 0, 7) : null,
+                'hash_length' => $user ? strlen((string) $user->password) : null,
+            ]);
+
             return response()->json([
                 'message' => 'The email or password you entered is incorrect.',
             ], 422);
