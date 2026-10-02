@@ -403,6 +403,20 @@ export default function NonEmergencyReport() {
 
   // ============ REVIEW ============
 
+  // Bring the field that needs attention into view. Jumping to the top of the
+  // page (where the banner is) made "Review Report" feel like a dead button.
+  const focusSection = (id) => {
+    window.setTimeout(() => {
+      const element = document.getElementById(id);
+
+      element?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+
+      if (typeof element?.focus === 'function') {
+        element.focus({ preventScroll: true });
+      }
+    }, 60);
+  };
+
   const handleReview = () => {
     if (
       submissionInFlight.current
@@ -417,10 +431,7 @@ export default function NonEmergencyReport() {
         'Please select a concern type.'
       );
 
-      window.scrollTo({
-        top: 0,
-        behavior: 'smooth',
-      });
+      focusSection('ne-concern');
 
       return;
     }
@@ -434,10 +445,7 @@ export default function NonEmergencyReport() {
         'Please provide the incident location.'
       );
 
-      window.scrollTo({
-        top: 0,
-        behavior: 'smooth',
-      });
+      focusSection('ne-location');
 
       return;
     }
@@ -449,10 +457,7 @@ export default function NonEmergencyReport() {
         'Please add a short description of the concern.'
       );
 
-      window.scrollTo({
-        top: 0,
-        behavior: 'smooth',
-      });
+      focusSection('ne-description');
 
       return;
     }
@@ -871,7 +876,11 @@ export default function NonEmergencyReport() {
       </section>
 
       {/* CONCERN TYPE */}
-      <section className="bg-white border border-resqnow-border-soft rounded-2xl p-4 mb-4">
+      <section
+        id="ne-concern"
+        tabIndex={-1}
+        className="bg-white border border-resqnow-border-soft rounded-2xl p-4 mb-4 outline-none"
+      >
 
         <h2 className="text-[15px] font-bold text-resqnow-primary">
           What is your concern?
@@ -1118,6 +1127,7 @@ export default function NonEmergencyReport() {
 
               <Field label="Address / Incident Location">
                 <textarea
+                  id="ne-location"
                   value={
                     location
                   }
@@ -1195,6 +1205,7 @@ export default function NonEmergencyReport() {
         <Field label="Description">
 
           <textarea
+            id="ne-description"
             value={
               description
             }
@@ -1384,6 +1395,15 @@ export default function NonEmergencyReport() {
           </p>
         </div>
       </div>
+
+      {error && (
+        <p
+          role="alert"
+          className="mb-3 rounded-xl border border-resqnow-critical/20 bg-resqnow-critical/10 px-4 py-3 text-[12px] font-medium text-resqnow-crimson"
+        >
+          {error}
+        </p>
+      )}
 
       {/* REVIEW BUTTON */}
       <button
