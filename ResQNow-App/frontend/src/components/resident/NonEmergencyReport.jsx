@@ -582,14 +582,9 @@ export default function NonEmergencyReport() {
             'Unable to submit the report. Please try again.'
         );
 
-        // Close review but preserve
-        // all entered report data.
-        setShowConfirm(false);
-
-        window.scrollTo({
-          top: 0,
-          behavior: 'smooth',
-        });
+        // Keep the review open so the message is
+        // seen right where the user just tapped,
+        // and Confirm & Submit can be retried.
       } finally {
         submissionInFlight.current =
           false;
@@ -1623,6 +1618,19 @@ export default function NonEmergencyReport() {
                 alt="Attached report evidence"
                 className="w-full max-h-56 object-cover rounded-xl border border-resqnow-border-soft"
               />
+            </div>
+          )}
+
+          {/* SUBMIT ERROR */}
+          {error && (
+            <div
+              role="alert"
+              className="mt-4 flex items-start gap-2.5 rounded-xl border border-resqnow-critical/20 bg-resqnow-critical/10 px-3.5 py-3"
+            >
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-resqnow-critical" />
+              <p className="text-[12px] leading-relaxed text-resqnow-crimson">
+                {error}
+              </p>
             </div>
           )}
 
