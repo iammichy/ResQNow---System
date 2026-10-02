@@ -1,13 +1,27 @@
 // src/components/resident/Register.jsx
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+
+import {
+  Link,
+  useNavigate,
+} from 'react-router-dom';
+
+import {
+  useTranslation,
+} from 'react-i18next';
+
 import {
   Accessibility,
   AlertCircle,
   Baby,
   Check,
-  CheckCircle2,
+  CheckCircle,
   Eye,
   EyeOff,
   HeartPulse,
@@ -15,1069 +29,1759 @@ import {
   Loader2,
   Lock,
   Mail,
-  Phone,
+  MapPin,
   PersonStanding,
-  ShieldCheck,
+  Phone,
+  Shield,
   User,
-  UserRound,
-  Users,
 } from 'lucide-react';
 
-import { useAuth } from '../../context/AuthContext';
-import { reverseGeocode, searchAddress } from '../../services/geocodeService';
-import { purokOptions } from '../../data/mockData';
-import barangayPhoto from '../../assets/barangay/barangay-camunatan.jpg';
+import {
+  useAuth,
+} from '../../context/AuthContext';
 
-// The map (Leaflet) is only needed on this screen; load it on demand.
-const LocationPicker = lazy(() => import('../common/LocationPicker'));
+import {
+  purokOptions,
+} from '../../data/mockData';
 
-// ============ CONSTANTS ============
+import barangayPhoto
+  from '../../assets/barangay/barangay-camunatan.jpg';
 
-const PHONE_PATTERN = /^(09|\+639)\d{9}$/;
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// ============ INITIAL FORM ============
 
 const INITIAL_FORM = {
   fullName: '',
   phoneNumber: '',
-  email: '',
   address: '',
   purok: '',
+  email: '',
+  password: '',
+  confirmPassword: '',
   householdCount: '',
   hasSeniorCitizen: false,
   hasChild: false,
   hasPWD: false,
   hasPregnantPerson: false,
-  emergencyContactName: '',
-  emergencyContactNumber: '',
-  password: '',
-  confirmPassword: '',
   agreedToTerms: false,
 };
 
-const FIELDS_TO_VALIDATE = [
-  'fullName',
-  'phoneNumber',
-  'email',
-  'address',
-  'purok',
-  'householdCount',
-  'emergencyContactNumber',
-  'password',
-  'confirmPassword',
-];
-
-// ============ PAGE ============
+// ============ REGISTER PAGE ============
 
 export default function Register() {
-  const navigate = useNavigate();
-  const { register } = useAuth();
-  const { t } = useTranslation();
+  const navigate =
+    useNavigate();
 
-  const [form, setForm] = useState(INITIAL_FORM);
-  const [homeLocation, setHomeLocation] = useState(null);
-  const [errors, setErrors] = useState({});
-  const [formError, setFormError] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const submitting = useRef(false);
+  const {
+    register,
+  } = useAuth();
 
-  // Address text <-> map pin.
-  const [addressNote, setAddressNote] = useState('');
-  const [suggestion, setSuggestion] = useState('');
-  const addressRef = useRef('');
-  const purokRef = useRef('');
-  const addressAuto = useRef(false); // address text was filled in from the pin
-  const skipLookup = useRef(false); // don't geocode text we just filled in
-  const pinLookup = useRef(null);
+  const {
+    t,
+  } = useTranslation();
 
+  const nameRef =
+    useRef(null);
+
+  // Registration form
+  const [
+    form,
+    setForm,
+  ] = useState(
+    INITIAL_FORM
+  );
+
+  // Password visibility
+  const [
+    showPassword,
+    setShowPassword,
+  ] = useState(false);
+
+  const [
+    showConfirm,
+    setShowConfirm,
+  ] = useState(false);
+
+  // Validation state
+  const [
+    error,
+    setError,
+  ] = useState('');
+
+  const [
+    fieldErrors,
+    setFieldErrors,
+  ] = useState({});
+
+  const [
+    touched,
+    setTouched,
+  ] = useState({});
+
+  const [
+    focusedField,
+    setFocusedField,
+  ] = useState(null);
+
+  // Submit state
+  const [
+    isSubmitting,
+    setIsSubmitting,
+  ] = useState(false);
+
+  const [
+    isSuccess,
+    setIsSuccess,
+  ] = useState(false);
+
+  // Auto-focus name field
   useEffect(() => {
-    addressRef.current = form.address;
-    purokRef.current = form.purok;
-  });
+    nameRef.current?.focus();
+  }, []);
 
-  // Typing an address moves the pin (debounced; Nominatim allows ~1 req/s).
-  useEffect(() => {
-    if (skipLookup.current) {
-      skipLookup.current = false;
-      return undefined;
-    }
+  // ============ UPDATE FIELD ============
 
-    const query = form.address.trim();
+  const update = (
+    field,
+    value
+  ) => {
+    setForm(
+      (prev) => ({
+        ...prev,
+        [field]: value,
+      })
+    );
 
-    if (query.length < 8) return undefined;
+    setFieldErrors(
+      (prev) => ({
+        ...prev,
+        [field]: '',
+      })
+    );
 
-    const controller = new AbortController();
+    setError('');
+  };
 
-    const timer = window.setTimeout(async () => {
-      setAddressNote('searching');
+  // ============ VALIDATION ============
 
-      try {
-        const hit = await searchAddress(
-          `${query}, Ilagan, Isabela`,
-          controller.signal
-        );
-
-        if (!hit) {
-          setAddressNote('notfound');
-          return;
-        }
-
-        setHomeLocation({
-          latitude: hit.latitude,
-          longitude: hit.longitude,
-          focus: true,
-        });
-        setSuggestion('');
-        setAddressNote('found');
-
-        const purok = /purok\s*([1-3])/i.exec(query);
-
-        if (purok && !purokRef.current) {
-          setForm((previous) => ({ ...previous, purok: `Purok ${purok[1]}` }));
-        }
-      } catch (lookupError) {
-        if (lookupError.name !== 'AbortError') setAddressNote('');
-      }
-    }, 900);
-
-    return () => {
-      window.clearTimeout(timer);
-      controller.abort();
-    };
-  }, [form.address]);
-
-  // Moving the pin fills in the address.
-  async function handlePin(next) {
-    setHomeLocation(next);
-    pinLookup.current?.abort();
-
-    if (!next) {
-      setAddressNote('');
-      setSuggestion('');
-      return;
-    }
-
-    const controller = new AbortController();
-    pinLookup.current = controller;
-
-    try {
-      const label = await reverseGeocode(
-        next.latitude,
-        next.longitude,
-        controller.signal
-      );
-
-      if (!label) {
-        setAddressNote('lookupfailed');
-        return;
-      }
-
-      const current = addressRef.current.trim();
-
-      if (!current || addressAuto.current) {
-        if (label !== addressRef.current) skipLookup.current = true;
-
-        addressAuto.current = true;
-        update('address', label);
-        setSuggestion('');
-        setAddressNote('frompin');
-      } else if (label !== current) {
-        setSuggestion(label);
-      }
-
-      const purok = /purok\s*([1-3])/i.exec(label);
-
-      if (purok && !purokRef.current) {
-        update('purok', `Purok ${purok[1]}`);
-      }
-    } catch (lookupError) {
-      if (lookupError.name !== 'AbortError') setAddressNote('lookupfailed');
-    }
-  }
-
-  function useSuggestedAddress() {
-    skipLookup.current = suggestion !== form.address;
-    addressAuto.current = true;
-    update('address', suggestion);
-    setSuggestion('');
-    setAddressNote('frompin');
-  }
-
-  // ---------- validation ----------
-
-  function validate(name, value, values = form) {
+  const validate = (
+    name,
+    value
+  ) => {
     switch (name) {
       case 'fullName':
-        if (!value.trim()) return t('register.fullNameRequired');
-        return value.trim().length < 2 ? t('register.nameTooShort') : '';
-
-      case 'phoneNumber': {
-        const number = value.replace(/[\s-]/g, '');
-        if (!number) return t('register.contactRequired');
-        return PHONE_PATTERN.test(number) ? '' : t('register.invalidPhone');
-      }
+        return !value.trim()
+          ? t(
+              'register.fullNameRequired'
+            )
+          : value.trim().length < 2
+          ? t(
+              'register.nameTooShort'
+            )
+          : '';
 
       case 'email':
-        if (!value.trim()) return t('register.emailRequired');
-        return EMAIL_PATTERN.test(value) ? '' : t('register.invalidEmail');
+        return !value.trim()
+          ? t(
+              'register.emailRequired'
+            )
+          : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+              value
+            )
+          ? t(
+              'register.invalidEmail'
+            )
+          : '';
 
-      case 'address':
-        return value.trim() ? '' : t('register.addressRequired');
+      case 'phoneNumber': {
+        const cleanNumber =
+          value.replace(
+            /\s/g,
+            ''
+          );
 
-      case 'purok':
-        return value ? '' : t('register.purokRequired');
+        if (!cleanNumber) {
+          return t(
+            'register.contactRequired'
+          );
+        }
 
-      case 'householdCount':
-        if (!value) return '';
-        return Number(value) >= 1 && Number(value) <= 100
-          ? ''
-          : t('register.householdInvalid', 'Enter a number from 1 to 100');
+        if (
+          !/^(09|\+639)\d{9}$/.test(
+            cleanNumber
+          )
+        ) {
+          return t(
+            'register.invalidPhone'
+          );
+        }
 
-      case 'emergencyContactNumber': {
-        const number = value.replace(/[\s-]/g, '');
-        if (!number) return '';
-        return PHONE_PATTERN.test(number) ? '' : t('register.invalidPhone');
+        return '';
       }
 
-      case 'password':
-        if (!value) return t('register.passwordRequired');
-        if (value.length < 8) return t('register.passwordLength');
-        if (!/[a-z]/.test(value)) return t('register.passwordLowercase');
-        if (!/[A-Z]/.test(value)) return t('register.passwordUppercase');
-        if (!/[0-9]/.test(value)) return t('register.passwordNumber');
-        if (!/[!@#$%^&*(),.?":{}|<>]/.test(value)) {
-          return t('register.passwordSpecial');
+      case 'address':
+        return !value.trim()
+          ? t(
+              'register.addressRequired'
+            )
+          : '';
+
+      case 'purok':
+        return !value
+          ? t(
+              'register.purokRequired'
+            )
+          : '';
+
+      case 'password': {
+        if (!value) {
+          return t(
+            'register.passwordRequired'
+          );
         }
+
+        if (
+          value.length < 8
+        ) {
+          return t(
+            'register.passwordLength'
+          );
+        }
+
+        if (
+          !/[a-z]/.test(
+            value
+          )
+        ) {
+          return t(
+            'register.passwordLowercase'
+          );
+        }
+
+        if (
+          !/[A-Z]/.test(
+            value
+          )
+        ) {
+          return t(
+            'register.passwordUppercase'
+          );
+        }
+
+        if (
+          !/[0-9]/.test(
+            value
+          )
+        ) {
+          return t(
+            'register.passwordNumber'
+          );
+        }
+
+        if (
+          !/[!@#$%^&*(),.?":{}|<>]/.test(
+            value
+          )
+        ) {
+          return t(
+            'register.passwordSpecial'
+          );
+        }
+
         return '';
+      }
 
       case 'confirmPassword':
-        if (!value) return t('register.confirmRequired');
-        return value === values.password ? '' : t('register.passwordsDontMatch');
+        return !value
+          ? t(
+              'register.confirmRequired'
+            )
+          : value !==
+            form.password
+          ? t(
+              'register.passwordsDontMatch'
+            )
+          : '';
+
+      case 'householdCount':
+        if (!value) {
+          return '';
+        }
+
+        if (
+          Number(value) < 1 ||
+          Number(value) > 100
+        ) {
+          return 'Enter a valid household count';
+        }
+
+        return '';
 
       default:
         return '';
     }
-  }
-
-  function update(field, value) {
-    setForm((previous) => ({ ...previous, [field]: value }));
-    setErrors((previous) => ({ ...previous, [field]: '' }));
-    setFormError('');
-  }
-
-  function blur(field) {
-    if (!FIELDS_TO_VALIDATE.includes(field)) return;
-
-    setErrors((previous) => ({
-      ...previous,
-      [field]: validate(field, form[field]),
-    }));
-  }
-
-  // ---------- password strength ----------
-
-  const checks = useMemo(
-    () => [
-      { passed: form.password.length >= 8, label: t('register.atLeast8') },
-      { passed: /[A-Z]/.test(form.password), label: t('register.uppercaseLetter') },
-      { passed: /[a-z]/.test(form.password), label: t('register.lowercaseLetter') },
-      { passed: /[0-9]/.test(form.password), label: t('register.oneNumber') },
-      {
-        passed: /[!@#$%^&*(),.?":{}|<>]/.test(form.password),
-        label: t('register.specialCharacter'),
-      },
-    ],
-    [form.password, t]
-  );
-
-  const score = checks.filter((check) => check.passed).length;
-  const strengthLabels = [
-    t('register.veryWeak'),
-    t('register.weak'),
-    t('register.fair'),
-    t('register.good'),
-    t('register.strong'),
-    t('register.veryStrong'),
-  ];
-  const strengthColor =
-    score <= 1 ? 'bg-[#D92D20]' : score <= 3 ? 'bg-[#F79009]' : 'bg-[#16A34A]';
-
-  // ---------- submit ----------
-
-  async function handleSubmit(event) {
-    event.preventDefault();
-
-    if (submitting.current) return;
-
-    const nextErrors = Object.fromEntries(
-      FIELDS_TO_VALIDATE.map((field) => [field, validate(field, form[field])])
-    );
-
-    setErrors(nextErrors);
-
-    if (Object.values(nextErrors).some(Boolean)) {
-      setFormError(t('register.fixFields'));
-      document
-        .querySelector('[aria-invalid="true"]')
-        ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      return;
-    }
-
-    if (!form.agreedToTerms) {
-      setFormError(t('register.confirmInfoError'));
-      return;
-    }
-
-    submitting.current = true;
-    setIsSubmitting(true);
-    setFormError('');
-
-    try {
-      await register({
-        fullName: form.fullName.trim(),
-        contactNumber: form.phoneNumber.replace(/[\s-]/g, ''),
-        email: form.email.trim().toLowerCase(),
-        address: form.address.trim(),
-        purok: form.purok,
-        password: form.password,
-        password_confirmation: form.confirmPassword,
-        householdCount: form.householdCount ? Number(form.householdCount) : 1,
-        householdProfile: {
-          hasSeniorCitizen: form.hasSeniorCitizen,
-          hasChild: form.hasChild,
-          hasPWD: form.hasPWD,
-          hasPregnantPerson: form.hasPregnantPerson,
-        },
-        emergencyContactName: form.emergencyContactName.trim() || undefined,
-        emergencyContactNumber:
-          form.emergencyContactNumber.replace(/[\s-]/g, '') || undefined,
-        homeLatitude: homeLocation?.latitude,
-        homeLongitude: homeLocation?.longitude,
-      });
-
-      setIsSuccess(true);
-    } catch (registerError) {
-      const backend = registerError?.errors || {};
-
-      setErrors({
-        fullName: backend.fullName?.[0],
-        phoneNumber: backend.contactNumber?.[0],
-        email: backend.email?.[0],
-        address: backend.address?.[0],
-        purok: backend.purok?.[0],
-        householdCount: backend.householdCount?.[0],
-        emergencyContactNumber: backend.emergencyContactNumber?.[0],
-        password: backend.password?.[0],
-        confirmPassword: backend.password_confirmation?.[0],
-      });
-
-      setFormError(registerError?.message || t('register.fixFields'));
-    } finally {
-      submitting.current = false;
-      setIsSubmitting(false);
-    }
-  }
-
-  if (isSuccess) {
-    return <SuccessScreen onContinue={() => navigate('/login')} t={t} />;
-  }
-
-  const householdOptions = [
-    { key: 'hasSeniorCitizen', label: t('register.seniorCitizen'), icon: PersonStanding },
-    { key: 'hasChild', label: t('register.child'), icon: Baby },
-    { key: 'hasPWD', label: t('register.pwd'), icon: Accessibility },
-    { key: 'hasPregnantPerson', label: t('register.pregnantPerson'), icon: HeartPulse },
-  ];
-
-  return (
-    <div className="grid min-h-dvh bg-white lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-      <Aside t={t} />
-
-      <main className="px-5 py-10 sm:px-10 lg:px-14">
-        <div className="mx-auto w-full max-w-xl">
-          <p className="mb-8 text-lg font-bold tracking-tight text-[#101C2E] lg:hidden">
-            ResQNow
-          </p>
-
-          <h2 className="text-2xl font-semibold tracking-tight text-[#101C2E]">
-            {t('register.createAccount')}
-          </h2>
-          <p className="mt-1.5 text-sm text-slate-500">
-            {t('register.registerMessage')}
-          </p>
-
-          {formError && (
-            <div
-              role="alert"
-              className="mt-6 flex items-start gap-2.5 rounded-md border border-[#FECDCA] bg-[#FEF3F2] px-3.5 py-3 text-sm text-[#B42318]"
-            >
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>{formError}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} noValidate className="mt-8 space-y-10">
-            {/* 1. PERSONAL */}
-            <Section
-              number={1}
-              title={t('register.personalInformation')}
-              description={t(
-                'register.personalHint',
-                'Use your real name. Barangay personnel match it against household records.'
-              )}
-            >
-              <Field
-                id="fullName"
-                label={t('register.fullName')}
-                required
-                error={errors.fullName}
-              >
-                <TextInput
-                  id="fullName"
-                  icon={User}
-                  value={form.fullName}
-                  onChange={(value) => update('fullName', value)}
-                  onBlur={() => blur('fullName')}
-                  placeholder={t('register.namePlaceholder')}
-                  error={errors.fullName}
-                  autoComplete="name"
-                />
-              </Field>
-
-              <div className="grid gap-5 sm:grid-cols-2">
-                <Field
-                  id="phoneNumber"
-                  label={t('register.contactNumber')}
-                  required
-                  error={errors.phoneNumber}
-                >
-                  <TextInput
-                    id="phoneNumber"
-                    icon={Phone}
-                    type="tel"
-                    inputMode="tel"
-                    value={form.phoneNumber}
-                    onChange={(value) => update('phoneNumber', value)}
-                    onBlur={() => blur('phoneNumber')}
-                    placeholder={t('register.phonePlaceholder')}
-                    error={errors.phoneNumber}
-                    autoComplete="tel"
-                  />
-                </Field>
-
-                <Field
-                  id="email"
-                  label={t('register.emailAddress')}
-                  required
-                  error={errors.email}
-                >
-                  <TextInput
-                    id="email"
-                    icon={Mail}
-                    type="email"
-                    inputMode="email"
-                    value={form.email}
-                    onChange={(value) => update('email', value)}
-                    onBlur={() => blur('email')}
-                    placeholder={t('register.emailPlaceholder')}
-                    error={errors.email}
-                    autoComplete="email"
-                  />
-                </Field>
-              </div>
-            </Section>
-
-            {/* 2. ADDRESS + MAP */}
-            <Section
-              number={2}
-              title={t('register.homeLocation')}
-              description={t(
-                'register.locationHint',
-                'Your pin helps responders find your home quickly. You can adjust it later.'
-              )}
-            >
-              <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,11rem)]">
-                <Field
-                  id="address"
-                  label={t('register.address')}
-                  required
-                  error={errors.address}
-                >
-                  <TextInput
-                    id="address"
-                    icon={Home}
-                    value={form.address}
-                    onChange={(value) => {
-                      addressAuto.current = false;
-                      setSuggestion('');
-                      update('address', value);
-                    }}
-                    onBlur={() => blur('address')}
-                    placeholder={t('register.addressPlaceholder')}
-                    error={errors.address}
-                    autoComplete="street-address"
-                  />
-
-                  <AddressNote
-                    note={addressNote}
-                    suggestion={suggestion}
-                    onUseSuggestion={useSuggestedAddress}
-                    t={t}
-                  />
-                </Field>
-
-                <Field
-                  id="purok"
-                  label={t('register.purok')}
-                  required
-                  error={errors.purok}
-                >
-                  <select
-                    id="purok"
-                    value={form.purok}
-                    onChange={(event) => update('purok', event.target.value)}
-                    onBlur={() => blur('purok')}
-                    aria-invalid={Boolean(errors.purok)}
-                    className={`${inputBase} px-3 ${
-                      errors.purok ? inputError : inputIdle
-                    } ${form.purok ? 'text-[#101C2E]' : 'text-slate-400'}`}
-                  >
-                    <option value="">{t('register.selectPurok')}</option>
-                    {purokOptions.map((purok) => (
-                      <option key={purok} value={purok}>
-                        {purok}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-              </div>
-
-              <div>
-                <p className="mb-1.5 text-sm font-medium text-slate-700">
-                  {t('register.homeLocationPin')}{' '}
-                  <span className="font-normal text-slate-400">
-                    ({t('register.optional', 'optional')})
-                  </span>
-                </p>
-
-                <Suspense
-                  fallback={
-                    <div className="flex h-64 items-center justify-center rounded-md border border-slate-300 bg-slate-50 text-sm text-slate-400 sm:h-72">
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {t('register.loadingMap', 'Loading map…')}
-                    </div>
-                  }
-                >
-                  <LocationPicker
-                    value={homeLocation}
-                    onChange={handlePin}
-                    labels={{
-                      locate: t('register.useMyLocation', 'Use my current location'),
-                      locating: t('register.locating', 'Finding you…'),
-                      remove: t('register.removePin', 'Remove pin'),
-                      hint: t(
-                        'register.mapHint',
-                        'Tap the map to drop a pin, then drag it to your exact home.'
-                      ),
-                      unavailable: t(
-                        'register.locationUnavailable',
-                        'Location is not available on this device.'
-                      ),
-                      denied: t(
-                        'register.locationDenied',
-                        'We could not get your location. Tap the map to place the pin instead.'
-                      ),
-                    }}
-                  />
-                </Suspense>
-              </div>
-            </Section>
-
-            {/* 3. HOUSEHOLD */}
-            <Section
-              number={3}
-              title={t('register.householdInformation')}
-              description={t(
-                'register.householdHint',
-                'Helps the barangay prepare the right assistance during an emergency.'
-              )}
-            >
-              <div className="grid gap-5 sm:grid-cols-[minmax(0,11rem)_minmax(0,1fr)]">
-                <Field
-                  id="householdCount"
-                  label={t('register.householdCount')}
-                  error={errors.householdCount}
-                >
-                  <TextInput
-                    id="householdCount"
-                    icon={Users}
-                    type="number"
-                    inputMode="numeric"
-                    min="1"
-                    max="100"
-                    value={form.householdCount}
-                    onChange={(value) => update('householdCount', value)}
-                    onBlur={() => blur('householdCount')}
-                    placeholder="1"
-                    error={errors.householdCount}
-                  />
-                </Field>
-              </div>
-
-              <fieldset>
-                <legend className="mb-2 text-sm font-medium text-slate-700">
-                  {t('register.householdProfile', 'Anyone in your household who is…')}
-                </legend>
-
-                <div className="grid grid-cols-2 gap-2.5">
-                  {householdOptions.map(({ key, label, icon: Icon }) => {
-                    const checked = form[key];
-
-                    return (
-                      <label
-                        key={key}
-                        className={`flex cursor-pointer items-center gap-2.5 rounded-md border px-3 py-2.5 text-sm transition-colors ${
-                          checked
-                            ? 'border-[#1F5FA6] bg-[#EEF4FA] text-[#173f73]'
-                            : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={(event) => update(key, event.target.checked)}
-                          className="sr-only"
-                        />
-                        <Icon className="h-4 w-4 shrink-0" />
-                        <span className="flex-1">{label}</span>
-                        {checked && <Check className="h-4 w-4 shrink-0" />}
-                      </label>
-                    );
-                  })}
-                </div>
-              </fieldset>
-            </Section>
-
-            {/* 4. EMERGENCY CONTACT */}
-            <Section
-              number={4}
-              title={t('register.emergencyContact', 'Emergency contact')}
-              description={t(
-                'register.emergencyContactHint',
-                'Someone we can call if we cannot reach you. Optional, but recommended.'
-              )}
-            >
-              <div className="grid gap-5 sm:grid-cols-2">
-                <Field id="emergencyContactName" label={t('register.contactName', 'Contact name')}>
-                  <TextInput
-                    id="emergencyContactName"
-                    icon={UserRound}
-                    value={form.emergencyContactName}
-                    onChange={(value) => update('emergencyContactName', value)}
-                    placeholder={t('register.contactNamePlaceholder', 'Family member or neighbor')}
-                    autoComplete="off"
-                    maxLength={150}
-                  />
-                </Field>
-
-                <Field
-                  id="emergencyContactNumber"
-                  label={t('register.contactNumber')}
-                  error={errors.emergencyContactNumber}
-                >
-                  <TextInput
-                    id="emergencyContactNumber"
-                    icon={Phone}
-                    type="tel"
-                    inputMode="tel"
-                    value={form.emergencyContactNumber}
-                    onChange={(value) => update('emergencyContactNumber', value)}
-                    onBlur={() => blur('emergencyContactNumber')}
-                    placeholder={t('register.phonePlaceholder')}
-                    error={errors.emergencyContactNumber}
-                    autoComplete="off"
-                  />
-                </Field>
-              </div>
-            </Section>
-
-            {/* 5. ACCOUNT */}
-            <Section
-              number={5}
-              title={t('register.accountCredentials')}
-              description={t(
-                'register.accountHint',
-                'You will sign in with your email and this password.'
-              )}
-            >
-              <Field
-                id="password"
-                label={t('register.password')}
-                required
-                error={errors.password}
-              >
-                <TextInput
-                  id="password"
-                  icon={Lock}
-                  type={showPassword ? 'text' : 'password'}
-                  value={form.password}
-                  onChange={(value) => update('password', value)}
-                  onBlur={() => blur('password')}
-                  placeholder={t('register.passwordPlaceholder')}
-                  error={errors.password}
-                  autoComplete="new-password"
-                  trailing={
-                    <VisibilityToggle
-                      visible={showPassword}
-                      onToggle={() => setShowPassword((value) => !value)}
-                      show={t('register.showPassword')}
-                      hide={t('register.hidePassword')}
-                    />
-                  }
-                />
-
-                {form.password && (
-                  <div className="mt-3">
-                    <div className="flex items-center gap-3">
-                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-200">
-                        <div
-                          className={`h-full rounded-full transition-all duration-300 ${strengthColor}`}
-                          style={{ width: `${(score / 5) * 100}%` }}
-                        />
-                      </div>
-                      <span className="w-20 text-right text-xs font-medium text-slate-500">
-                        {strengthLabels[score]}
-                      </span>
-                    </div>
-
-                    <ul className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-1">
-                      {checks.map((check) => (
-                        <li
-                          key={check.label}
-                          className={`flex items-center gap-1.5 text-xs ${
-                            check.passed ? 'text-[#16A34A]' : 'text-slate-400'
-                          }`}
-                        >
-                          <Check
-                            className={`h-3 w-3 ${check.passed ? '' : 'opacity-30'}`}
-                            strokeWidth={3}
-                          />
-                          {check.label}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </Field>
-
-              <Field
-                id="confirmPassword"
-                label={t('register.confirmPassword')}
-                required
-                error={errors.confirmPassword}
-              >
-                <TextInput
-                  id="confirmPassword"
-                  icon={Lock}
-                  type={showConfirm ? 'text' : 'password'}
-                  value={form.confirmPassword}
-                  onChange={(value) => update('confirmPassword', value)}
-                  onBlur={() => blur('confirmPassword')}
-                  placeholder={t('register.confirmPasswordPlaceholder')}
-                  error={errors.confirmPassword}
-                  autoComplete="new-password"
-                  trailing={
-                    <VisibilityToggle
-                      visible={showConfirm}
-                      onToggle={() => setShowConfirm((value) => !value)}
-                      show={t('register.showPassword')}
-                      hide={t('register.hidePassword')}
-                    />
-                  }
-                />
-              </Field>
-            </Section>
-
-            {/* SUBMIT */}
-            <div className="space-y-5 border-t border-slate-200 pt-6">
-              <label className="flex cursor-pointer items-start gap-3">
-                <input
-                  type="checkbox"
-                  checked={form.agreedToTerms}
-                  onChange={(event) => update('agreedToTerms', event.target.checked)}
-                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-[#1F5FA6] focus:ring-[#1F5FA6] focus:ring-offset-0"
-                />
-                <span className="text-sm leading-relaxed text-slate-600">
-                  {t('register.confirmInformation')}
-                </span>
-              </label>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-[#1F5FA6] text-sm font-semibold text-white transition-colors hover:bg-[#174A86] disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    {t('register.creating')}
-                  </>
-                ) : (
-                  t('register.createAccount')
-                )}
-              </button>
-
-              <p className="text-center text-sm text-slate-500">
-                {t('register.haveAccount', 'Already registered?')}{' '}
-                <Link
-                  to="/login"
-                  className="font-semibold text-[#1F5FA6] hover:underline"
-                >
-                  {t('login.signIn')}
-                </Link>
-              </p>
-
-              <p className="border-t border-slate-200 pt-5 text-xs leading-relaxed text-slate-500">
-                {t(
-                  'register.privacy',
-                  'Your details are used only by barangay personnel to verify your account and respond to your reports. They are never shown publicly.'
-                )}
-              </p>
-            </div>
-          </form>
-        </div>
-      </main>
-    </div>
-  );
-}
-
-// ============ ADDRESS <-> PIN STATUS ============
-
-function AddressNote({ note, suggestion, onUseSuggestion, t }) {
-  const messages = {
-    searching: t('register.addressSearching', 'Looking for this address on the map…'),
-    found: t('register.addressFound', 'Pin moved to match your address. Drag it to fine-tune.'),
-    notfound: t(
-      'register.addressNotFound',
-      'We could not find that address. Tap the map to place your pin.'
-    ),
-    frompin: t('register.addressFromPin', 'Address filled in from your pin. You can edit it.'),
-    lookupfailed: t(
-      'register.addressLookupFailed',
-      'We could not read the address for this pin. Please type it in.'
-    ),
   };
 
-  return (
-    <div aria-live="polite" className="mt-1.5 space-y-1">
-      {messages[note] && (
-        <p
-          className={`flex items-center gap-1.5 text-xs ${
-            note === 'notfound' || note === 'lookupfailed'
-              ? 'text-[#B54708]'
-              : 'text-slate-500'
-          }`}
-        >
-          {note === 'searching' && <Loader2 className="h-3 w-3 animate-spin" />}
-          {messages[note]}
-        </p>
-      )}
+  // Validate when leaving a field
+  const handleBlur = (
+    field
+  ) => {
+    setTouched(
+      (prev) => ({
+        ...prev,
+        [field]: true,
+      })
+    );
 
-      {suggestion && (
-        <button
-          type="button"
-          onClick={onUseSuggestion}
-          className="text-left text-xs text-[#1F5FA6] hover:underline"
-        >
-          {t('register.useSuggestion', 'Use this address from your pin:')}{' '}
-          <span className="font-semibold">{suggestion}</span>
-        </button>
-      )}
-    </div>
-  );
-}
+    setFieldErrors(
+      (prev) => ({
+        ...prev,
 
-// ============ LEFT PANEL ============
+        [field]:
+          validate(
+            field,
+            form[field]
+          ),
+      })
+    );
 
-function Aside({ t }) {
-  const steps = [
-    {
-      title: t('register.stepCreate', 'Create your account'),
-      text: t('register.stepCreateText', 'Add your household details and pin your home on the map.'),
-    },
-    {
-      title: t('register.stepVerify', 'Barangay verification'),
-      text: t('register.stepVerifyText', 'Barangay personnel review your details before you can sign in.'),
-    },
-    {
-      title: t('register.stepReport', 'Start reporting'),
-      text: t('register.stepReportText', 'Send an SOS or a report and follow every update in real time.'),
-    },
-  ];
+    setFocusedField(
+      null
+    );
+  };
 
-  return (
-    <aside className="relative hidden overflow-hidden bg-[#101C2E] text-white lg:block">
-      <div className="sticky top-0 flex h-dvh flex-col justify-between">
-        <img
-          src={barangayPhoto}
-          alt=""
-          className="absolute inset-0 h-full w-full object-cover opacity-35"
-        />
-        <div className="absolute inset-0 bg-[#101C2E]/75" />
+  // ============ PASSWORD STRENGTH ============
 
-        <div className="relative z-10 flex items-center gap-2.5 p-12">
-          <ShieldCheck className="h-6 w-6" strokeWidth={1.75} />
-          <p className="text-xl font-bold tracking-tight">ResQNow</p>
-        </div>
+  const passwordStrength =
+    useMemo(
+      () => {
+        let score = 0;
 
-        <div className="relative z-10 max-w-md p-12">
-          <h1 className="text-3xl font-semibold leading-tight tracking-tight">
-            {t('register.heroTitle', 'Your barangay’s emergency response, in your pocket.')}
-          </h1>
-          <p className="mt-4 text-sm leading-relaxed text-white/70">
+        if (
+          form.password.length >= 8
+        ) {
+          score++;
+        }
+
+        if (
+          /[a-z]/.test(
+            form.password
+          )
+        ) {
+          score++;
+        }
+
+        if (
+          /[A-Z]/.test(
+            form.password
+          )
+        ) {
+          score++;
+        }
+
+        if (
+          /[0-9]/.test(
+            form.password
+          )
+        ) {
+          score++;
+        }
+
+        if (
+          /[!@#$%^&*(),.?":{}|<>]/.test(
+            form.password
+          )
+        ) {
+          score++;
+        }
+
+        const labels = [
+          t(
+            'register.veryWeak'
+          ),
+          t(
+            'register.weak'
+          ),
+          t(
+            'register.fair'
+          ),
+          t(
+            'register.good'
+          ),
+          t(
+            'register.strong'
+          ),
+          t(
+            'register.veryStrong'
+          ),
+        ];
+
+        const colors = [
+          'bg-resqnow-critical',
+          'bg-resqnow-critical',
+          'bg-resqnow-pending',
+          'bg-resqnow-caution',
+          'bg-resqnow-safe',
+          'bg-resqnow-safe',
+        ];
+
+        return {
+          score,
+
+          label:
+            labels[score],
+
+          color:
+            colors[score],
+
+          width:
+            `${(
+              score / 5
+            ) * 100}%`,
+        };
+      },
+      [
+        form.password,
+        t,
+      ]
+    );
+
+  // ============ SUBMIT ============
+
+  const handleSubmit =
+    async (event) => {
+      event.preventDefault();
+
+      if (isSubmitting) {
+        return;
+      }
+
+      setError('');
+
+      const fieldsToValidate = [
+        'fullName',
+        'phoneNumber',
+        'address',
+        'purok',
+        'email',
+        'password',
+        'confirmPassword',
+        'householdCount',
+      ];
+
+      const errors = {};
+
+      fieldsToValidate.forEach(
+        (field) => {
+          const fieldError =
+            validate(
+              field,
+              form[field]
+            );
+
+          if (fieldError) {
+            errors[field] =
+              fieldError;
+          }
+        }
+      );
+
+      setFieldErrors(
+        errors
+      );
+
+      setTouched(
+        Object.fromEntries(
+          fieldsToValidate.map(
+            (field) => [
+              field,
+              true,
+            ]
+          )
+        )
+      );
+
+      // Stop on validation errors.
+      if (
+        Object.keys(
+          errors
+        ).length > 0
+      ) {
+        setError(
+          t(
+            'register.fixFields'
+          )
+        );
+
+        return;
+      }
+
+      // Resident must confirm information.
+      if (
+        !form.agreedToTerms
+      ) {
+        setError(
+          t(
+            'register.confirmInfoError'
+          )
+        );
+
+        return;
+      }
+
+      setIsSubmitting(
+        true
+      );
+
+      try {
+        await register({
+          fullName:
+            form.fullName.trim(),
+
+          contactNumber:
+            form.phoneNumber.replace(
+              /\s/g,
+              ''
+            ),
+
+          address:
+            form.address.trim(),
+
+          purok:
+            form.purok,
+
+          email:
+            form.email
+              .trim()
+              .toLowerCase(),
+
+          password:
+            form.password,
+
+          password_confirmation:
+            form.confirmPassword,
+
+          householdCount:
+            form.householdCount
+              ? Number(
+                  form.householdCount
+                )
+              : 1,
+
+          householdProfile: {
+            hasSeniorCitizen:
+              form.hasSeniorCitizen,
+
+            hasChild:
+              form.hasChild,
+
+            hasPWD:
+              form.hasPWD,
+
+            hasPregnantPerson:
+              form.hasPregnantPerson,
+          },
+        });
+
+        setIsSuccess(
+          true
+        );
+      } catch (
+        registerError
+      ) {
+        const backendErrors =
+          registerError?.errors ||
+          {};
+
+        // Map Laravel field names
+        // to frontend field names.
+        const mappedErrors = {
+          fullName:
+            backendErrors
+              .fullName?.[0],
+
+          phoneNumber:
+            backendErrors
+              .contactNumber?.[0],
+
+          address:
+            backendErrors
+              .address?.[0],
+
+          purok:
+            backendErrors
+              .purok?.[0],
+
+          email:
+            backendErrors
+              .email?.[0],
+
+          password:
+            backendErrors
+              .password?.[0],
+
+          confirmPassword:
+            backendErrors
+              .password_confirmation?.[0],
+
+          householdCount:
+            backendErrors
+              .householdCount?.[0],
+        };
+
+        const cleanErrors =
+          Object.fromEntries(
+            Object.entries(
+              mappedErrors
+            ).filter(
+              ([, value]) =>
+                Boolean(
+                  value
+                )
+            )
+          );
+
+        setFieldErrors(
+          cleanErrors
+        );
+
+        setTouched(
+          (prev) => ({
+            ...prev,
+
+            ...Object.fromEntries(
+              Object.keys(
+                cleanErrors
+              ).map(
+                (field) => [
+                  field,
+                  true,
+                ]
+              )
+            ),
+          })
+        );
+
+        setError(
+          registerError?.message ||
+            t(
+              'register.fixFields'
+            )
+        );
+      } finally {
+        setIsSubmitting(
+          false
+        );
+      }
+    };
+
+  // ============ SUCCESS SCREEN ============
+
+  if (isSuccess) {
+    return (
+      <div
+        className="relative min-h-screen bg-cover bg-center bg-fixed flex items-center justify-center p-4"
+        style={{
+          backgroundImage:
+            `url(${barangayPhoto})`,
+        }}
+      >
+        <div className="absolute inset-0 bg-linear-to-br from-resqnow-ivory/90 via-white/80 to-resqnow-mist/85 backdrop-blur-[2px]" />
+
+        <div className="relative z-10 bg-white/95 backdrop-blur-sm rounded-2xl shadow-[0_8px_30px_rgba(31,29,71,0.10)] border border-white/60 px-7 sm:px-10 py-10 sm:py-12 w-full max-w-[440px] text-center">
+
+          <div className="w-[72px] h-[72px] bg-resqnow-safe/15 rounded-full flex items-center justify-center mx-auto mb-5">
+            <CheckCircle className="w-10 h-10 text-resqnow-safe" />
+          </div>
+
+          <h2 className="text-[22px] font-bold text-resqnow-primary mb-2">
             {t(
-              'register.heroText',
-              'Register once to report incidents, send an SOS and receive announcements from Barangay Camunatan.'
+              'register.accountCreated'
+            )}
+          </h2>
+
+          <p className="text-[13px] text-resqnow-muted mb-4 leading-relaxed">
+            {t(
+              'register.accountCreatedMessage'
             )}
           </p>
 
-          <ol className="mt-10 space-y-6">
-            {steps.map((step, index) => (
-              <li key={step.title} className="flex gap-4">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/30 text-xs font-semibold">
-                  {index + 1}
-                </span>
-                <div>
-                  <p className="text-sm font-semibold">{step.title}</p>
-                  <p className="mt-0.5 text-sm leading-relaxed text-white/60">
-                    {step.text}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ol>
+          <div className="bg-resqnow-pending/10 border border-resqnow-pending/20 rounded-xl px-4 py-3.5 mb-6 text-left">
+
+            <p className="text-[10px] font-bold text-resqnow-pending uppercase tracking-wide mb-1">
+              {t(
+                'register.pendingVerification'
+              )}
+            </p>
+
+            <p className="text-[11px] text-resqnow-secondary leading-relaxed">
+              {t(
+                'register.verificationNote'
+              )}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() =>
+              navigate(
+                '/login'
+              )
+            }
+            className="w-full bg-brand-gradient text-white font-semibold py-3.5 rounded-xl transition-all text-[14px] shadow-[0_4px_16px_rgba(131,70,242,0.22)] active:scale-[0.98]"
+          >
+            {t(
+              'register.goToLogin'
+            )}
+          </button>
         </div>
-
-        <p className="relative z-10 p-12 text-xs text-white/50">
-          Barangay Camunatan · City of Ilagan
-        </p>
       </div>
-    </aside>
-  );
-}
+    );
+  }
 
-// ============ SUCCESS ============
-
-function SuccessScreen({ onContinue, t }) {
-  const steps = [
-    { label: t('register.stepCreate', 'Create your account'), state: 'done' },
-    { label: t('register.stepVerify', 'Barangay verification'), state: 'current' },
-    { label: t('register.stepReport', 'Start reporting'), state: 'todo' },
-  ];
+  // ============ MAIN FORM ============
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-[#F3F5F8] px-5 py-10">
-      <div className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-8 shadow-sm">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#ECFDF3]">
-          <CheckCircle2 className="h-6 w-6 text-[#16A34A]" />
+    <div
+      className="relative min-h-screen bg-cover bg-center bg-fixed flex items-center justify-center p-4 py-8"
+      style={{
+        backgroundImage:
+          `url(${barangayPhoto})`,
+      }}
+    >
+      <div className="absolute inset-0 bg-linear-to-br from-resqnow-ivory/90 via-white/80 to-resqnow-mist/85 backdrop-blur-[2px]" />
+
+      <div className="relative z-10 flex flex-col md:flex-row items-center md:items-start justify-center gap-5 w-full max-w-[880px]">
+
+        {/* ============ BRANDING ============ */}
+
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-[0_8px_30px_rgba(31,29,71,0.09)] border border-white/60 px-8 py-9 flex flex-col items-center text-center w-full max-w-[250px] shrink-0">
+
+          <div className="w-[72px] h-[72px] bg-brand-gradient rounded-2xl flex items-center justify-center mb-5 shadow-[0_8px_24px_rgba(131,70,242,0.22)]">
+            <Shield
+              className="w-[40px] h-[40px] text-white"
+              strokeWidth={1.5}
+            />
+          </div>
+
+          <h1 className="text-[27px] font-extrabold text-resqnow-primary tracking-tight">
+            ResQNow
+          </h1>
+
+          <p className="text-[12px] text-resqnow-muted mt-2 leading-relaxed">
+            Barangay Camunatan
+            <br />
+            City of Ilagan
+          </p>
+
+          <div className="mt-6 pt-5 border-t border-resqnow-border-soft w-full">
+
+            <div className="flex items-center justify-center gap-1.5">
+
+              <div className="w-1.5 h-1.5 rounded-full bg-resqnow-safe" />
+
+              <span className="text-[9px] text-resqnow-muted font-medium uppercase tracking-wider">
+                {t(
+                  'register.secureRegistration'
+                )}
+              </span>
+            </div>
+          </div>
         </div>
 
-        <h2 className="mt-5 text-xl font-semibold tracking-tight text-[#101C2E]">
-          {t('register.accountCreated')}
-        </h2>
-        <p className="mt-1.5 text-sm leading-relaxed text-slate-500">
-          {t('register.accountCreatedMessage')}
-        </p>
+        {/* ============ FORM CARD ============ */}
 
-        <ol className="mt-6 space-y-3 border-t border-slate-200 pt-6">
-          {steps.map((step) => (
-            <li key={step.label} className="flex items-center gap-3 text-sm">
-              <span
-                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs ${
-                  step.state === 'done'
-                    ? 'bg-[#16A34A] text-white'
-                    : step.state === 'current'
-                    ? 'border-2 border-[#1F5FA6] text-[#1F5FA6]'
-                    : 'border border-slate-300 text-slate-300'
-                }`}
-              >
-                {step.state === 'done' ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : ''}
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-[0_8px_30px_rgba(31,29,71,0.09)] border border-white/60 px-6 sm:px-10 py-8 sm:py-9 w-full max-w-[540px]">
+
+          <h2 className="text-[22px] font-bold text-resqnow-primary mb-1">
+            {t(
+              'register.createAccount'
+            )}
+          </h2>
+
+          <p className="text-[12px] text-resqnow-muted mb-7">
+            {t(
+              'register.registerMessage'
+            )}
+          </p>
+
+          {error && (
+            <div
+              role="alert"
+              className="flex items-start gap-2.5 bg-resqnow-critical/10 border border-resqnow-critical/20 text-resqnow-crimson text-[12px] rounded-xl px-4 py-3 mb-5"
+            >
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+
+              <span>
+                {error}
               </span>
-              <span
-                className={
-                  step.state === 'todo' ? 'text-slate-400' : 'font-medium text-[#101C2E]'
+            </div>
+          )}
+
+          <form
+            onSubmit={
+              handleSubmit
+            }
+            noValidate
+            className="space-y-4"
+          >
+
+            {/* PERSONAL INFORMATION */}
+
+            <SectionLabel
+              title={
+                t(
+                  'register.personalInformation'
+                )
+              }
+            />
+
+            <FieldWrapper
+              label={`${t(
+                'register.fullName'
+              )} *`}
+              error={
+                touched.fullName &&
+                fieldErrors.fullName
+              }
+            >
+              <FieldIcon
+                icon={
+                  User
+                }
+                active={
+                  focusedField ===
+                  'fullName'
+                }
+                error={
+                  !!fieldErrors.fullName &&
+                  touched.fullName
+                }
+              />
+
+              <InputField
+                ref={
+                  nameRef
+                }
+                type="text"
+                value={
+                  form.fullName
+                }
+                onChange={(
+                  event
+                ) =>
+                  update(
+                    'fullName',
+                    event.target.value
+                  )
+                }
+                onFocus={() =>
+                  setFocusedField(
+                    'fullName'
+                  )
+                }
+                onBlur={() =>
+                  handleBlur(
+                    'fullName'
+                  )
+                }
+                placeholder={
+                  t(
+                    'register.namePlaceholder'
+                  )
+                }
+                error={
+                  !!fieldErrors.fullName &&
+                  touched.fullName
+                }
+                autoComplete="name"
+              />
+            </FieldWrapper>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+              <FieldWrapper
+                label={`${t(
+                  'register.contactNumber'
+                )} *`}
+                error={
+                  touched.phoneNumber &&
+                  fieldErrors.phoneNumber
                 }
               >
-                {step.label}
-              </span>
-              {step.state === 'current' && (
-                <span className="ml-auto rounded-full bg-[#FEF0C7] px-2 py-0.5 text-[11px] font-medium text-[#B54708]">
-                  {t('register.pendingVerification')}
-                </span>
+                <FieldIcon
+                  icon={
+                    Phone
+                  }
+                  active={
+                    focusedField ===
+                    'phoneNumber'
+                  }
+                  error={
+                    !!fieldErrors.phoneNumber &&
+                    touched.phoneNumber
+                  }
+                />
+
+                <InputField
+                  type="tel"
+                  value={
+                    form.phoneNumber
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    update(
+                      'phoneNumber',
+                      event.target.value
+                    )
+                  }
+                  onFocus={() =>
+                    setFocusedField(
+                      'phoneNumber'
+                    )
+                  }
+                  onBlur={() =>
+                    handleBlur(
+                      'phoneNumber'
+                    )
+                  }
+                  placeholder={
+                    t(
+                      'register.phonePlaceholder'
+                    )
+                  }
+                  error={
+                    !!fieldErrors.phoneNumber &&
+                    touched.phoneNumber
+                  }
+                  autoComplete="tel"
+                />
+              </FieldWrapper>
+
+              <FieldWrapper
+                label={`${t(
+                  'register.purok'
+                )} *`}
+                error={
+                  touched.purok &&
+                  fieldErrors.purok
+                }
+              >
+                <select
+                  value={
+                    form.purok
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    update(
+                      'purok',
+                      event.target.value
+                    )
+                  }
+                  onFocus={() =>
+                    setFocusedField(
+                      'purok'
+                    )
+                  }
+                  onBlur={() =>
+                    handleBlur(
+                      'purok'
+                    )
+                  }
+                  className={`w-full px-4 py-3 rounded-xl text-[14px] text-resqnow-primary outline-none transition-all appearance-none ${
+                    touched.purok &&
+                    fieldErrors.purok
+                      ? 'ring-2 ring-resqnow-critical/30 bg-resqnow-critical/5'
+                      : focusedField ===
+                        'purok'
+                      ? 'ring-2 ring-resqnow-violet/25 bg-white'
+                      : 'bg-resqnow-canvas ring-1 ring-resqnow-border'
+                  }`}
+                >
+                  <option value="">
+                    {t(
+                      'register.selectPurok'
+                    )}
+                  </option>
+
+                  {purokOptions.map(
+                    (
+                      purok
+                    ) => (
+                      <option
+                        key={
+                          purok
+                        }
+                        value={
+                          purok
+                        }
+                      >
+                        {
+                          purok
+                        }
+                      </option>
+                    )
+                  )}
+                </select>
+              </FieldWrapper>
+            </div>
+
+            <FieldWrapper
+              label={`${t(
+                'register.address'
+              )} *`}
+              error={
+                touched.address &&
+                fieldErrors.address
+              }
+            >
+              <FieldIcon
+                icon={
+                  MapPin
+                }
+                active={
+                  focusedField ===
+                  'address'
+                }
+                error={
+                  !!fieldErrors.address &&
+                  touched.address
+                }
+              />
+
+              <InputField
+                type="text"
+                value={
+                  form.address
+                }
+                onChange={(
+                  event
+                ) =>
+                  update(
+                    'address',
+                    event.target.value
+                  )
+                }
+                onFocus={() =>
+                  setFocusedField(
+                    'address'
+                  )
+                }
+                onBlur={() =>
+                  handleBlur(
+                    'address'
+                  )
+                }
+                placeholder={
+                  t(
+                    'register.addressPlaceholder'
+                  )
+                }
+                error={
+                  !!fieldErrors.address &&
+                  touched.address
+                }
+                autoComplete="street-address"
+              />
+            </FieldWrapper>
+
+            {/* ACCOUNT CREDENTIALS */}
+
+            <SectionLabel
+              title={
+                t(
+                  'register.accountCredentials'
+                )
+              }
+            />
+
+            <FieldWrapper
+              label={`${t(
+                'register.emailAddress'
+              )} *`}
+              error={
+                touched.email &&
+                fieldErrors.email
+              }
+            >
+              <FieldIcon
+                icon={
+                  Mail
+                }
+                active={
+                  focusedField ===
+                  'email'
+                }
+                error={
+                  !!fieldErrors.email &&
+                  touched.email
+                }
+              />
+
+              <InputField
+                type="email"
+                value={
+                  form.email
+                }
+                onChange={(
+                  event
+                ) =>
+                  update(
+                    'email',
+                    event.target.value
+                  )
+                }
+                onFocus={() =>
+                  setFocusedField(
+                    'email'
+                  )
+                }
+                onBlur={() =>
+                  handleBlur(
+                    'email'
+                  )
+                }
+                placeholder={
+                  t(
+                    'register.emailPlaceholder'
+                  )
+                }
+                error={
+                  !!fieldErrors.email &&
+                  touched.email
+                }
+                autoComplete="email"
+                autoCapitalize="off"
+              />
+            </FieldWrapper>
+
+            {/* PASSWORD */}
+
+            <FieldWrapper
+              label={`${t(
+                'register.password'
+              )} *`}
+              error={
+                touched.password &&
+                fieldErrors.password
+              }
+            >
+              <FieldIcon
+                icon={
+                  Lock
+                }
+                active={
+                  focusedField ===
+                  'password'
+                }
+                error={
+                  !!fieldErrors.password &&
+                  touched.password
+                }
+              />
+
+              <InputField
+                type={
+                  showPassword
+                    ? 'text'
+                    : 'password'
+                }
+                value={
+                  form.password
+                }
+                onChange={(
+                  event
+                ) =>
+                  update(
+                    'password',
+                    event.target.value
+                  )
+                }
+                onFocus={() =>
+                  setFocusedField(
+                    'password'
+                  )
+                }
+                onBlur={() =>
+                  handleBlur(
+                    'password'
+                  )
+                }
+                placeholder={
+                  t(
+                    'register.passwordPlaceholder'
+                  )
+                }
+                error={
+                  !!fieldErrors.password &&
+                  touched.password
+                }
+                autoComplete="new-password"
+              />
+
+              <button
+                type="button"
+                onMouseDown={(
+                  event
+                ) =>
+                  event.preventDefault()
+                }
+                onClick={() =>
+                  setShowPassword(
+                    (prev) =>
+                      !prev
+                  )
+                }
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg text-resqnow-placeholder hover:text-resqnow-violet hover:bg-resqnow-violet/5 transition-colors"
+                tabIndex={
+                  -1
+                }
+                aria-label={
+                  showPassword
+                    ? t(
+                        'register.hidePassword'
+                      )
+                    : t(
+                        'register.showPassword'
+                      )
+                }
+              >
+                {showPassword ? (
+                  <EyeOff className="w-[18px] h-[18px]" />
+                ) : (
+                  <Eye className="w-[18px] h-[18px]" />
+                )}
+              </button>
+            </FieldWrapper>
+
+            {/* PASSWORD STRENGTH */}
+
+            {form.password
+              .length > 0 && (
+              <div className="p-3 bg-resqnow-canvas rounded-xl border border-resqnow-border-soft">
+
+                <div className="flex items-center gap-2 mb-2">
+
+                  <div className="flex-1 h-1.5 bg-resqnow-border-soft rounded-full overflow-hidden">
+
+                    <div
+                      className={`h-full rounded-full transition-all duration-300 ${passwordStrength.color}`}
+                      style={{
+                        width:
+                          passwordStrength.width ||
+                          '0%',
+                      }}
+                    />
+                  </div>
+
+                  <span className="text-[11px] font-medium text-resqnow-muted">
+                    {
+                      passwordStrength.label
+                    }
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+
+                  <PassIndicator
+                    passed={
+                      form.password
+                        .length >= 8
+                    }
+                    label={
+                      t(
+                        'register.atLeast8'
+                      )
+                    }
+                  />
+
+                  <PassIndicator
+                    passed={
+                      /[a-z]/.test(
+                        form.password
+                      )
+                    }
+                    label={
+                      t(
+                        'register.lowercaseLetter'
+                      )
+                    }
+                  />
+
+                  <PassIndicator
+                    passed={
+                      /[A-Z]/.test(
+                        form.password
+                      )
+                    }
+                    label={
+                      t(
+                        'register.uppercaseLetter'
+                      )
+                    }
+                  />
+
+                  <PassIndicator
+                    passed={
+                      /[0-9]/.test(
+                        form.password
+                      )
+                    }
+                    label={
+                      t(
+                        'register.oneNumber'
+                      )
+                    }
+                  />
+
+                  <PassIndicator
+                    passed={
+                      /[!@#$%^&*(),.?":{}|<>]/.test(
+                        form.password
+                      )
+                    }
+                    label={
+                      t(
+                        'register.specialCharacter'
+                      )
+                    }
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* CONFIRM PASSWORD */}
+
+            <FieldWrapper
+              label={`${t(
+                'register.confirmPassword'
+              )} *`}
+              error={
+                touched.confirmPassword &&
+                fieldErrors.confirmPassword
+              }
+            >
+              <FieldIcon
+                icon={
+                  Lock
+                }
+                active={
+                  focusedField ===
+                  'confirmPassword'
+                }
+                error={
+                  !!fieldErrors.confirmPassword &&
+                  touched.confirmPassword
+                }
+              />
+
+              <InputField
+                type={
+                  showConfirm
+                    ? 'text'
+                    : 'password'
+                }
+                value={
+                  form.confirmPassword
+                }
+                onChange={(
+                  event
+                ) =>
+                  update(
+                    'confirmPassword',
+                    event.target.value
+                  )
+                }
+                onFocus={() =>
+                  setFocusedField(
+                    'confirmPassword'
+                  )
+                }
+                onBlur={() =>
+                  handleBlur(
+                    'confirmPassword'
+                  )
+                }
+                placeholder={
+                  t(
+                    'register.confirmPasswordPlaceholder'
+                  )
+                }
+                error={
+                  !!fieldErrors.confirmPassword &&
+                  touched.confirmPassword
+                }
+                autoComplete="new-password"
+              />
+
+              <button
+                type="button"
+                onMouseDown={(
+                  event
+                ) =>
+                  event.preventDefault()
+                }
+                onClick={() =>
+                  setShowConfirm(
+                    (prev) =>
+                      !prev
+                  )
+                }
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg text-resqnow-placeholder hover:text-resqnow-violet hover:bg-resqnow-violet/5 transition-colors"
+                tabIndex={
+                  -1
+                }
+                aria-label={
+                  showConfirm
+                    ? t(
+                        'register.hidePassword'
+                      )
+                    : t(
+                        'register.showPassword'
+                      )
+                }
+              >
+                {showConfirm ? (
+                  <EyeOff className="w-[18px] h-[18px]" />
+                ) : (
+                  <Eye className="w-[18px] h-[18px]" />
+                )}
+              </button>
+            </FieldWrapper>
+
+            {/* HOUSEHOLD */}
+
+            <SectionLabel
+              title={
+                t(
+                  'register.householdInformation'
+                )
+              }
+            />
+
+            <FieldWrapper
+              label={
+                t(
+                  'register.householdCount'
+                )
+              }
+              error={
+                touched.householdCount &&
+                fieldErrors.householdCount
+              }
+            >
+              <FieldIcon
+                icon={
+                  Home
+                }
+                active={
+                  focusedField ===
+                  'householdCount'
+                }
+                error={
+                  !!fieldErrors.householdCount &&
+                  touched.householdCount
+                }
+              />
+
+              <InputField
+                type="number"
+                min="1"
+                max="100"
+                value={
+                  form.householdCount
+                }
+                onChange={(
+                  event
+                ) =>
+                  update(
+                    'householdCount',
+                    event.target.value
+                  )
+                }
+                onFocus={() =>
+                  setFocusedField(
+                    'householdCount'
+                  )
+                }
+                onBlur={() =>
+                  handleBlur(
+                    'householdCount'
+                  )
+                }
+                placeholder={
+                  t(
+                    'register.householdPlaceholder'
+                  )
+                }
+                error={
+                  !!fieldErrors.householdCount &&
+                  touched.householdCount
+                }
+              />
+            </FieldWrapper>
+
+            {/* HOUSEHOLD PROFILE */}
+
+            <div className="grid grid-cols-2 gap-2">
+
+              {[
+                {
+                  key:
+                    'hasSeniorCitizen',
+
+                  label:
+                    t(
+                      'register.seniorCitizen'
+                    ),
+
+                  icon:
+                    PersonStanding,
+                },
+                {
+                  key:
+                    'hasChild',
+
+                  label:
+                    t(
+                      'register.child'
+                    ),
+
+                  icon:
+                    Baby,
+                },
+                {
+                  key:
+                    'hasPWD',
+
+                  label:
+                    t(
+                      'register.pwd'
+                    ),
+
+                  icon:
+                    Accessibility,
+                },
+                {
+                  key:
+                    'hasPregnantPerson',
+
+                  label:
+                    t(
+                      'register.pregnantPerson'
+                    ),
+
+                  icon:
+                    HeartPulse,
+                },
+              ].map(
+                ({
+                  key,
+                  label,
+                  icon: Icon,
+                }) => (
+                  <button
+                    type="button"
+                    key={
+                      key
+                    }
+                    onClick={() =>
+                      update(
+                        key,
+                        !form[key]
+                      )
+                    }
+                    aria-pressed={
+                      form[key]
+                    }
+                    className={`flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer transition-all select-none text-left ${
+                      form[key]
+                        ? 'border-resqnow-violet/30 bg-resqnow-violet/10 shadow-sm'
+                        : 'border-resqnow-border-soft bg-white hover:border-resqnow-violet/20 hover:bg-resqnow-violet/5'
+                    }`}
+                  >
+                    <div
+                      className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors shrink-0 ${
+                        form[key]
+                          ? 'bg-resqnow-violet border-resqnow-violet'
+                          : 'border-resqnow-border'
+                      }`}
+                    >
+                      {form[key] && (
+                        <Check
+                          className="w-3 h-3 text-white"
+                          strokeWidth={
+                            3
+                          }
+                        />
+                      )}
+                    </div>
+
+                    <Icon
+                      className={`w-[17px] h-[17px] shrink-0 ${
+                        form[key]
+                          ? 'text-resqnow-violet'
+                          : 'text-resqnow-muted'
+                      }`}
+                    />
+
+                    <span
+                      className={`text-[11px] sm:text-[12px] font-medium leading-tight ${
+                        form[key]
+                          ? 'text-resqnow-violet'
+                          : 'text-resqnow-secondary'
+                      }`}
+                    >
+                      {
+                        label
+                      }
+                    </span>
+                  </button>
+                )
               )}
-            </li>
-          ))}
-        </ol>
+            </div>
 
-        <p className="mt-6 text-sm leading-relaxed text-slate-500">
-          {t('register.verificationNote')}
-        </p>
+            {/* HOME LOCATION */}
 
-        <button
-          type="button"
-          onClick={onContinue}
-          className="mt-7 flex h-11 w-full items-center justify-center rounded-md bg-[#1F5FA6] text-sm font-semibold text-white transition-colors hover:bg-[#174A86]"
-        >
-          {t('register.goToLogin')}
-        </button>
+            <div>
+
+              <label className="block text-[12px] font-semibold text-resqnow-secondary mb-1.5">
+                {t(
+                  'register.homeLocation'
+                )}
+              </label>
+
+              <div className="border-2 border-dashed border-resqnow-border-soft rounded-xl p-4 text-center bg-resqnow-canvas">
+
+                <div className="w-10 h-10 bg-resqnow-violet/10 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <MapPin className="w-5 h-5 text-resqnow-violet" />
+                </div>
+
+                <p className="text-[12px] font-medium text-resqnow-secondary">
+                  {t(
+                    'register.homeLocationPin'
+                  )}
+                </p>
+
+                <p className="text-[10px] text-resqnow-muted mt-0.5">
+                  {t(
+                    'register.mapLater'
+                  )}
+                </p>
+              </div>
+            </div>
+
+            {/* TERMS */}
+
+            <label className="flex items-start gap-3 cursor-pointer select-none pt-2 pb-1">
+
+              <input
+                type="checkbox"
+                checked={
+                  form.agreedToTerms
+                }
+                onChange={(
+                  event
+                ) =>
+                  update(
+                    'agreedToTerms',
+                    event.target.checked
+                  )
+                }
+                className="w-[18px] h-[18px] rounded-md border-resqnow-border accent-resqnow-violet mt-0.5 shrink-0"
+              />
+
+              <span className="text-[11px] text-resqnow-muted leading-relaxed">
+                {t(
+                  'register.confirmInformation'
+                )}
+              </span>
+            </label>
+
+            {/* CREATE ACCOUNT */}
+
+            <button
+              type="submit"
+              disabled={
+                isSubmitting
+              }
+              className="w-full bg-brand-gradient text-white font-semibold py-3.5 rounded-xl disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-200 text-[14px] shadow-[0_4px_16px_rgba(131,70,242,0.22)] active:scale-[0.98] flex items-center justify-center gap-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+
+                  {t(
+                    'register.creating'
+                  )}
+                </>
+              ) : (
+                t(
+                  'register.createAccount'
+                )
+              )}
+            </button>
+          </form>
+
+          {/* LOGIN */}
+
+          <div className="mt-5 text-center">
+
+            <Link
+              to="/login"
+              className="text-[12px] text-resqnow-violet font-semibold hover:text-resqnow-primary hover:underline transition-colors"
+            >
+              {t(
+                'login.signIn'
+              )}
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-// ============ FORM PIECES ============
+// ============ SECTION LABEL ============
 
-const inputBase =
-  'h-11 w-full rounded-md border bg-white text-sm outline-none transition-colors placeholder:text-slate-400';
-const inputIdle =
-  'border-slate-300 focus:border-[#1F5FA6] focus:ring-2 focus:ring-[#1F5FA6]/15';
-const inputError =
-  'border-[#FDA29B] focus:border-[#D92D20] focus:ring-2 focus:ring-[#D92D20]/15';
-
-function Section({ number, title, description, children }) {
+function SectionLabel({
+  title,
+}) {
   return (
-    <section className="space-y-5">
-      <div className="flex items-start gap-3">
-        <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#EEF4FA] text-xs font-semibold text-[#1F5FA6]">
-          {number}
-        </span>
-        <div>
-          <h3 className="text-base font-semibold text-[#101C2E]">{title}</h3>
-          {description && (
-            <p className="mt-0.5 text-sm leading-relaxed text-slate-500">
-              {description}
-            </p>
-          )}
-        </div>
-      </div>
+    <div className="flex items-center gap-3 pt-2 pb-1">
 
-      <div className="space-y-5 sm:pl-9">{children}</div>
-    </section>
+      <span className="text-[10px] font-bold text-resqnow-muted uppercase tracking-widest">
+        {title}
+      </span>
+
+      <div className="flex-1 h-px bg-resqnow-border-soft" />
+    </div>
   );
 }
 
-function Field({ id, label, required, error, children }) {
+// ============ FIELD WRAPPER ============
+
+function FieldWrapper({
+  label,
+  error,
+  children,
+}) {
   return (
     <div>
-      <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-slate-700">
-        {label}
-        {required && <span className="ml-0.5 text-[#D92D20]">*</span>}
-      </label>
-      {children}
+
+      {label && (
+        <label className="block text-[12px] font-semibold text-resqnow-secondary mb-1.5">
+          {label}
+        </label>
+      )}
+
+      <div className="relative">
+        {children}
+      </div>
+
       {error && (
-        <p id={`${id}-error`} className="mt-1.5 text-xs text-[#D92D20]">
+        <p className="text-[11px] text-resqnow-critical mt-1 ml-1">
           {error}
         </p>
       )}
@@ -1085,49 +1789,109 @@ function Field({ id, label, required, error, children }) {
   );
 }
 
-function TextInput({
-  id,
+// ============ FIELD ICON ============
+
+function FieldIcon({
   icon: Icon,
-  value,
-  onChange,
-  onBlur,
+  active,
   error,
-  trailing,
-  type = 'text',
-  ...rest
 }) {
   return (
-    <div className="relative">
-      {Icon && (
-        <Icon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-      )}
-      <input
-        id={id}
-        type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        onBlur={onBlur}
-        aria-invalid={Boolean(error)}
-        aria-describedby={error ? `${id}-error` : undefined}
-        className={`${inputBase} ${Icon ? 'pl-9' : 'pl-3'} ${trailing ? 'pr-11' : 'pr-3'} ${
-          error ? inputError : inputIdle
-        }`}
-        {...rest}
-      />
-      {trailing}
-    </div>
+    <Icon
+      className={`absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] transition-colors pointer-events-none ${
+        active
+          ? 'text-resqnow-violet'
+          : error
+          ? 'text-resqnow-critical'
+          : 'text-resqnow-placeholder'
+      }`}
+    />
   );
 }
 
-function VisibilityToggle({ visible, onToggle, show, hide }) {
+// ============ INPUT FIELD ============
+
+const InputField = ({
+  ref,
+  type,
+  value,
+  onChange,
+  onFocus,
+  onBlur,
+  placeholder,
+  error,
+  ...rest
+}) => {
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      aria-label={visible ? hide : show}
-      className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-2 text-slate-400 transition-colors hover:text-slate-600"
-    >
-      {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-    </button>
+    <input
+      ref={
+        ref
+      }
+      type={
+        type
+      }
+      value={
+        value
+      }
+      onChange={
+        onChange
+      }
+      onFocus={
+        onFocus
+      }
+      onBlur={
+        onBlur
+      }
+      placeholder={
+        placeholder
+      }
+      className={`w-full pl-[46px] pr-4 py-3 rounded-xl text-[14px] text-resqnow-primary outline-none transition-all ${
+        error
+          ? 'ring-2 ring-resqnow-critical/30 bg-resqnow-critical/5'
+          : 'bg-resqnow-canvas ring-1 ring-resqnow-border focus:ring-2 focus:ring-resqnow-violet/25 focus:bg-white'
+      }`}
+      {...rest}
+    />
+  );
+};
+
+// ============ PASSWORD REQUIREMENT ============
+
+function PassIndicator({
+  passed,
+  label,
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+
+      <div
+        className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+          passed
+            ? 'bg-resqnow-safe/15'
+            : 'bg-resqnow-border-soft'
+        }`}
+      >
+        {passed ? (
+          <Check
+            className="w-2 h-2 text-resqnow-safe"
+            strokeWidth={
+              3
+            }
+          />
+        ) : (
+          <div className="w-1 h-1 rounded-full bg-resqnow-placeholder" />
+        )}
+      </div>
+
+      <span
+        className={`text-[10px] transition-colors ${
+          passed
+            ? 'text-resqnow-safe'
+            : 'text-resqnow-muted'
+        }`}
+      >
+        {label}
+      </span>
+    </div>
   );
 }
