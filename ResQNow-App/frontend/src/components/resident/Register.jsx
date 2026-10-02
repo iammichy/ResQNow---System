@@ -169,7 +169,10 @@ export default function Register() {
         controller.signal
       );
 
-      if (!label) return;
+      if (!label) {
+        setAddressNote('lookupfailed');
+        return;
+      }
 
       const current = addressRef.current.trim();
 
@@ -190,7 +193,7 @@ export default function Register() {
         update('purok', `Purok ${purok[1]}`);
       }
     } catch (lookupError) {
-      if (lookupError.name !== 'AbortError') setAddressNote('');
+      if (lookupError.name !== 'AbortError') setAddressNote('lookupfailed');
     }
   }
 
@@ -861,6 +864,10 @@ function AddressNote({ note, suggestion, onUseSuggestion, t }) {
       'We could not find that address. Tap the map to place your pin.'
     ),
     frompin: t('register.addressFromPin', 'Address filled in from your pin. You can edit it.'),
+    lookupfailed: t(
+      'register.addressLookupFailed',
+      'We could not read the address for this pin. Please type it in.'
+    ),
   };
 
   return (
@@ -868,7 +875,9 @@ function AddressNote({ note, suggestion, onUseSuggestion, t }) {
       {messages[note] && (
         <p
           className={`flex items-center gap-1.5 text-xs ${
-            note === 'notfound' ? 'text-[#B54708]' : 'text-slate-500'
+            note === 'notfound' || note === 'lookupfailed'
+              ? 'text-[#B54708]'
+              : 'text-slate-500'
           }`}
         >
           {note === 'searching' && <Loader2 className="h-3 w-3 animate-spin" />}
