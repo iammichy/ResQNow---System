@@ -29,6 +29,8 @@ const SafetyTips = lazy(() => import('./components/resident/SafetyTips'));
 const Updates = lazy(() => import('./components/resident/Updates'));
 const UpdateDetail = lazy(() => import('./components/resident/UpdateDetail'));
 
+import ForgotPassword from './components/resident/ForgotPassword';
+import ResetPassword from './components/resident/ResetPassword';
 import ResponderLogin from './components/responder/ResponderLogin';
 import ResponderLayout from './components/responder/ResponderLayout';
 const ResponderDashboard = lazy(() => import('./components/responder/ResponderDashboard'));
@@ -165,6 +167,20 @@ export default function App() {
                 <Register />
               </PublicRoute>
             }
+          />
+
+          <Route
+            path="/forgot-password"
+            element={
+              <PublicRoute>
+                <ForgotPassword />
+              </PublicRoute>
+            }
+          />
+
+          <Route
+            path="/reset-password"
+            element={<ResetPassword />}
           />
 
           <Route

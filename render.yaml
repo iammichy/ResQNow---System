@@ -49,3 +49,5 @@ services:
         sync: false
       - key: RESPONDER_NAME
         sync: false
+      - key: FRONTEND_URL   # mobile app URL (Vercel); password-reset emails link here
+        sync: false

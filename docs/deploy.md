@@ -26,6 +26,8 @@ Service `resqnow-api` is defined in `render.yaml` (Docker, `rootDir: api`). Set 
 | `DB_HOST` / `DB_PORT` / `DB_DATABASE` / `DB_USERNAME` / `DB_PASSWORD` | from TiDB Cloud (port `4000`) |
 | `MYSQL_ATTR_SSL_CA` | `/etc/ssl/certs/ca-certificates.crt` |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | web-admin login (created on boot) |
+| `FRONTEND_URL` | URL of the mobile app on Vercel, e.g. `https://resqnow-app.vercel.app` (password-reset links) |
+| `MAIL_MAILER` / `MAIL_HOST` / `MAIL_PORT` / `MAIL_USERNAME` / `MAIL_PASSWORD` / `MAIL_FROM_ADDRESS` | SMTP so "Forgot password" can send email (default `log` sends nothing) |
 | `RESPONDER_EMAIL` / `RESPONDER_PASSWORD` / `RESPONDER_NAME` | optional, creates a responder account + linked personnel |
 
 On every boot the container runs `migrate --force` and the seeders (admin, responder, contact directory).

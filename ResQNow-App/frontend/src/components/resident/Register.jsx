@@ -1,5 +1,5 @@
 // src/components/resident/Register.jsx
-import { lazy, Suspense, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext';
+import { reverseGeocode, searchAddress } from '../../services/geocodeService';
 import { purokOptions } from '../../data/mockData';
 import barangayPhoto from '../../assets/barangay/barangay-camunatan.jpg';
 
@@ -81,6 +82,125 @@ export default function Register() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const submitting = useRef(false);
+
+  // Address text <-> map pin.
+  const [addressNote, setAddressNote] = useState('');
+  const [suggestion, setSuggestion] = useState('');
+  const addressRef = useRef('');
+  const purokRef = useRef('');
+  const addressAuto = useRef(false); // address text was filled in from the pin
+  const skipLookup = useRef(false); // don't geocode text we just filled in
+  const pinLookup = useRef(null);
+
+  useEffect(() => {
+    addressRef.current = form.address;
+    purokRef.current = form.purok;
+  });
+
+  // Typing an address moves the pin (debounced; Nominatim allows ~1 req/s).
+  useEffect(() => {
+    if (skipLookup.current) {
+      skipLookup.current = false;
+      return undefined;
+    }
+
+    const query = form.address.trim();
+
+    if (query.length < 8) return undefined;
+
+    const controller = new AbortController();
+
+    const timer = window.setTimeout(async () => {
+      setAddressNote('searching');
+
+      try {
+        const hit = await searchAddress(
+          `${query}, Ilagan, Isabela`,
+          controller.signal
+        );
+
+        if (!hit) {
+          setAddressNote('notfound');
+          return;
+        }
+
+        setHomeLocation({
+          latitude: hit.latitude,
+          longitude: hit.longitude,
+          focus: true,
+        });
+        setSuggestion('');
+        setAddressNote('found');
+
+        const purok = /purok\s*([1-3])/i.exec(query);
+
+        if (purok && !purokRef.current) {
+          setForm((previous) => ({ ...previous, purok: `Purok ${purok[1]}` }));
+        }
+      } catch (lookupError) {
+        if (lookupError.name !== 'AbortError') setAddressNote('');
+      }
+    }, 900);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [form.address]);
+
+  // Moving the pin fills in the address.
+  async function handlePin(next) {
+    setHomeLocation(next);
+    pinLookup.current?.abort();
+
+    if (!next) {
+      setAddressNote('');
+      setSuggestion('');
+      return;
+    }
+
+    const controller = new AbortController();
+    pinLookup.current = controller;
+
+    try {
+      const label = await reverseGeocode(
+        next.latitude,
+        next.longitude,
+        controller.signal
+      );
+
+      if (!label) return;
+
+      const current = addressRef.current.trim();
+
+      if (!current || addressAuto.current) {
+        if (label !== addressRef.current) skipLookup.current = true;
+
+        addressAuto.current = true;
+        update('address', label);
+        setSuggestion('');
+        setAddressNote('frompin');
+      } else if (label !== current) {
+        setSuggestion(label);
+      }
+
+      const purok = /purok\s*([1-3])/i.exec(label);
+
+      if (purok && !purokRef.current) {
+        update('purok', `Purok ${purok[1]}`);
+      }
+    } catch (lookupError) {
+      if (lookupError.name !== 'AbortError') setAddressNote('');
+    }
+  }
+
+  function useSuggestedAddress() {
+    skipLookup.current = suggestion !== form.address;
+    addressAuto.current = true;
+    update('address', suggestion);
+    setSuggestion('');
+    setAddressNote('frompin');
+  }
 
   // ---------- validation ----------
 
@@ -386,11 +506,22 @@ export default function Register() {
                     id="address"
                     icon={Home}
                     value={form.address}
-                    onChange={(value) => update('address', value)}
+                    onChange={(value) => {
+                      addressAuto.current = false;
+                      setSuggestion('');
+                      update('address', value);
+                    }}
                     onBlur={() => blur('address')}
                     placeholder={t('register.addressPlaceholder')}
                     error={errors.address}
                     autoComplete="street-address"
+                  />
+
+                  <AddressNote
+                    note={addressNote}
+                    suggestion={suggestion}
+                    onUseSuggestion={useSuggestedAddress}
+                    t={t}
                   />
                 </Field>
 
@@ -438,7 +569,7 @@ export default function Register() {
                 >
                   <LocationPicker
                     value={homeLocation}
-                    onChange={setHomeLocation}
+                    onChange={handlePin}
                     labels={{
                       locate: t('register.useMyLocation', 'Use my current location'),
                       locating: t('register.locating', 'Finding you…'),
@@ -715,6 +846,46 @@ export default function Register() {
           </form>
         </div>
       </main>
+    </div>
+  );
+}
+
+// ============ ADDRESS <-> PIN STATUS ============
+
+function AddressNote({ note, suggestion, onUseSuggestion, t }) {
+  const messages = {
+    searching: t('register.addressSearching', 'Looking for this address on the map…'),
+    found: t('register.addressFound', 'Pin moved to match your address. Drag it to fine-tune.'),
+    notfound: t(
+      'register.addressNotFound',
+      'We could not find that address. Tap the map to place your pin.'
+    ),
+    frompin: t('register.addressFromPin', 'Address filled in from your pin. You can edit it.'),
+  };
+
+  return (
+    <div aria-live="polite" className="mt-1.5 space-y-1">
+      {messages[note] && (
+        <p
+          className={`flex items-center gap-1.5 text-xs ${
+            note === 'notfound' ? 'text-[#B54708]' : 'text-slate-500'
+          }`}
+        >
+          {note === 'searching' && <Loader2 className="h-3 w-3 animate-spin" />}
+          {messages[note]}
+        </p>
+      )}
+
+      {suggestion && (
+        <button
+          type="button"
+          onClick={onUseSuggestion}
+          className="text-left text-xs text-[#1F5FA6] hover:underline"
+        >
+          {t('register.useSuggestion', 'Use this address from your pin:')}{' '}
+          <span className="font-semibold">{suggestion}</span>
+        </button>
+      )}
     </div>
   );
 }

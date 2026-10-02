@@ -29,7 +29,7 @@ function format(value) {
 /**
  * Pin a location on a Leaflet map.
  *
- * value:    { latitude, longitude } | null
+ * value:    { latitude, longitude, focus? } | null (focus: fly the map to it)
  * onChange: called with the new { latitude, longitude }, or null when removed
  *
  * The pin can be placed by tapping the map, dragged to adjust, or set from
@@ -135,7 +135,11 @@ export default function LocationPicker({ value, onChange, labels = {} }) {
       markerRef.current.setLatLng(position);
     }
 
-    if (!map.getBounds().contains(position)) {
+    if (value.focus) {
+      // Pin set by something other than the user's own tap/drag
+      // (for example a matched address): bring it into view.
+      map.flyTo(position, PIN_ZOOM, { duration: 0.8 });
+    } else if (!map.getBounds().contains(position)) {
       map.setView(position, Math.max(map.getZoom(), PIN_ZOOM));
     }
   }, [value]);

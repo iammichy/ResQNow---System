@@ -70,6 +70,22 @@ export async function loginResident(
   );
 }
 
+// ============ FORGOT PASSWORD ============
+
+export async function forgotPassword({ email }) {
+  return apiRequest(
+    '/api/forgot-password',
+    {
+      method: 'POST',
+
+      body:
+        JSON.stringify({
+          email,
+        }),
+    }
+  );
+}
+
 // ============ CURRENT USER ============
 
 export async function getCurrentUser() {

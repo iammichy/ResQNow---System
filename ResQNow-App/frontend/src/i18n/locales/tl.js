@@ -963,6 +963,11 @@ const tl = {
 
   // ============ REGISTER ============
   register: {
+    addressSearching: 'Hinahanap ang address na ito sa mapa…',
+    addressFound: 'Inilipat ang pin ayon sa address mo. I-drag ito para i-adjust.',
+    addressNotFound: 'Hindi namin mahanap ang address na iyan. I-tap ang mapa para maglagay ng pin.',
+    addressFromPin: 'Nilagyan ng address mula sa pin mo. Puwede mo itong i-edit.',
+    useSuggestion: 'Gamitin ang address mula sa pin mo:',
     personalHint: 'Gamitin ang tunay mong pangalan. Itinutugma ito ng barangay sa talaan ng sambahayan.',
     locationHint: 'Tinutulungan ng pin ang mga responder na mahanap agad ang bahay mo. Puwede mo itong baguhin mamaya.',
     householdHint: 'Para maihanda ng barangay ang tamang tulong kapag may emergency.',
