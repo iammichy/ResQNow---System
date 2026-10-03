@@ -54,6 +54,25 @@ class ReportResource extends JsonResource
             'priority' =>
                 $this->priority,
 
+            'triage' => [
+                'computedResult' => $this->priority,
+                'score' => $this->triage_score !== null
+                    ? (int) $this->triage_score
+                    : null,
+                'factors' => $this->triage_flags ?? [],
+                'ruleVersion' => $this->triage_rule_version,
+                'recalculatedAt' => $this->triage_recalculated_at?->toISOString(),
+            ],
+
+            'svf' => $this->relationLoaded('svfAnswer') && $this->svfAnswer
+                ? [
+                    'category' => $this->svfAnswer->category,
+                    'answers' => $this->svfAnswer->answers ?? [],
+                    'flags' => $this->svfAnswer->flags ?? [],
+                    'ruleVersion' => $this->svfAnswer->rule_version,
+                ]
+                : null,
+
 
             // ============ REPORTER / SUBJECT ============
 

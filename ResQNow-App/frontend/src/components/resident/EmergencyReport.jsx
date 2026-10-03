@@ -28,10 +28,20 @@ import { emergencyTypes } from '../../data/mockData';
 import { createEmergencyReport } from '../../services/reportService';
 import { getBarangayHotline } from '../../utils/contactUtils';
 import { buildEmergencySmsMessage, openSmsComposer } from '../../utils/smsFallback';
+import EmergencySituationCheck, { emergencySituationComplete } from './EmergencySituationCheck';
 
 // ============ ICONS ============
 const HOTLINE = getBarangayHotline();
 const EMERGENCY_DRAFT_KEY = 'resqnow_emergency_draft_v1';
+
+function createEmergencyRequestId() {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {
+    const value = Math.floor(Math.random() * 16);
+    const normalized = char === 'x' ? value : (value & 0x3) | 0x8;
+    return normalized.toString(16);
+  });
+}
 
 const iconMap = {
   HeartPulse,
@@ -46,46 +56,29 @@ const iconMap = {
 // ============ EMERGENCY CATEGORY INFO ============
 // Resident-friendly labels and descriptions
 const emergencyCategoryInfo = {
-  'life-death': {
-    label: 'Life-Threatening',
-    description:
-      "Someone's life is in immediate danger.",
-  },
-
   fire: {
-    label: 'Fire Emergency',
-    description:
-      'Active fire, heavy smoke, or immediate fire danger.',
+    label: 'Fire / Smoke / Electrical Danger',
+    description: 'Urgent fire, smoke, or electrical danger where you can still answer a few quick questions.',
   },
-
   medical: {
     label: 'Medical Emergency',
-    description:
-      'Serious injury, illness, or urgent medical help.',
+    description: 'Urgent illness or injury where quick factual details can still be provided.',
   },
-
   violence: {
     label: 'Violence / Safety Threat',
-    description:
-      'Violence, threats, or immediate danger from another person.',
+    description: 'Urgent threat or violence. If danger is immediate and life-threatening, use SOS.',
   },
-
   flood: {
-    label: 'Flood Rescue',
-    description:
-      'Urgent rescue or assistance because of flooding.',
+    label: 'Flood / Rising Water',
+    description: 'Urgent flooding that needs barangay response; severity is determined from situation facts.',
   },
-
   accident: {
-    label: 'Road Accident',
-    description:
-      'Vehicle crash or serious road-related accident.',
+    label: 'Road Accident / Serious Obstruction',
+    description: 'Urgent crash or road incident requiring quick barangay response.',
   },
-
   evacuation: {
     label: 'Urgent Evacuation',
-    description:
-      'Immediate help is needed to evacuate safely.',
+    description: 'Urgent help is needed to leave an unsafe area.',
   },
 };
 
@@ -109,6 +102,10 @@ export default function EmergencyReport() {
   // Emergency form state
   const [selectedType, setSelectedType] =
     useState(null);
+
+  const [showSituationCheck, setShowSituationCheck] = useState(false);
+  const [svfAnswers, setSvfAnswers] = useState({});
+  const [clientRequestId, setClientRequestId] = useState(() => createEmergencyRequestId());
 
   const [locationMode, setLocationMode] =
     useState(null);
@@ -190,6 +187,8 @@ export default function EmergencyReport() {
       if (draft) {
         const type = emergencyTypes.find((item) => item.id === draft.selectedTypeId);
         if (type) setSelectedType(type);
+        if (draft.svfAnswers && typeof draft.svfAnswers === 'object') setSvfAnswers(draft.svfAnswers);
+        if (typeof draft.clientRequestId === 'string' && draft.clientRequestId) setClientRequestId(draft.clientRequestId);
         if (typeof draft.location === 'string') setLocation(draft.location);
         if (typeof draft.locationMode === 'string') setLocationMode(draft.locationMode);
         if (Number.isFinite(draft.latitude)) setLatitude(draft.latitude);
@@ -216,6 +215,8 @@ export default function EmergencyReport() {
 
     const draft = {
       selectedTypeId: selectedType?.id || null,
+      svfAnswers,
+      clientRequestId,
       location,
       locationMode,
       latitude,
@@ -239,6 +240,8 @@ export default function EmergencyReport() {
     draftHydrated,
     submittedReport,
     selectedType,
+    svfAnswers,
+    clientRequestId,
     location,
     locationMode,
     latitude,
@@ -404,6 +407,17 @@ export default function EmergencyReport() {
       return;
     }
 
+    if (!emergencySituationComplete(selectedType.id, svfAnswers)) {
+      setError('Please finish the short emergency situation check. These facts are used by the system triage; you do not select a priority.');
+
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+      });
+
+      return;
+    }
+
     if (!location.trim()) {
       setError(
         'Please set your location so responders know where to go.'
@@ -468,8 +482,12 @@ export default function EmergencyReport() {
         await createEmergencyReport({
           // Laravel validates this
           // against the canonical concern codes
+          clientRequestId,
+
           concernCode:
             selectedType.id,
+
+          svfAnswers,
 
           location:
             location.trim(),
@@ -569,6 +587,8 @@ export default function EmergencyReport() {
     setSubmittedReport(null);
 
     setSelectedType(null);
+    setSvfAnswers({});
+    setClientRequestId(createEmergencyRequestId());
     setLocation('');
     setLocationMode(null);
     setLatitude(null);
@@ -784,16 +804,42 @@ export default function EmergencyReport() {
         </div>
       )}
 
+      <section className="mb-3 rounded-2xl border border-resqnow-critical/25 bg-resqnow-critical/5 p-3">
+        <div className="flex items-start gap-2.5">
+          <ShieldAlert className="w-4 h-4 text-resqnow-critical mt-0.5 shrink-0" />
+          <div className="flex-1">
+            <p className="text-[11px] font-extrabold text-resqnow-primary">Emergency Report is for urgent incidents you can still describe quickly.</p>
+            <p className="text-[10px] text-resqnow-secondary mt-1 leading-relaxed">
+              If someone may die, is unconscious, seriously injured, trapped, or in immediate life danger, use the SOS fast-track instead. Emergency Report uses a short 3-step pop-up so ResQNow can compute triage from facts without making you scroll through a long checklist.
+            </p>
+            <button
+              type="button"
+              onClick={() => navigate('/dashboard')}
+              className="mt-2 min-h-[36px] px-3 rounded-lg bg-resqnow-critical text-white text-[10px] font-extrabold"
+            >
+              Go to SOS Fast-Track
+            </button>
+          </div>
+        </div>
+      </section>
+
       {/* ============ EMERGENCY TYPE ============ */}
       <section className="bg-white border border-resqnow-border-soft rounded-2xl p-3 mb-3">
 
-        <h2 className="text-sm font-bold text-resqnow-primary px-1 mb-2">
-          What is the emergency?
-        </h2>
+        <div className="px-1 mb-2">
+          <h2 className="text-sm font-bold text-resqnow-primary">
+            What is the emergency?
+          </h2>
+          <p className="text-[10px] text-resqnow-muted mt-0.5">
+            Tap one. A short 3-step situation check opens as a pop-up.
+          </p>
+        </div>
 
         <div className="grid grid-cols-2 gap-2">
 
-          {emergencyTypes.map(
+          {emergencyTypes
+            .filter((type) => type.id !== 'life-death')
+            .map(
             (type) => {
               const Icon =
                 iconMap[type.icon] ||
@@ -813,18 +859,14 @@ export default function EmergencyReport() {
                   key={type.id}
                   type="button"
                   onClick={() => {
-                    setSelectedType(
-                      type
-                    );
-
+                    if (selectedType?.id !== type.id) {
+                      setSvfAnswers({});
+                    }
+                    setSelectedType(type);
+                    setShowSituationCheck(true);
                     setError('');
                   }}
-                  className={`p-2.5 min-h-[112px] rounded-xl border text-left active:scale-[0.98] transition-all ${
-                    type.id ===
-                    'evacuation'
-                      ? 'col-span-2'
-                      : ''
-                  } ${
+                  className={`h-[112px] p-2.5 rounded-xl border text-left active:scale-[0.98] transition-all ${
                     selected
                       ? 'bg-resqnow-critical/10 border-resqnow-critical/30 ring-1 ring-resqnow-critical/20'
                       : 'bg-white border-resqnow-border-soft hover:border-resqnow-critical/30 hover:bg-resqnow-critical/5'
@@ -853,17 +895,14 @@ export default function EmergencyReport() {
                     {info.label}
                   </p>
 
-                  {/* Description */}
                   <p
-                    className={`text-[9px] mt-1.5 leading-relaxed ${
+                    className={`text-[9px] mt-1.5 leading-snug ${
                       selected
                         ? 'text-resqnow-critical/80'
                         : 'text-resqnow-muted'
                     }`}
                   >
-                    {
-                      info.description
-                    }
+                    {selected ? 'Selected · tap to review' : 'Tap for quick check'}
                   </p>
                 </button>
               );
@@ -872,8 +911,65 @@ export default function EmergencyReport() {
         </div>
       </section>
 
+      {selectedType && (
+        <div className="mb-3 rounded-xl border border-resqnow-border-soft bg-white px-3 py-2.5 flex items-center gap-2">
+          <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+            emergencySituationComplete(selectedType.id, svfAnswers)
+              ? 'bg-resqnow-safe/10 text-resqnow-safe'
+              : 'bg-resqnow-pending/10 text-resqnow-pending'
+          }`}>
+            {emergencySituationComplete(selectedType.id, svfAnswers) ? (
+              <CheckCircle2 className="w-4 h-4" />
+            ) : (
+              <ShieldAlert className="w-4 h-4" />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-bold text-resqnow-primary">
+              {emergencySituationComplete(selectedType.id, svfAnswers)
+                ? 'Quick situation check complete'
+                : 'Quick situation check not finished'}
+            </p>
+            <p className="text-[9px] text-resqnow-muted mt-0.5">
+              {getEmergencyInfo(selectedType).label}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowSituationCheck(true)}
+            className="min-h-[34px] px-3 rounded-lg border border-resqnow-border-soft bg-resqnow-canvas text-resqnow-violet text-[10px] font-extrabold"
+          >
+            {emergencySituationComplete(selectedType.id, svfAnswers) ? 'Review' : 'Continue'}
+          </button>
+        </div>
+      )}
+
+      {selectedType && (
+        <EmergencySituationCheck
+          concernCode={selectedType.id}
+          answers={svfAnswers}
+          open={showSituationCheck}
+          onClose={() => setShowSituationCheck(false)}
+          onChange={(key, value) => {
+            setSvfAnswers((current) => ({ ...current, [key]: value }));
+            setError('');
+          }}
+          onUseSos={() => navigate('/dashboard')}
+          onComplete={() => {
+            setShowSituationCheck(false);
+            setError('');
+            window.setTimeout(() => {
+              document.getElementById('emergency-location')?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start',
+              });
+            }, 120);
+          }}
+        />
+      )}
+
       {/* ============ LOCATION ============ */}
-      <section className="bg-white border border-resqnow-border-soft rounded-2xl p-3 mb-3">
+      <section id="emergency-location" className="bg-white border border-resqnow-border-soft rounded-2xl p-3 mb-3 scroll-mt-3">
 
         <div className="px-1 mb-2">
 

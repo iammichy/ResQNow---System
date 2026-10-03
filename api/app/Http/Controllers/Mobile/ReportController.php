@@ -9,6 +9,7 @@ use App\Http\Requests\Api\StoreNonEmergencyReportRequest;
 use App\Http\Resources\ReportResource;
 use App\Models\Report;
 use App\Services\ReportNotifications;
+use App\Services\Triage\EmergencyTriageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -23,7 +24,6 @@ class ReportController extends Controller
      * canonical resident-facing labels.
      */
     private const EMERGENCY_CONCERNS = [
-        'life-death' => 'Life and Death Emergency',
         'fire' => 'Fire Emergency',
         'medical' => 'Medical Emergency',
         'violence' => 'Public Safety / Violence',
@@ -111,6 +111,7 @@ class ReportController extends Controller
                 $request->user()->id
             )
             ->with([
+                'svfAnswer',
                 'statusLogs',
                 'activeAssignments.assignedUser',
             ])
@@ -140,6 +141,7 @@ class ReportController extends Controller
                 $reportCode
             )
             ->with([
+                'svfAnswer',
                 'statusLogs',
                 'activeAssignments.assignedUser',
             ])
@@ -302,201 +304,145 @@ class ReportController extends Controller
      * Submit an Emergency report.
      */
     public function storeEmergency(
-        StoreEmergencyReportRequest $request
+        StoreEmergencyReportRequest $request,
+        EmergencyTriageService $triageService
     ): JsonResponse {
         $data = $request->validated();
+        $user = $request->user();
 
-        $report = DB::transaction(
+        $fingerprintPayload = [
+            'concernCode' => $data['concernCode'],
+            'svfAnswers' => $data['svfAnswers'],
+            'location' => $data['location'],
+            'reportingForOther' => (bool) ($data['reportingForOther'] ?? false),
+            'subjectName' => $data['subjectName'] ?? null,
+            'subjectContact' => $data['subjectContact'] ?? null,
+        ];
+
+        $requestFingerprint = hash(
+            'sha256',
+            json_encode($fingerprintPayload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+        );
+
+        $triage = $triageService->compute(
+            $data['concernCode'],
+            $data['svfAnswers']
+        );
+
+        [$report, $result] = DB::transaction(
             function () use (
-                $request,
-                $data
+                $data,
+                $user,
+                $requestFingerprint,
+                $triage
             ) {
-                /**
-                 * Create the database record first.
-                 *
-                 * report_code starts as null because
-                 * we need the auto-generated database
-                 * ID before we can create EM-000001.
-                 */
+                DB::table('users')
+                    ->where('id', $user->id)
+                    ->lockForUpdate()
+                    ->first();
+
+                $existing = Report::query()
+                    ->where('user_id', $user->id)
+                    ->where('client_request_id', $data['clientRequestId'])
+                    ->first();
+
+                if ($existing) {
+                    if (
+                        $existing->request_fingerprint !== null
+                        && $existing->request_fingerprint !== $requestFingerprint
+                    ) {
+                        return [$existing, 'conflict'];
+                    }
+
+                    return [$existing, 'idempotent'];
+                }
+
                 $report = Report::create([
-                    'user_id' =>
-                        $request->user()->id,
-
-                    'report_code' =>
-                        null,
-
-                    'report_type' =>
-                        'Emergency',
-
-                    'concern_code' =>
-                        $data['concernCode'],
-
-                    'concern_type' =>
-                        self::EMERGENCY_CONCERNS[
-                            $data['concernCode']
-                        ],
-
-                    'subcategory' =>
-                        null,
-
-                    /**
-                     * Emergency reports are saved
-                     * immediately as Submitted.
-                     */
-                    'status' =>
-                        'Submitted',
-
-                    /**
-                     * All currently supported Emergency
-                     * categories begin as High priority.
-                     *
-                     * Priority does NOT automatically
-                     * assign a responder.
-                     */
-                    'priority' =>
-                        'High',
-
-                    'reporting_for' =>
-                        ! empty(
-                            $data[
-                                'reportingForOther'
-                            ]
-                        )
-                            ? 'Another Person'
-                            : 'Myself',
-
-                    'subject_name' =>
-                        $data[
-                            'subjectName'
-                        ] ?? null,
-
-                    'subject_contact' =>
-                        $data[
-                            'subjectContact'
-                        ] ?? null,
-
-                    'relationship_note' =>
-                        null,
-
-                    'purok' =>
-                        null,
-
-                    'location' =>
-                        $data['location'],
-
-                    'landmark' =>
-                        $data[
-                            'landmark'
-                        ] ?? null,
-
-                    /**
-                     * Optional incident coordinates.
-                     *
-                     * These can remain null when the
-                     * resident submits an address only.
-                     */
-                    'latitude' =>
-                        $data[
-                            'latitude'
-                        ] ?? null,
-
-                    'longitude' =>
-                        $data[
-                            'longitude'
-                        ] ?? null,
-
-                    'location_source' =>
-                        $data[
-                            'locationSource'
-                        ] ?? null,
-
-                    'location_accuracy' =>
-                        $data[
-                            'locationAccuracy'
-                        ] ?? null,
-
-                    'location_captured_at' =>
-                        $data[
-                            'locationCapturedAt'
-                        ] ?? null,
-
-                    'description' =>
-                        $data[
-                            'description'
-                        ] ?? null,
-
-                    'required_assistance' =>
-                        null,
-
-                    'affected_individuals' =>
-                        null,
-
-                    'photo_path' =>
-                        null,
-
-                    'barangay_remarks' =>
-                        null,
-
-                    'invalid_reason' =>
-                        null,
-
-                    'resolved_remarks' =>
-                        null,
+                    'user_id' => $user->id,
+                    'client_request_id' => $data['clientRequestId'],
+                    'request_fingerprint' => $requestFingerprint,
+                    'report_code' => null,
+                    'report_type' => 'Emergency',
+                    'concern_code' => $data['concernCode'],
+                    'concern_type' => self::EMERGENCY_CONCERNS[$data['concernCode']],
+                    'subcategory' => null,
+                    'status' => 'Submitted',
+                    'priority' => $triage['priority'],
+                    'triage_score' => $triage['score'],
+                    'triage_recommendation' => $triage['priority'],
+                    'triage_assessed_at' => now(),
+                    'triage_flags' => $triage['flags'],
+                    'triage_rule_version' => $triage['ruleVersion'],
+                    'triage_recalculated_at' => now(),
+                    'reporting_for' => ! empty($data['reportingForOther'])
+                        ? 'Another Person'
+                        : 'Myself',
+                    'subject_name' => $data['subjectName'] ?? null,
+                    'subject_contact' => $data['subjectContact'] ?? null,
+                    'relationship_note' => null,
+                    'purok' => null,
+                    'location' => $data['location'],
+                    'landmark' => $data['landmark'] ?? null,
+                    'latitude' => $data['latitude'] ?? null,
+                    'longitude' => $data['longitude'] ?? null,
+                    'location_source' => $data['locationSource'] ?? null,
+                    'location_accuracy' => $data['locationAccuracy'] ?? null,
+                    'location_captured_at' => $data['locationCapturedAt'] ?? null,
+                    'description' => $data['description'] ?? null,
+                    'required_assistance' => null,
+                    'affected_individuals' => null,
+                    'photo_path' => null,
+                    'barangay_remarks' => null,
+                    'invalid_reason' => null,
+                    'resolved_remarks' => null,
                 ]);
 
-                /**
-                 * Generate the resident-facing
-                 * Emergency report code.
-                 *
-                 * Example:
-                 * database ID 1 → EM-000001
-                 */
                 $report->update([
-                    'report_code' =>
-                        sprintf(
-                            'EM-%06d',
-                            $report->id
-                        ),
+                    'report_code' => sprintf('EM-%06d', $report->id),
                 ]);
 
-                /**
-                 * Store the first timeline event.
-                 */
-                $report
-                    ->statusLogs()
-                    ->create([
-                        'status' =>
-                            'Submitted',
+                $report->svfAnswer()->create([
+                    'category' => $data['concernCode'],
+                    'answers' => $data['svfAnswers'],
+                    'flags' => $triage['flags'],
+                    'rule_version' => $triage['ruleVersion'],
+                ]);
 
-                        'remarks' =>
-                            'Emergency report submitted by resident.',
+                $report->statusLogs()->create([
+                    'status' => 'Submitted',
+                    'activity' => 'Resident submitted emergency report',
+                    'remarks' => sprintf(
+                        'Emergency report submitted. System triage computed as %s using rule %s.',
+                        $triage['priority'],
+                        $triage['ruleVersion']
+                    ),
+                    'changed_by_user_id' => $user->id,
+                    'request_fingerprint' => $requestFingerprint,
+                ]);
 
-                        'changed_by_user_id' =>
-                            $request->user()->id,
-                    ]);
-
-                return $report;
+                return [$report, 'created'];
             }
         );
 
-        /**
-         * Load the relationships required by
-         * ReportResource before returning data.
-         */
+        if ($result === 'conflict') {
+            return response()->json([
+                'message' => 'This emergency request identifier was already used for different details. Refresh the form before trying again.',
+            ], 409);
+        }
+
         $report->load([
+            'svfAnswer',
             'statusLogs',
             'activeAssignments.assignedUser',
         ]);
 
         return response()->json([
-            'message' =>
-                'Emergency report submitted successfully.',
-
-            'report' =>
-                new ReportResource(
-                    $report
-                ),
-        ], 201);
+            'message' => $result === 'idempotent'
+                ? 'This emergency report was already received. The existing report was returned instead of creating a duplicate.'
+                : 'Emergency report submitted successfully.',
+            'report' => new ReportResource($report),
+            'duplicateSubmissionPrevented' => $result === 'idempotent',
+        ], $result === 'created' ? 201 : 200);
     }
 
     /**

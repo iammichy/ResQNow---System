@@ -29,6 +29,9 @@ class Report extends Model
         'additional_risk_factors',
 
         'triage_score',
+        'triage_flags',
+        'triage_rule_version',
+        'triage_recalculated_at',
         'triage_recommendation',
         'triage_remarks',
         'triage_assessed_at',
@@ -67,6 +70,8 @@ class Report extends Model
     protected $casts = [
         'additional_risk_factors' => 'array',
         'triage_assessed_at' => 'datetime',
+        'triage_flags' => 'array',
+        'triage_recalculated_at' => 'datetime',
         'priority_assigned_at' => 'datetime',
         'affected_individuals' => 'array',
         'version' => 'integer',
@@ -98,6 +103,11 @@ class Report extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function svfAnswer(): HasOne
+    {
+        return $this->hasOne(ReportSvfAnswer::class);
     }
 
     public function statusLogs(): HasMany
