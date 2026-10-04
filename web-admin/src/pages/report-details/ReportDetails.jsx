@@ -1284,7 +1284,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                     disabled={!incident}
                     className="w-full rounded-lg border border-[#1F5FA6] bg-white px-4 py-2.5 text-sm font-semibold text-[#1F5FA6] transition hover:bg-[#EAF1FA] disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    Change Assignment
+                    {incident?.assigned_personnel_id ? "Change Assignment" : "Assign Personnel"}
                   </button>
                 )}
               </div>
@@ -1410,11 +1410,11 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
             <div className="flex items-center justify-between border-b border-[#E4E7EC] px-6 py-4">
               <div>
                 <h2 className="text-lg font-bold text-[#101C2E]">
-                  Assign Response Team
+                  {incident?.assigned_personnel_id ? "Change Response Assignment" : "Assign Response Personnel"}
                 </h2>
 
                 <p className="mt-1 text-xs text-[#667085]">
-                  Assign personnel to this incident.
+                  {incident?.assigned_personnel_id ? "Select different available personnel for this response case." : "Select available personnel for this response case."}
                 </p>
               </div>
 
