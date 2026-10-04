@@ -84,6 +84,27 @@ export async function createNonEmergencyReport(
     new FormData();
 
   formData.append(
+    'clientRequestId',
+    reportData.clientRequestId
+  );
+
+  Object.entries(
+    reportData.svfAnswers || {}
+  ).forEach(([key, value]) => {
+    formData.append(
+      `svfAnswers[${key}]`,
+      value
+    );
+  });
+
+  if (reportData.noPhotoReason) {
+    formData.append(
+      'noPhotoReason',
+      reportData.noPhotoReason
+    );
+  }
+
+  formData.append(
     'concernCode',
     reportData.concernCode
   );

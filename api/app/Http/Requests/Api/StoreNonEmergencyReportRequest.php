@@ -4,13 +4,26 @@ namespace App\Http\Requests\Api;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class StoreNonEmergencyReportRequest extends FormRequest
 {
-    /**
-     * Only a verified resident may submit
-     * a non-emergency report.
-     */
+    private const CONCERNS = [
+        'evac-assistance',
+        'bhw-assistance',
+        'road-obstruction',
+        'damaged-facility',
+        'cleanup',
+        'community-concern',
+        'other-assistance',
+    ];
+
+    private const PHOTO_OR_REASON_CONCERNS = [
+        'road-obstruction',
+        'damaged-facility',
+        'cleanup',
+    ];
+
     public function authorize(): bool
     {
         $user = $this->user();
@@ -20,28 +33,37 @@ class StoreNonEmergencyReportRequest extends FormRequest
             && $user->account_status === 'Verified';
     }
 
-    /**
-     * Validate non-emergency report information.
-     */
     public function rules(): array
     {
         return [
-            // Selected non-emergency concern
+            'clientRequestId' => [
+                'required',
+                'uuid',
+            ],
+
             'concernCode' => [
                 'required',
                 'string',
-                Rule::in([
-                    'evac-assistance',
-                    'bhw-assistance',
-                    'road-obstruction',
-                    'damaged-facility',
-                    'cleanup',
-                    'community-concern',
-                    'other-assistance',
-                ]),
+                Rule::in(self::CONCERNS),
             ],
 
-            // Optional category-specific subcategory
+            'svfAnswers' => [
+                'required',
+                'array',
+            ],
+
+            'svfAnswers.*' => [
+                'nullable',
+                'string',
+                'max:80',
+            ],
+
+            'noPhotoReason' => [
+                'nullable',
+                'string',
+                'max:300',
+            ],
+
             'subcategory' => [
                 'nullable',
                 'string',
@@ -50,25 +72,20 @@ class StoreNonEmergencyReportRequest extends FormRequest
                     'Transportation',
                     'Temporary Shelter',
                     'Supplies',
-
                     'Health Check',
                     'Home Visit',
                     'Medicine Assistance',
-
                     'Fallen Tree / Branch',
                     'Debris Blocking Road',
                     'Vehicle / Object Blocking Road',
                     'Other Road Obstruction',
-
                     'Street Light',
                     'Road',
                     'Drainage',
                     'Barangay Facility',
-
                     'Waste Collection',
                     'Storm Debris / Branches',
                     'Drainage Clean-up',
-
                     'Sanitation',
                     'Noise',
                     'Stray Animals',
@@ -76,7 +93,6 @@ class StoreNonEmergencyReportRequest extends FormRequest
                 ]),
             ],
 
-            // Myself or Another Person
             'reportingFor' => [
                 'required',
                 'string',
@@ -86,8 +102,6 @@ class StoreNonEmergencyReportRequest extends FormRequest
                 ]),
             ],
 
-            // Optional information when reporting
-            // for another person
             'subjectName' => [
                 'nullable',
                 'string',
@@ -107,7 +121,6 @@ class StoreNonEmergencyReportRequest extends FormRequest
                 'max:150',
             ],
 
-            // Incident purok
             'purok' => [
                 'required',
                 'string',
@@ -118,7 +131,6 @@ class StoreNonEmergencyReportRequest extends FormRequest
                 ]),
             ],
 
-            // Incident location
             'location' => [
                 'required',
                 'string',
@@ -131,7 +143,6 @@ class StoreNonEmergencyReportRequest extends FormRequest
                 'max:255',
             ],
 
-            // Ready for future map pin integration
             'latitude' => [
                 'nullable',
                 'numeric',
@@ -144,7 +155,6 @@ class StoreNonEmergencyReportRequest extends FormRequest
                 'between:-180,180',
             ],
 
-            // Main report information
             'description' => [
                 'required',
                 'string',
@@ -157,7 +167,6 @@ class StoreNonEmergencyReportRequest extends FormRequest
                 'max:2000',
             ],
 
-            // Optional vulnerable / affected groups
             'affectedIndividuals' => [
                 'nullable',
                 'array',
@@ -175,7 +184,6 @@ class StoreNonEmergencyReportRequest extends FormRequest
                 ]),
             ],
 
-            // Optional photo evidence
             'photo' => [
                 'nullable',
                 'image',
@@ -185,17 +193,293 @@ class StoreNonEmergencyReportRequest extends FormRequest
         ];
     }
 
-    /**
-     * User-friendly validation messages.
-     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator) {
+            $category =
+                (string) $this->input('concernCode');
+
+            $answers =
+                $this->input('svfAnswers', []);
+
+            if (! is_array($answers)) {
+                return;
+            }
+
+            $required = match ($category) {
+                'evac-assistance' => [
+                    'hazardProximity',
+                    'canLeave',
+                    'routeAccess',
+                ],
+
+                'bhw-assistance' => [
+                    'personCondition',
+                    'breathingCondition',
+                    'mobilityNeed',
+                ],
+
+                'road-obstruction' => [
+                    'roadAccess',
+                    'peopleAtRisk',
+                    'hazardCondition',
+                ],
+
+                'damaged-facility' => [
+                    'publicAccess',
+                    'damageCondition',
+                    'conditionTrend',
+                ],
+
+                'cleanup' => [
+                    'areaImpact',
+                    'accessImpact',
+                    'materialRisk',
+                ],
+
+                'community-concern' => [
+                    'peopleAtRisk',
+                    'accessImpact',
+                    'conditionTrend',
+                ],
+
+                'other-assistance' => [
+                    'immediateSafetyRisk',
+                    'mobilitySupport',
+                    'affectedCount',
+                ],
+
+                default => [],
+            };
+
+            foreach ($required as $key) {
+                if (
+                    ! isset($answers[$key])
+                    || trim((string) $answers[$key]) === ''
+                ) {
+                    $validator->errors()->add(
+                        'svfAnswers.' . $key,
+                        'Please answer all quick situation-check questions before submitting.'
+                    );
+                }
+            }
+
+            $allowed =
+                $this->allowedAnswers($category);
+
+            foreach ($answers as $key => $value) {
+                if (
+                    ! isset($allowed[$key])
+                    || ! in_array(
+                        (string) $value,
+                        $allowed[$key],
+                        true
+                    )
+                ) {
+                    $validator->errors()->add(
+                        'svfAnswers.' . $key,
+                        'One of the situation-check answers is invalid.'
+                    );
+                }
+            }
+
+            if (
+                in_array(
+                    $category,
+                    self::PHOTO_OR_REASON_CONCERNS,
+                    true
+                )
+                && ! $this->hasFile('photo')
+                && trim((string) $this->input('noPhotoReason', '')) === ''
+            ) {
+                $validator->errors()->add(
+                    'noPhotoReason',
+                    'Add a photo when safe, or select a reason why no photo is available.'
+                );
+            }
+        });
+    }
+
+    private function allowedAnswers(string $category): array
+    {
+        return match ($category) {
+            'evac-assistance' => [
+                'hazardProximity' => [
+                    'none',
+                    'nearby',
+                    'affecting_now',
+                    'unknown',
+                ],
+
+                'canLeave' => [
+                    'independently',
+                    'needs_assistance',
+                    'cannot_leave',
+                    'unknown',
+                ],
+
+                'routeAccess' => [
+                    'open',
+                    'limited',
+                    'blocked',
+                    'unknown',
+                ],
+            ],
+
+            'bhw-assistance' => [
+                'personCondition' => [
+                    'alert_stable',
+                    'needs_attention',
+                    'worsening',
+                    'severe_or_unresponsive',
+                    'unknown',
+                ],
+
+                'breathingCondition' => [
+                    'normal',
+                    'difficulty',
+                    'unknown',
+                ],
+
+                'mobilityNeed' => [
+                    'none',
+                    'needs_assistance',
+                    'cannot_move',
+                    'unknown',
+                ],
+            ],
+
+            'road-obstruction' => [
+                'roadAccess' => [
+                    'passable',
+                    'partial',
+                    'blocked',
+                    'unknown',
+                ],
+
+                'peopleAtRisk' => [
+                    'no',
+                    'yes',
+                    'unsure',
+                ],
+
+                'hazardCondition' => [
+                    'stable',
+                    'worsening',
+                    'dangerous_object_or_wire',
+                    'unknown',
+                ],
+            ],
+
+            'damaged-facility' => [
+                'publicAccess' => [
+                    'away_from_people',
+                    'near_people',
+                    'blocking_access',
+                    'unknown',
+                ],
+
+                'damageCondition' => [
+                    'minor',
+                    'exposed_damage',
+                    'collapse_or_electrical_risk',
+                    'unknown',
+                ],
+
+                'conditionTrend' => [
+                    'stable',
+                    'worsening',
+                    'unknown',
+                ],
+            ],
+
+            'cleanup' => [
+                'areaImpact' => [
+                    'small',
+                    'moderate',
+                    'widespread',
+                    'unknown',
+                ],
+
+                'accessImpact' => [
+                    'none',
+                    'limited',
+                    'blocked',
+                    'unknown',
+                ],
+
+                'materialRisk' => [
+                    'ordinary_waste',
+                    'sharp_or_contaminated',
+                    'unknown',
+                ],
+            ],
+
+            'community-concern' => [
+                'peopleAtRisk' => [
+                    'no',
+                    'yes',
+                    'unsure',
+                ],
+
+                'accessImpact' => [
+                    'none',
+                    'limited',
+                    'blocked',
+                    'unknown',
+                ],
+
+                'conditionTrend' => [
+                    'stable',
+                    'recurring',
+                    'worsening',
+                    'unknown',
+                ],
+            ],
+
+            'other-assistance' => [
+                'immediateSafetyRisk' => [
+                    'no',
+                    'yes',
+                    'unsure',
+                ],
+
+                'mobilitySupport' => [
+                    'none',
+                    'needs_assistance',
+                    'cannot_move',
+                    'unknown',
+                ],
+
+                'affectedCount' => [
+                    'one',
+                    'two_three',
+                    'four_plus',
+                    'unknown',
+                ],
+            ],
+
+            default => [],
+        };
+    }
+
     public function messages(): array
     {
         return [
+            'clientRequestId.required' =>
+                'The report request could not be prepared safely. Refresh and try again.',
+
+            'clientRequestId.uuid' =>
+                'The report request identifier is invalid. Refresh and try again.',
+
             'concernCode.required' =>
                 'Please select a concern type.',
 
             'concernCode.in' =>
                 'The selected concern type is invalid.',
+
+            'svfAnswers.required' =>
+                'Please complete the quick situation check.',
 
             'subcategory.in' =>
                 'The selected subcategory is invalid.',
@@ -206,14 +490,8 @@ class StoreNonEmergencyReportRequest extends FormRequest
             'reportingFor.in' =>
                 'The reporting option is invalid.',
 
-            'subjectName.max' =>
-                'The person name is too long.',
-
             'subjectContact.regex' =>
                 'Enter a valid Philippine mobile number.',
-
-            'relationshipNote.max' =>
-                'The relationship or note is too long.',
 
             'purok.required' =>
                 'Please select the incident purok.',
@@ -224,35 +502,8 @@ class StoreNonEmergencyReportRequest extends FormRequest
             'location.required' =>
                 'Please provide the incident location.',
 
-            'location.max' =>
-                'The incident location is too long.',
-
-            'landmark.max' =>
-                'The landmark is too long.',
-
-            'latitude.between' =>
-                'The latitude is invalid.',
-
-            'longitude.between' =>
-                'The longitude is invalid.',
-
             'description.required' =>
                 'Please describe the concern.',
-
-            'description.max' =>
-                'The description must not exceed 3000 characters.',
-
-            'requiredAssistance.max' =>
-                'The assistance needed description is too long.',
-
-            'affectedIndividuals.array' =>
-                'The affected individuals selection is invalid.',
-
-            'affectedIndividuals.max' =>
-                'Too many affected individual categories were selected.',
-
-            'affectedIndividuals.*.in' =>
-                'One of the affected individual selections is invalid.',
 
             'photo.image' =>
                 'The uploaded file must be an image.',
@@ -262,6 +513,9 @@ class StoreNonEmergencyReportRequest extends FormRequest
 
             'photo.max' =>
                 'The photo must not exceed 5 MB.',
+
+            'noPhotoReason.max' =>
+                'The no-photo reason must not exceed 300 characters.',
         ];
     }
 }

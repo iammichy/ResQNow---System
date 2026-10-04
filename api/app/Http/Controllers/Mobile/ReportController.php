@@ -10,6 +10,7 @@ use App\Http\Resources\ReportResource;
 use App\Models\Report;
 use App\Services\ReportNotifications;
 use App\Services\Triage\EmergencyTriageService;
+use App\Services\Triage\NonEmergencyTriageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -46,25 +47,6 @@ class ReportController extends Controller
         'other-assistance' => 'Other Assistance',
     ];
 
-    /**
-     * Default priority rules for Non-Emergency reports.
-     *
-     * These are only the initial priorities assigned
-     * by the system. Barangay/Admin personnel may
-     * override them later after reviewing the report.
-     *
-     * Assignment remains a separate action.
-     */
-    private const NON_EMERGENCY_PRIORITIES = [
-        'evac-assistance' => 'Medium',
-        'bhw-assistance' => 'Medium',
-        'road-obstruction' => 'Medium',
-
-        'damaged-facility' => 'Low',
-        'cleanup' => 'Low',
-        'community-concern' => 'Low',
-        'other-assistance' => 'Low',
-    ];
 
 
     /**
@@ -449,234 +431,433 @@ class ReportController extends Controller
      * Submit a Non-Emergency report.
      */
     public function storeNonEmergency(
-        StoreNonEmergencyReportRequest $request
+        StoreNonEmergencyReportRequest $request,
+        NonEmergencyTriageService $triageService
     ): JsonResponse {
-        $data =
-            $request->validated();
+        $data = $request->validated();
+        $user = $request->user();
+        $photo = $request->file('photo');
+
+        /*
+         * Normalize values used for duplicate detection.
+         */
+        $fingerprintSvfAnswers =
+            $data['svfAnswers'];
+
+        ksort($fingerprintSvfAnswers);
+
+        $affectedIndividuals =
+            $data['affectedIndividuals'] ?? [];
+
+        sort($affectedIndividuals);
+
+        $noPhotoReason =
+            isset($data['noPhotoReason'])
+                ? trim(
+                    (string) $data['noPhotoReason']
+                )
+                : null;
+
+        $photoHash = $photo
+            ? hash_file(
+                'sha256',
+                $photo->getRealPath()
+            )
+            : null;
+
+        $fingerprintPayload = [
+            'concernCode' =>
+                $data['concernCode'],
+
+            'subcategory' =>
+                $data['subcategory'] ?? null,
+
+            'svfAnswers' =>
+                $fingerprintSvfAnswers,
+
+            'noPhotoReason' =>
+                $noPhotoReason,
+
+            'reportingFor' =>
+                $data['reportingFor'],
+
+            'subjectName' =>
+                $data['subjectName'] ?? null,
+
+            'subjectContact' =>
+                $data['subjectContact'] ?? null,
+
+            'relationshipNote' =>
+                $data['relationshipNote'] ?? null,
+
+            'purok' =>
+                $data['purok'],
+
+            'location' =>
+                $data['location'],
+
+            'landmark' =>
+                $data['landmark'] ?? null,
+
+            'latitude' =>
+                $data['latitude'] ?? null,
+
+            'longitude' =>
+                $data['longitude'] ?? null,
+
+            'description' =>
+                $data['description'],
+
+            'requiredAssistance' =>
+                $data['requiredAssistance'] ?? null,
+
+            'affectedIndividuals' =>
+                $affectedIndividuals,
+
+            'photoHash' =>
+                $photoHash,
+        ];
+
+        $requestFingerprint = hash(
+            'sha256',
+            json_encode(
+                $fingerprintPayload,
+                JSON_UNESCAPED_SLASHES
+                    | JSON_UNESCAPED_UNICODE
+            )
+        );
+
+        /*
+         * The resident supplies facts only.
+         * Laravel computes the priority.
+         */
+        $triage = $triageService->compute(
+            $data['concernCode'],
+            $data['svfAnswers']
+        );
+
+        /*
+         * Evidence information is preserved with the
+         * factual SVF answers for later verification.
+         */
+        $storedSvfAnswers =
+            $data['svfAnswers'];
+
+        $storedSvfAnswers['photoProvided'] =
+            $photo ? 'yes' : 'no';
+
+        if (
+            $noPhotoReason !== null
+            && $noPhotoReason !== ''
+        ) {
+            $storedSvfAnswers['noPhotoReason'] =
+                $noPhotoReason;
+        }
 
         $photoPath = null;
 
         try {
-            /**
-             * Save optional resident photo evidence.
-             *
-             * Validation of type and size happens
-             * inside StoreNonEmergencyReportRequest.
-             */
-            if (
-                $request->hasFile('photo')
-            ) {
-                $photoPath =
-                    $request
-                        ->file('photo')
-                        ->store(
-                            'reports',
-                            'public'
-                        );
-            }
+            [$report, $result] =
+                DB::transaction(
+                    function () use (
+                        $data,
+                        $user,
+                        $photo,
+                        &$photoPath,
+                        $requestFingerprint,
+                        $triage,
+                        $storedSvfAnswers
+                    ) {
+                        /*
+                         * Serialize submissions from this resident
+                         * before checking the idempotency key.
+                         */
+                        DB::table('users')
+                            ->where(
+                                'id',
+                                $user->id
+                            )
+                            ->lockForUpdate()
+                            ->first();
 
-            $report = DB::transaction(
-                function () use (
-                    $request,
-                    $data,
-                    $photoPath
-                ) {
-                    /**
-                     * Priority is calculated by Laravel,
-                     * not by the React frontend.
-                     */
-                    $priority =
-                        self::NON_EMERGENCY_PRIORITIES[
-                            $data['concernCode']
-                        ];
+                        $existing =
+                            Report::query()
+                                ->where(
+                                    'user_id',
+                                    $user->id
+                                )
+                                ->where(
+                                    'client_request_id',
+                                    $data[
+                                        'clientRequestId'
+                                    ]
+                                )
+                                ->first();
 
-                    $report =
-                        Report::create([
-                            'user_id' =>
-                                $request
-                                    ->user()
-                                    ->id,
+                        if ($existing) {
+                            if (
+                                $existing
+                                    ->request_fingerprint
+                                    !== null
+                                && $existing
+                                    ->request_fingerprint
+                                    !== $requestFingerprint
+                            ) {
+                                return [
+                                    $existing,
+                                    'conflict',
+                                ];
+                            }
 
-                            'report_code' =>
-                                null,
+                            return [
+                                $existing,
+                                'idempotent',
+                            ];
+                        }
 
-                            'report_type' =>
-                                'Non-Emergency',
+                        /*
+                         * Only store an uploaded file after the
+                         * duplicate check has passed.
+                         */
+                        if ($photo) {
+                            $photoPath =
+                                $photo->store(
+                                    'reports',
+                                    'public'
+                                );
+                        }
 
-                            'concern_code' =>
-                                $data[
-                                    'concernCode'
-                                ],
+                        $report =
+                            Report::create([
+                                'user_id' =>
+                                    $user->id,
 
-                            'concern_type' =>
-                                self::NON_EMERGENCY_CONCERNS[
+                                'client_request_id' =>
+                                    $data[
+                                        'clientRequestId'
+                                    ],
+
+                                'request_fingerprint' =>
+                                    $requestFingerprint,
+
+                                'report_code' =>
+                                    null,
+
+                                'report_type' =>
+                                    'Non-Emergency',
+
+                                'concern_code' =>
                                     $data[
                                         'concernCode'
-                                    ]
-                                ],
+                                    ],
 
-                            'subcategory' =>
-                                $data[
-                                    'subcategory'
-                                ] ?? null,
+                                'concern_type' =>
+                                    self::NON_EMERGENCY_CONCERNS[
+                                        $data[
+                                            'concernCode'
+                                        ]
+                                    ],
 
-                            /**
-                             * Non-Emergency reports
-                             * must be reviewed first.
-                             */
-                            'status' =>
-                                'Pending Verification',
+                                'subcategory' =>
+                                    $data[
+                                        'subcategory'
+                                    ] ?? null,
 
-                            /**
-                             * Category-based priority:
-                             *
-                             * Medium:
-                             * - Evacuation Assistance
-                             * - BHW Assistance
-                             * - Road Obstruction
-                             *
-                             * Low:
-                             * - Damaged Facility
-                             * - Cleanup
-                             * - Community Concern
-                             * - Other Assistance
-                             */
-                            'priority' =>
-                                $priority,
+                                'status' =>
+                                    'Pending Verification',
 
-                            'reporting_for' =>
-                                $data[
-                                    'reportingFor'
-                                ],
+                                'priority' =>
+                                    $triage[
+                                        'priority'
+                                    ],
 
-                            'subject_name' =>
-                                $data[
-                                    'subjectName'
-                                ] ?? null,
+                                'triage_score' =>
+                                    $triage[
+                                        'score'
+                                    ],
 
-                            'subject_contact' =>
-                                $data[
-                                    'subjectContact'
-                                ] ?? null,
+                                'triage_recommendation' =>
+                                    $triage[
+                                        'priority'
+                                    ],
 
-                            'relationship_note' =>
-                                $data[
-                                    'relationshipNote'
-                                ] ?? null,
+                                'triage_assessed_at' =>
+                                    now(),
 
-                            'purok' =>
-                                $data[
-                                    'purok'
-                                ],
+                                'triage_flags' =>
+                                    $triage[
+                                        'flags'
+                                    ],
 
-                            'location' =>
-                                $data[
-                                    'location'
-                                ],
+                                'triage_rule_version' =>
+                                    $triage[
+                                        'ruleVersion'
+                                    ],
 
-                            'landmark' =>
-                                $data[
-                                    'landmark'
-                                ] ?? null,
+                                'triage_recalculated_at' =>
+                                    now(),
 
-                            /**
-                             * Coordinates remain optional.
-                             */
-                            'latitude' =>
-                                $data[
-                                    'latitude'
-                                ] ?? null,
+                                'reporting_for' =>
+                                    $data[
+                                        'reportingFor'
+                                    ],
 
-                            'longitude' =>
-                                $data[
-                                    'longitude'
-                                ] ?? null,
+                                'subject_name' =>
+                                    $data[
+                                        'subjectName'
+                                    ] ?? null,
 
-                            'description' =>
-                                $data[
-                                    'description'
-                                ],
+                                'subject_contact' =>
+                                    $data[
+                                        'subjectContact'
+                                    ] ?? null,
 
-                            'required_assistance' =>
-                                $data[
-                                    'requiredAssistance'
-                                ] ?? null,
+                                'relationship_note' =>
+                                    $data[
+                                        'relationshipNote'
+                                    ] ?? null,
 
-                            'affected_individuals' =>
-                                $data[
-                                    'affectedIndividuals'
-                                ] ?? [],
+                                'purok' =>
+                                    $data[
+                                        'purok'
+                                    ],
 
-                            'photo_path' =>
-                                $photoPath,
+                                'location' =>
+                                    $data[
+                                        'location'
+                                    ],
 
-                            'barangay_remarks' =>
-                                null,
+                                'landmark' =>
+                                    $data[
+                                        'landmark'
+                                    ] ?? null,
 
-                            'invalid_reason' =>
-                                null,
+                                'latitude' =>
+                                    $data[
+                                        'latitude'
+                                    ] ?? null,
 
-                            'resolved_remarks' =>
-                                null,
+                                'longitude' =>
+                                    $data[
+                                        'longitude'
+                                    ] ?? null,
+
+                                'description' =>
+                                    $data[
+                                        'description'
+                                    ],
+
+                                'required_assistance' =>
+                                    $data[
+                                        'requiredAssistance'
+                                    ] ?? null,
+
+                                'affected_individuals' =>
+                                    $data[
+                                        'affectedIndividuals'
+                                    ] ?? [],
+
+                                'photo_path' =>
+                                    $photoPath,
+
+                                'photo_disk' =>
+                                    'public',
+
+                                'barangay_remarks' =>
+                                    null,
+
+                                'invalid_reason' =>
+                                    null,
+
+                                'resolved_remarks' =>
+                                    null,
+                            ]);
+
+                        $report->update([
+                            'report_code' =>
+                                sprintf(
+                                    'NE-%06d',
+                                    $report->id
+                                ),
                         ]);
 
-                    /**
-                     * Generate the resident-facing
-                     * Non-Emergency code.
-                     *
-                     * Example:
-                     * database ID 2 → NE-000002
-                     */
-                    $report->update([
-                        'report_code' =>
-                            sprintf(
-                                'NE-%06d',
-                                $report->id
-                            ),
-                    ]);
+                        $report
+                            ->svfAnswer()
+                            ->create([
+                                'category' =>
+                                    $data[
+                                        'concernCode'
+                                    ],
 
-                    /**
-                     * Resident submitted the report.
-                     */
-                    $report
-                        ->statusLogs()
-                        ->create([
-                            'status' =>
-                                'Submitted',
+                                'answers' =>
+                                    $storedSvfAnswers,
 
-                            'remarks' =>
-                                'Non-emergency report submitted by resident.',
+                                'flags' =>
+                                    $triage[
+                                        'flags'
+                                    ],
 
-                            'changed_by_user_id' =>
-                                $request
-                                    ->user()
-                                    ->id,
-                        ]);
+                                'rule_version' =>
+                                    $triage[
+                                        'ruleVersion'
+                                    ],
+                            ]);
 
-                    /**
-                     * The report then enters the
-                     * barangay verification queue.
-                     */
-                    $report
-                        ->statusLogs()
-                        ->create([
-                            'status' =>
-                                'Pending Verification',
+                        $report
+                            ->statusLogs()
+                            ->create([
+                                'status' =>
+                                    'Submitted',
 
-                            'remarks' =>
-                                'Waiting for barangay verification.',
+                                'activity' =>
+                                    'Resident submitted non-emergency report',
 
-                            'changed_by_user_id' =>
-                                null,
-                        ]);
+                                'remarks' =>
+                                    sprintf(
+                                        'Non-emergency report submitted. System triage computed as %s using rule %s.',
+                                        $triage[
+                                            'priority'
+                                        ],
+                                        $triage[
+                                            'ruleVersion'
+                                        ]
+                                    ),
 
-                    return $report;
-                }
-            );
+                                'changed_by_user_id' =>
+                                    $user->id,
+
+                                'request_fingerprint' =>
+                                    $requestFingerprint,
+                            ]);
+
+                        $report
+                            ->statusLogs()
+                            ->create([
+                                'status' =>
+                                    'Pending Verification',
+
+                                'activity' =>
+                                    'Report queued for barangay verification',
+
+                                'remarks' =>
+                                    'Waiting for barangay verification of the submitted facts.',
+
+                                'changed_by_user_id' =>
+                                    null,
+
+                                'request_fingerprint' =>
+                                    $requestFingerprint,
+                            ]);
+
+                        return [
+                            $report,
+                            'created',
+                        ];
+                    }
+                );
         } catch (Throwable $exception) {
-            /**
-             * If the photo was stored successfully
-             * but the DB transaction later fails,
+            /*
+             * If storage succeeded but database work failed,
              * remove the abandoned file.
              */
             if ($photoPath) {
@@ -690,23 +871,32 @@ class ReportController extends Controller
             throw $exception;
         }
 
-        /**
-         * Load relationships needed by
-         * ReportResource.
-         */
+        if ($result === 'conflict') {
+            return response()->json([
+                'message' =>
+                    'This report request identifier was already used for different details. Refresh the form before trying again.',
+            ], 409);
+        }
+
         $report->load([
+            'svfAnswer',
             'statusLogs',
             'activeAssignments.assignedUser',
         ]);
 
         return response()->json([
             'message' =>
-                'Non-emergency report submitted successfully.',
+                $result === 'idempotent'
+                    ? 'This non-emergency report was already received. The existing report was returned instead of creating a duplicate.'
+                    : 'Non-emergency report submitted successfully.',
 
             'report' =>
                 new ReportResource(
                     $report
                 ),
-        ], 201);
+
+            'duplicateSubmissionPrevented' =>
+                $result === 'idempotent',
+        ], $result === 'created' ? 201 : 200);
     }
 }
