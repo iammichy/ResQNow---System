@@ -353,8 +353,8 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
 
           if (matchedIncident.created_at) {
             incidentHistory.push({
-              status: "Incident Created",
-              detail: `${matchedIncident.incident_code} created from prioritized report.`,
+              status: "Response Coordination Started",
+              detail: `${matchedIncident.incident_code} opened for responder assignment and response monitoring.`,
               time: formatHistoryTime(matchedIncident.created_at),
             });
           }
@@ -454,7 +454,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
     } catch (error) {
       console.error("Failed to create incident:", error);
       setAssignmentError(
-        error.message || "Failed to create incident from report.",
+        error.message || "Failed to start response coordination.",
       );
     } finally {
       setAssignmentLoading(false);
@@ -462,7 +462,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
   };
   const handleSaveAssignment = async () => {
     if (!incident) {
-      setAssignmentError("This report does not have an incident record yet.");
+      setAssignmentError("Response coordination has not been started for this report yet.");
       return;
     }
 
@@ -535,8 +535,8 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
 
       if (updatedIncident.created_at) {
         refreshedHistory.push({
-          status: "Incident Created",
-          detail: `${updatedIncident.incident_code} created from prioritized report.`,
+          status: "Response Coordination Started",
+          detail: `${updatedIncident.incident_code} opened for responder assignment and response monitoring.`,
           time: formatHistoryTime(updatedIncident.created_at),
         });
       }
@@ -713,7 +713,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
     doc.setTextColor(31, 29, 71);
     doc.setFontSize(13);
     doc.setFont("helvetica", "bold");
-    doc.text("Response Assignment", 14, currentY);
+    doc.text("Response Coordination", 14, currentY);
 
     autoTable(doc, {
       startY: currentY + 6,
@@ -1181,7 +1181,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                     </p>
                   ) : (
                     <p className="mt-2 text-[11px] text-[#667085]">
-                      This report does not have an incident record yet.
+                      Response coordination has not been started for this report yet.
                     </p>
                   )}
                 </div>
@@ -1249,7 +1249,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
             <section className="rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
               <div className="border-b border-[#E4E7EC] px-5 py-4">
                 <h2 className="text-sm font-bold text-[#101C2E]">
-                  Response Assignment
+                  Response Coordination
                 </h2>
               </div>
 
@@ -1271,8 +1271,8 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                     className="w-full rounded-lg bg-[#1F5FA6] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1F5FA6] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {assignmentLoading
-                      ? "Creating Incident..."
-                      : "Create Incident"}
+                      ? "Starting Response Coordination..."
+                      : "Start Response Coordination"}
                   </button>
                 ) : (
                   <button
