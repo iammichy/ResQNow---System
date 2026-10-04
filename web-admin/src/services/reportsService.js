@@ -19,7 +19,10 @@ export const REPORT_CATEGORIES = [
  */
 function formatReport(report) {
   return {
-    id: `RPT-${String(report.id).padStart(4, "0")}`,
+    id:
+      report.report_code ||
+      report.reportCode ||
+      `RPT-${String(report.id).padStart(4, "0")}`,
 
     // Actual database ID
     databaseId: report.id,

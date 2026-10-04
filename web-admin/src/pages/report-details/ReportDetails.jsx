@@ -9,7 +9,7 @@ import {
   getAllAuditLogs,
   assignIncidentPersonnel,
   updateIncidentStatus,
-  assignReportPriority,
+
   createIncidentFromReport,
 } from "../../services/reportsService";
 
@@ -421,50 +421,6 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
       alert(error.message || "Failed to update incident status.");
     }
   };
-  const handleConfirmPriority = async () => {
-    if (!selectedPriority) {
-      setPriorityError("Please select a priority.");
-      return;
-    }
-
-    const reportIdMatch = String(selectedReport?.id || "").match(/\d+$/);
-    const reportDatabaseId =
-      selectedReport?.databaseId ??
-      (reportIdMatch ? Number(reportIdMatch[0]) : null);
-
-    if (!reportDatabaseId) {
-      setPriorityError("The report database ID could not be determined.");
-      return;
-    }
-
-    try {
-      setPriorityLoading(true);
-      setPriorityError("");
-
-      const updatedReport = await assignReportPriority(
-        reportDatabaseId,
-        selectedPriority,
-      );
-
-      const finalPriority = updatedReport?.priority || selectedPriority;
-
-      setSelectedPriority(finalPriority);
-      setStatus(updatedReport?.status || "Prioritized");
-
-      onReportUpdate?.({
-        id: report.id,
-        ...updatedReport,
-        priority: finalPriority,
-        status: updatedReport?.status || "Prioritized",
-      });
-    } catch (error) {
-      console.error("Failed to assign report priority:", error);
-      setPriorityError(error.message || "Failed to assign report priority.");
-    } finally {
-      setPriorityLoading(false);
-    }
-  };
-
   const handleCreateIncident = async () => {
     const reportIdMatch = String(selectedReport?.id || "").match(/\d+$/);
     const reportDatabaseId =
@@ -1006,7 +962,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
 
                         {report.triage.score !== null && (
                           <span className="text-xs font-bold text-[#667085]">
-                            Risk Score: {report.triage.score} / 20
+                            System Score: {report.triage.score}
                           </span>
                         )}
                       </div>
@@ -1097,10 +1053,9 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                         </p>
 
                         <p className="mt-1 text-xs leading-5 text-[#8A4B08]">
-                          The system generated this recommendation from the
-                          information submitted with the report. Barangay
-                          personnel must review the assessment before confirming
-                          the final priority.
+                          ResQNow computed this priority from the reported
+                          situation facts. Barangay personnel verify or correct
+                          those facts; the priority itself is not manually selected.
                         </p>
                       </div>
                     </div>
@@ -1233,106 +1188,63 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
               </div>
             </section>
 
-            {/* PRIORITY ASSIGNMENT */}
+            {/* SYSTEM-COMPUTED PRIORITY */}
             <section className="rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
               <div className="border-b border-[#E4E7EC] px-5 py-4">
                 <h2 className="text-sm font-bold text-[#101C2E]">
-                  Priority Assignment
+                  System-Computed Priority
                 </h2>
 
                 <p className="mt-0.5 text-xs text-[#667085]">
-                  Review the system recommendation and confirm the final
-                  priority.
+                  ResQNow calculates this result from the verified Situation
+                  Verification Facts. Barangay personnel cannot select or
+                  override the priority manually.
                 </p>
               </div>
 
               <div className="space-y-4 p-5">
                 <div
                   className={`rounded-lg border p-4 ${
-                    report.triage.recommendation
-                      ? getRecommendationStyle(report.triage.recommendation)
-                          .container
+                    report.triage.recommendation || report.priority
+                      ? getRecommendationStyle(
+                          report.triage.recommendation || report.priority,
+                        ).container
                       : "border-[#E4E7EC] bg-[#F8FAFC]"
                   }`}
                 >
                   <p className="text-[11px] font-bold uppercase tracking-wider text-[#667085]">
-                    Assessment Status
+                    System Priority
                   </p>
 
                   <div className="mt-1 flex items-center justify-between gap-3">
                     <p className="text-lg font-bold text-[#101C2E]">
-                      {report.triage.recommendation || "Not assessed"}
+                      {report.triage.recommendation ||
+                        report.priority ||
+                        "Not assessed"}
                     </p>
 
                     {report.triage.score !== null &&
                       report.triage.score !== undefined && (
                         <span className="text-xs font-bold text-[#667085]">
-                          {report.triage.score}
+                          System Score: {report.triage.score}
                         </span>
                       )}
                   </div>
                 </div>
 
-                <div>
-                  <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]">
-                    Final Priority
+                <div className="rounded-lg border border-[#B2DDFF] bg-[#EFF8FF] p-4">
+                  <p className="text-xs font-bold text-[#175CD3]">
+                    Admin verification rule
                   </p>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    {["Low", "Moderate", "High", "Critical"].map((priority) => (
-                      <button
-                        key={priority}
-                        type="button"
-                        disabled={priorityLoading || !canAssignPriority}
-                        onClick={() => {
-                          setSelectedPriority(priority);
-                          setPriorityError("");
-                        }}
-                        className={`rounded-lg border px-3 py-2.5 text-xs font-bold transition ${
-                          selectedPriority === priority
-                            ? priorityStyles[priority]
-                            : "border-[#E4E7EC] bg-white text-[#667085] hover:border-[#1F5FA6] hover:text-[#1F5FA6]"
-                        } disabled:cursor-not-allowed disabled:opacity-50`}
-                      >
-                        {priority}
-                      </button>
-                    ))}
-                  </div>
+                  <p className="mt-1 text-xs leading-5 text-[#175CD3]">
+                    Verify or correct the factual Situation Verification
+                    answers in the Verification Center. ResQNow automatically
+                    recomputes the priority from the verified facts.
+                  </p>
                 </div>
-
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]">
-                    Decision
-                  </p>
-
-                  <div className="mt-2 rounded-lg border border-[#E4E7EC] bg-[#F8FAFC] px-3 py-3">
-                    <p className="text-xs font-semibold text-[#344054]">
-                      {selectedPriority
-                        ? "Priority selected for confirmation"
-                        : "Awaiting final priority"}
-                    </p>
-                  </div>
-                </div>
-
-                {priorityError && (
-                  <p className="rounded-lg border border-[#FECDCA] bg-[#FEF3F2] px-3 py-2 text-xs font-semibold text-[#B42318]">
-                    {priorityError}
-                  </p>
-                )}
-
-                <button
-                  type="button"
-                  onClick={handleConfirmPriority}
-                  disabled={
-                    priorityLoading || !canAssignPriority || !selectedPriority
-                  }
-                  className="w-full rounded-lg bg-[#1F5FA6] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#1F5FA6] disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {priorityLoading ? "Saving Priority..." : "Confirm Priority"}
-                </button>
               </div>
             </section>
-
             {/* ASSIGNMENT */}
             <section className="rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
               <div className="border-b border-[#E4E7EC] px-5 py-4">
