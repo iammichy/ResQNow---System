@@ -17,7 +17,7 @@ class IncidentController extends Controller
      */
     public function index(): JsonResponse
     {
-     $incidents = Incident::with(['report', 'personnel'])
+     $incidents = Incident::with(['report.statusLogs', 'personnel'])
     ->latest()
     ->get();
 
@@ -220,13 +220,14 @@ $notificationService->notifyPersonnelAssignment(
     $currentStatus = $incident->status;
     $newStatus = $validated['status'];
 
+    /*
+     * Field progress is responder-controlled.
+     * Admin may only finalize a response after the
+     * responder has completed the operational workflow.
+     */
     $allowedTransitions = [
-        'Pending Response' => [
-            'Dispatched',
-        ],
-        'Dispatched' => [
-            'In Progress',
-        ],
+        'Pending Response' => [],
+        'Dispatched' => [],
         'In Progress' => [
             'Resolved',
         ],
@@ -248,6 +249,33 @@ $notificationService->notifyPersonnelAssignment(
             'success' => false,
             'message' => "Invalid incident status transition from {$currentStatus} to {$newStatus}.",
         ], 422);
+    }
+
+    /*
+     * A responder reaching the scene is not enough to
+     * resolve the case. Admin may mark it Resolved only
+     * after a responder has submitted a field outcome.
+     */
+    if ($newStatus === 'Resolved') {
+        $report = $incident->report;
+
+        $hasFieldOutcome =
+            $report &&
+            $report
+                ->statusLogs()
+                ->where(
+                    'activity',
+                    'Responder submitted field outcome'
+                )
+                ->exists();
+
+        if (! $hasFieldOutcome) {
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'A responder field outcome is required before this response case can be marked resolved.',
+            ], 422);
+        }
     }
 
     $updates = [

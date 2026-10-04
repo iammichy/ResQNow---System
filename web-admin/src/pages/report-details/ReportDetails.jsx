@@ -577,15 +577,18 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
     }
   };
 
-  const nextStatusMap = {
-    "Pending Response": "Dispatched",
-    Dispatched: "In Progress",
-    "In Progress": "Resolved",
-    Resolved: "Closed",
-    Closed: null,
-  };
+  const hasFieldOutcome = Boolean(
+    incident?.report?.status_logs?.some(
+      (log) => log.activity === "Responder submitted field outcome",
+    ),
+  );
 
-  const nextIncidentStatus = nextStatusMap[status] || null;
+  const nextIncidentStatus =
+    status === "In Progress" && hasFieldOutcome
+      ? "Resolved"
+      : status === "Resolved"
+        ? "Closed"
+        : null;
   const canAssignPriority = !incident && report.status === "For Prioritization";
 
   const handleExportPDF = () => {
@@ -1149,39 +1152,41 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                 </div>
 
                 <div className="mt-4">
-                  <label
-                    htmlFor="report-status"
-                    className="text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]"
-                  >
-                    Update Status
-                  </label>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]">
+                    Operational Status
+                  </p>
 
-                  <select
-                    id="report-status"
-                    value={status}
-                    onChange={(event) => handleStatusChange(event.target.value)}
-                    disabled={!incident || !nextIncidentStatus}
-                    className="mt-2 h-10 w-full rounded-lg border border-[#E4E7EC] bg-white px-3 text-sm font-medium text-[#344054] outline-none transition focus:border-[#1F5FA6] disabled:cursor-not-allowed disabled:bg-[#F8FAFC]"
-                  >
-                    <option value={status}>{status}</option>
-                    {nextIncidentStatus && (
-                      <option value={nextIncidentStatus}>
-                        {nextIncidentStatus}
-                      </option>
-                    )}
-                  </select>
+                  <div className="mt-2 rounded-lg border border-[#E4E7EC] bg-[#F8FAFC] px-3 py-2.5 text-sm font-medium text-[#344054]">
+                    {status}
+                  </div>
 
-                  {incident && nextIncidentStatus ? (
+                  {!incident ? (
                     <p className="mt-2 text-[11px] text-[#667085]">
-                      Next allowed status: {nextIncidentStatus}
+                      Response coordination has not been started for this report yet.
                     </p>
-                  ) : incident ? (
+                  ) : status === "Pending Response" ? (
+                    <p className="mt-2 text-[11px] text-[#667085]">
+                      Waiting for assigned response personnel to acknowledge and begin field response.
+                    </p>
+                  ) : status === "In Progress" && !hasFieldOutcome ? (
+                    <p className="mt-2 text-[11px] text-[#667085]">
+                      Field progress is updated from the assigned responder's actions.
+                    </p>
+                  ) : status === "In Progress" && hasFieldOutcome ? (
+                    <p className="mt-2 text-[11px] font-semibold text-[#175CD3]">
+                      Field outcome submitted. Admin may review the case and mark it resolved.
+                    </p>
+                  ) : status === "Resolved" ? (
                     <p className="mt-2 text-[11px] font-semibold text-[#667085]">
-                      This incident has completed its response workflow.
+                      Response is resolved and ready for final administrative closure.
+                    </p>
+                  ) : status === "Closed" ? (
+                    <p className="mt-2 text-[11px] font-semibold text-[#667085]">
+                      This response case is closed.
                     </p>
                   ) : (
                     <p className="mt-2 text-[11px] text-[#667085]">
-                      Response coordination has not been started for this report yet.
+                      Operational progress is controlled by the assigned responder.
                     </p>
                   )}
                 </div>
@@ -1390,13 +1395,9 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                 onClick={() => handleStatusChange(nextIncidentStatus)}
                 className="w-full rounded-lg bg-[#1F5FA6] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#1F5FA6]"
               >
-                {nextIncidentStatus === "Dispatched"
-                  ? "Dispatch Incident"
-                  : nextIncidentStatus === "In Progress"
-                    ? "Start Response"
-                    : nextIncidentStatus === "Resolved"
-                      ? "Mark as Resolved"
-                      : "Close Incident"}
+                {nextIncidentStatus === "Resolved"
+                  ? "Mark Case Resolved"
+                  : "Close Response Case"}
               </button>
             )}
           </div>

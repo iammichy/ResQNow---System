@@ -171,13 +171,24 @@ class ReportBridge
             default => null,
         };
 
-        if (! $status || $incident->status === $status || $incident->status === 'Closed') {
+        if (! $status || $incident->status === 'Closed') {
             return;
         }
 
-        $updates = ['status' => $status];
+        $updates = [];
 
-        if ($status === 'Dispatched' && ! $incident->dispatched_at) {
+        if ($incident->status !== $status) {
+            $updates['status'] = $status;
+        }
+
+        /*
+         * The responder's En Route action is the real
+         * operational dispatch point.
+         */
+        if (
+            $report->status === 'Responders En Route' &&
+            ! $incident->dispatched_at
+        ) {
             $updates['dispatched_at'] = now();
         }
 
@@ -185,6 +196,8 @@ class ReportBridge
             $updates['resolved_at'] = now();
         }
 
-        $incident->update($updates);
+        if ($updates !== []) {
+            $incident->update($updates);
+        }
     }
 }
