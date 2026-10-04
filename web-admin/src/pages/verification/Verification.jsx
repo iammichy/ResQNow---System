@@ -32,6 +32,30 @@ function InfoItem({ label, value }) {
   );
 }
 
+function formatFactLabel(key) {
+  return String(key)
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function formatFactValue(value) {
+  if (Array.isArray(value)) {
+    return value.map(formatFactValue).join(", ");
+  }
+
+  if (value === null || value === undefined || value === "") {
+    return "Not specified";
+  }
+
+  if (typeof value === "boolean") {
+    return value ? "Yes" : "No";
+  }
+
+  return String(value)
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
 function Verification({ onVerificationUpdate }) {
   const { t } = useLanguage();
 
@@ -388,6 +412,125 @@ function Verification({ onVerificationUpdate }) {
                 />
               </div>
 
+              <div className="mt-6 rounded-xl border border-[#D0D5DD] bg-[#F9FAFB] p-5">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <h3 className="text-base font-bold text-[#101C2E]">
+                      System Triage Explanation
+                    </h3>
+
+                    <p className="mt-1 text-xs leading-5 text-[#667085]">
+                      Priority is computed automatically from the reported
+                      situation facts. Verify the facts, not the priority.
+                    </p>
+                  </div>
+
+                  <span
+                    className={`w-fit rounded-full border px-3 py-1 text-xs font-bold ${
+                      priorityStyles[
+                        selectedReport.triageRecommendation ||
+                          selectedReport.priority ||
+                          "Not Prioritized"
+                      ]
+                    }`}
+                  >
+                    {selectedReport.triageRecommendation ||
+                      selectedReport.priority ||
+                      "Not Prioritized"}
+                  </span>
+                </div>
+
+                <div className="mt-5 grid gap-5 sm:grid-cols-2">
+                  <InfoItem
+                    label="System Priority"
+                    value={
+                      selectedReport.triageRecommendation ||
+                      selectedReport.priority ||
+                      "Not Prioritized"
+                    }
+                  />
+
+                  <InfoItem
+                    label="System Score"
+                    value={
+                      selectedReport.triageScore === null ||
+                      selectedReport.triageScore === undefined
+                        ? "Not available"
+                        : String(selectedReport.triageScore)
+                    }
+                  />
+
+                  <InfoItem
+                    label="Rule Version"
+                    value={
+                      selectedReport.triageRuleVersion ||
+                      selectedReport.svf?.ruleVersion ||
+                      "Not available"
+                    }
+                  />
+
+                  <InfoItem
+                    label="Last Recalculated"
+                    value={
+                      selectedReport.triageRecalculatedAt
+                        ? new Date(
+                            selectedReport.triageRecalculatedAt,
+                          ).toLocaleString()
+                        : "Not available"
+                    }
+                  />
+                </div>
+
+                {selectedReport.triageFlags?.length > 0 && (
+                  <div className="mt-5">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]">
+                      Contributing Factors
+                    </p>
+
+                    <ul className="mt-2 space-y-2">
+                      {selectedReport.triageFlags.map((flag, index) => (
+                        <li
+                          key={`${flag}-${index}`}
+                          className="rounded-lg bg-white px-3 py-2 text-sm text-[#475467]"
+                        >
+                          {String(flag)}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              {selectedReport.svf && (
+                <div className="mt-6 rounded-xl border border-[#D0D5DD] bg-white p-5">
+                  <h3 className="text-base font-bold text-[#101C2E]">
+                    Situation Verification Facts
+                  </h3>
+
+                  <p className="mt-1 text-xs leading-5 text-[#667085]">
+                    These factual answers were submitted by the resident
+                    and are used by the system to determine priority.
+                  </p>
+
+                  <div className="mt-5 grid gap-5 sm:grid-cols-2">
+                    <InfoItem
+                      label="Situation Type"
+                      value={formatFactValue(selectedReport.svf.category)}
+                    />
+
+                    {Object.entries(selectedReport.svf.answers || {}).map(
+                      ([key, value]) => (
+                        <InfoItem
+                          key={key}
+                          label={formatFactLabel(key)}
+                          value={formatFactValue(value)}
+                        />
+                      ),
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="mt-6">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]">
                   {t("description")}
@@ -447,7 +590,7 @@ function Verification({ onVerificationUpdate }) {
                 onClick={() => setShowReturnModal(false)}
                 className="text-lg font-bold text-[#98A2B3] hover:text-[#344054]"
               >
-                ×
+                Ã—
               </button>
             </div>
 

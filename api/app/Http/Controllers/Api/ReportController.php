@@ -28,7 +28,7 @@ class ReportController extends Controller
 
     public function forVerification(): JsonResponse
     {
-        $reports = Report::with('user')
+        $reports = Report::with(['user', 'svfAnswer'])
             ->where('verification_status', 'Pending')
             ->latest()
             ->get();
@@ -79,7 +79,7 @@ class ReportController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Report verified successfully.',
-            'data' => $report->fresh('user'),
+            'data' => $report->fresh(['user', 'svfAnswer']),
         ]);
     }
 

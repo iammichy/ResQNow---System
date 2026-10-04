@@ -65,6 +65,19 @@ function formatReport(report) {
     triageRecommendation: report.triage_recommendation || null,
     triageAssessedAt: report.triage_assessed_at || null,
     triageAssessedBy: report.triage_assessed_by || null,
+
+    triageFlags: report.triage_flags || [],
+    triageRuleVersion: report.triage_rule_version || null,
+    triageRecalculatedAt: report.triage_recalculated_at || null,
+
+    svf: report.svf_answer
+      ? {
+          category: report.svf_answer.category || null,
+          answers: report.svf_answer.answers || {},
+          flags: report.svf_answer.flags || [],
+          ruleVersion: report.svf_answer.rule_version || null,
+        }
+      : null,
   };
 }
 
