@@ -93,7 +93,7 @@ Route::prefix('responder')
 
         /*
          * Perform a server-authorized lifecycle action:
-         * start, en-route, arrived, resolve.
+         * start, en-route, arrived, field-outcome, and operational exception actions.
          */
         Route::post(
             '/reports/{reportCode}/actions',

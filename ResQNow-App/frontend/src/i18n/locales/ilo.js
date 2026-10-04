@@ -910,7 +910,7 @@ const ilo = {
   priority: {
     critical: 'Kritikal',
     high: 'Nangato',
-    medium: 'Naited',
+    moderate: 'Naited',
     low: 'Nababa',
   },
 

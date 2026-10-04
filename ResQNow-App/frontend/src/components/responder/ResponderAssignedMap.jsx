@@ -2,15 +2,20 @@ import { MapPin } from 'lucide-react';
 import { validCoordinates } from './responderViewUtils';
 
 const pinTone = {
-  High: {
+  Critical: {
     pin: 'bg-resqnow-critical border-resqnow-critical/30',
     dot: 'bg-resqnow-critical',
-    label: 'High',
+    label: 'Critical',
   },
-  Medium: {
+  High: {
     pin: 'bg-resqnow-pending border-resqnow-pending/30',
     dot: 'bg-resqnow-pending',
-    label: 'Medium',
+    label: 'High',
+  },
+  Moderate: {
+    pin: 'bg-resqnow-insight border-resqnow-insight/30',
+    dot: 'bg-resqnow-insight',
+    label: 'Moderate',
   },
   Low: {
     pin: 'bg-resqnow-info border-resqnow-info/30',
@@ -406,8 +411,9 @@ export default function ResponderAssignedMap({
           <div className="absolute bottom-10 left-3 z-[30] rounded-xl border border-resqnow-border-soft bg-white/95 px-3 py-2 shadow-md backdrop-blur-sm">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
               {[
+                'Critical',
                 'High',
-                'Medium',
+                'Moderate',
                 'Low',
               ].map(
                 (
@@ -440,10 +446,11 @@ export default function ResponderAssignedMap({
         showLegend && (
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 px-1">
             {[
-              'High',
-              'Medium',
-              'Low',
-            ].map(
+                'Critical',
+                'High',
+                'Moderate',
+                'Low',
+              ].map(
               (
                 priority
               ) => (

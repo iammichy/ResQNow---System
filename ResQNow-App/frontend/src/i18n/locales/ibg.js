@@ -741,7 +741,7 @@ const ibg = {
   priority: {
     critical: 'Kritikal',
     high: 'Mataas',
-    medium: 'Katamtaman',
+    moderate: 'Katamtaman',
     low: 'Mababa',
   },
 

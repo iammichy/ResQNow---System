@@ -35,8 +35,8 @@ class ReportWorkflow
         'invalid-finding' =>
             'Request incident review',
 
-        'resolve' =>
-            'Resolve report',
+        'field-outcome' =>
+            'Submit field outcome',
     ];
 
     /**
@@ -137,7 +137,7 @@ class ReportWorkflow
                 ],
 
                 'Responded' => [
-                    'resolve',
+                    'field-outcome',
                 ],
 
                 default => [],
@@ -217,11 +217,11 @@ class ReportWorkflow
             'arrived' =>
                 'Responded',
 
-            'resolve' =>
-                'Resolved',
+            'field-outcome' =>
+                'Responded',
 
             /*
-             * Acknowledge, note, support,
+             * Acknowledge, field-outcome, note, support,
              * unable-locate and invalid-finding
              * do not directly change lifecycle.
              */

@@ -1,6 +1,7 @@
 export const PRIORITY_RANK = {
+  Critical: 0,
   High: 1,
-  Medium: 2,
+  Moderate: 2,
   Low: 3,
 };
 
@@ -171,7 +172,7 @@ export function formatClock(value) {
 }
 
 export function getPrimaryAction(report) {
-  const lifecycle = ['acknowledge', 'start', 'en-route', 'arrived', 'resolve'];
+  const lifecycle = ['acknowledge', 'start', 'en-route', 'arrived', 'field-outcome'];
   const actions = Array.isArray(report?.responderActions)
     ? report.responderActions
     : [];

@@ -53,8 +53,8 @@ const actionPresentation = {
     label: 'On Scene',
     className: 'bg-resqnow-indigo text-white',
   },
-  resolve: {
-    label: 'Victim Secured / Resolve',
+  'field-outcome': {
+    label: 'Submit Field Outcome',
     className: 'bg-resqnow-safe text-white',
   },
 };
@@ -71,7 +71,7 @@ export default function ResponderDashboard() {
   const [dutySaving, setDutySaving] = useState(false);
   const [actionSaving, setActionSaving] = useState(false);
   const [actionError, setActionError] = useState('');
-  const [resolveSummary, setResolveSummary] = useState('');
+  const [outcomeSummary, setResolveSummary] = useState('');
 
   const load = useCallback(async ({ quiet = false } = {}) => {
     if (!quiet) setIsLoading(true);
@@ -131,8 +131,8 @@ export default function ResponderDashboard() {
   async function performPrimaryAction() {
     if (!activeMission || !nextAction || actionSaving) return;
 
-    if (nextAction.value === 'resolve' && !resolveSummary.trim()) {
-      setActionError('Add a short outcome summary before resolving this mission.');
+    if (nextAction.value === 'field-outcome' && !outcomeSummary.trim()) {
+      setActionError('Add a short field outcome before submitting this mission update.');
       return;
     }
 
@@ -145,7 +145,7 @@ export default function ResponderDashboard() {
           ? await acknowledgeAssignment(activeMission.id, activeMission.version)
           : await performResponderAction(activeMission.id, {
               action: nextAction.value,
-              remarks: nextAction.value === 'resolve' ? resolveSummary.trim() : null,
+              remarks: nextAction.value === 'field-outcome' ? outcomeSummary.trim() : null,
               expectedVersion: activeMission.version,
             });
 
@@ -198,7 +198,7 @@ export default function ResponderDashboard() {
               </h1>
               {!activeMission && (
                 <p className="mt-1 text-[10px] text-resqnow-placeholder">
-                  {lastUpdated ? `Last synchronized ${formatClock(lastUpdated)}` : 'Synchronizing responder state…'}
+                  {lastUpdated ? `Last synchronized ${formatClock(lastUpdated)}` : 'Synchronizing responder stateâ€¦'}
                 </p>
               )}
             </div>
@@ -237,7 +237,7 @@ export default function ResponderDashboard() {
               nextAction={nextAction}
               actionSaving={actionSaving}
               actionError={actionError}
-              resolveSummary={resolveSummary}
+              outcomeSummary={outcomeSummary}
               setResolveSummary={setResolveSummary}
               onAction={performPrimaryAction}
               onOpen={() => navigate(`/responder/missions/${activeMission.id}`)}
@@ -257,15 +257,15 @@ export default function ResponderDashboard() {
 
 function MissionLocationCard({ report, directions }) {
   const accuracy = Number(report?.locationAccuracy);
-  const accuracyLabel = Number.isFinite(accuracy) && accuracy > 0 ? ` · approx. ±${Math.round(accuracy)} m` : '';
+  const accuracyLabel = Number.isFinite(accuracy) && accuracy > 0 ? ` Â· approx. Â±${Math.round(accuracy)} m` : '';
 
   return (
     <section className="rounded-2xl border border-resqnow-critical/20 bg-white p-3.5 shadow-[0_8px_24px_rgba(217,45,32,.08)]">
       <div className="mb-2 flex items-start justify-between gap-3">
         <div>
           <p className="text-[9px] font-extrabold uppercase tracking-[.14em] text-resqnow-critical">Assigned reporter location</p>
-          <h2 className="mt-0.5 text-[14px] font-extrabold text-resqnow-primary">{report.id} · Incident map</h2>
-          <p className="mt-0.5 text-[9px] leading-relaxed text-resqnow-muted">{`Submitted GPS/report location${accuracyLabel} · not live resident tracking · Navigate opens device routing`}</p>
+          <h2 className="mt-0.5 text-[14px] font-extrabold text-resqnow-primary">{report.id} Â· Incident map</h2>
+          <p className="mt-0.5 text-[9px] leading-relaxed text-resqnow-muted">{`Submitted GPS/report location${accuracyLabel} Â· not live resident tracking Â· Navigate opens device routing`}</p>
         </div>
         <MapPin className="h-5 w-5 shrink-0 text-resqnow-critical" />
       </div>
@@ -280,7 +280,7 @@ function MissionLocationCard({ report, directions }) {
       <div className="mt-2 flex items-center gap-2 rounded-xl bg-resqnow-canvas p-3">
         <MapPin className="h-4 w-4 shrink-0 text-resqnow-critical" />
         <p className="min-w-0 flex-1 text-[10px] font-semibold leading-relaxed text-resqnow-secondary">
-          {report.location || 'Location unavailable'}{report.landmark ? ` · ${report.landmark}` : ''}
+          {report.location || 'Location unavailable'}{report.landmark ? ` Â· ${report.landmark}` : ''}
         </p>
         {directions?.href && (
           <a
@@ -312,7 +312,7 @@ function DutyStatusCard({ operations, saving, onToggle, compact = false }) {
               <p className={`text-[11px] font-extrabold ${onDuty ? 'text-resqnow-safe' : 'text-resqnow-muted'}`}>
                 {onDuty ? 'ON DUTY' : 'OFF DUTY'}
               </p>
-              <span className="text-[9px] text-resqnow-placeholder">•</span>
+              <span className="text-[9px] text-resqnow-placeholder">â€¢</span>
               <p className="truncate text-[9px] font-semibold text-resqnow-secondary">{role}</p>
             </div>
             <p className="mt-0.5 truncate text-[9px] text-resqnow-muted">Asset / team: {asset}</p>
@@ -391,7 +391,7 @@ function ActiveMission({
   nextAction,
   actionSaving,
   actionError,
-  resolveSummary,
+  outcomeSummary,
   setResolveSummary,
   onAction,
   onOpen,
@@ -453,7 +453,7 @@ function ActiveMission({
           <label className="mt-3 block">
             <span className="text-[10px] font-bold text-resqnow-secondary">Outcome summary *</span>
             <textarea
-              value={resolveSummary}
+              value={outcomeSummary}
               onChange={(event) => setResolveSummary(event.target.value.slice(0, 2000))}
               rows={3}
               placeholder="Summarize assistance provided and the final outcome."
@@ -476,7 +476,7 @@ function ActiveMission({
             className={`mt-3 min-h-[56px] w-full rounded-xl px-4 text-[13px] font-extrabold shadow-sm active:scale-[.99] disabled:opacity-60 ${presentation.className}`}
           >
             {actionSaving ? (
-              <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Saving…</span>
+              <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Savingâ€¦</span>
             ) : (
               presentation.label
             )}

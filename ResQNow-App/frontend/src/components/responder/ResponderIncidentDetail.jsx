@@ -46,7 +46,7 @@ const tacticalActionLabels = {
   start: 'Start Response',
   'en-route': 'Mark En Route',
   arrived: 'On Scene',
-  resolve: 'Victim Secured / Resolve',
+  'field-outcome': 'Submit Field Outcome',
 };
 
 function tacticalActionLabel(action) {
@@ -265,7 +265,7 @@ export default function ResponderIncidentDetail() {
             <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
             <span>
               {report.location || 'Location unavailable'}
-              {report.landmark ? ` · ${report.landmark}` : ''}
+              {report.landmark ? ` Â· ${report.landmark}` : ''}
             </span>
           </div>
         </div>
@@ -276,7 +276,7 @@ export default function ResponderIncidentDetail() {
           <div>
             <p className="text-[9px] font-extrabold uppercase tracking-[.14em] text-resqnow-violet">Reporter location</p>
             <h2 className="mt-0.5 text-[14px] font-bold text-resqnow-primary">Incident map</h2>
-            <p className="mt-0.5 text-[9px] text-resqnow-muted">Submitted report coordinates · not live resident tracking</p>
+            <p className="mt-0.5 text-[9px] text-resqnow-muted">Submitted report coordinates Â· not live resident tracking</p>
           </div>
           <MapPin className="h-5 w-5 shrink-0 text-resqnow-critical" />
         </div>
@@ -398,14 +398,14 @@ export default function ResponderIncidentDetail() {
           <InfoRow
             icon={MapPin}
             label="Incident location"
-            value={`${report.location || 'Location unavailable'}${report.landmark ? ` · ${report.landmark}` : ''}`}
+            value={`${report.location || 'Location unavailable'}${report.landmark ? ` Â· ${report.landmark}` : ''}`}
           />
           <InfoRow
             icon={UserRound}
             label="Reporter"
             value={
               report.reporter
-                ? `${report.reporter.fullName || 'Resident'}${report.reporter.contactNumber ? ` · ${report.reporter.contactNumber}` : ''}`
+                ? `${report.reporter.fullName || 'Resident'}${report.reporter.contactNumber ? ` Â· ${report.reporter.contactNumber}` : ''}`
                 : 'Reporter details unavailable'
             }
           />
@@ -413,7 +413,7 @@ export default function ResponderIncidentDetail() {
             <InfoRow
               icon={UserRound}
               label="Person involved"
-              value={`${report.subjectName || 'Name unavailable'}${report.subjectContact ? ` · ${report.subjectContact}` : ''}`}
+              value={`${report.subjectName || 'Name unavailable'}${report.subjectContact ? ` Â· ${report.subjectContact}` : ''}`}
             />
           )}
           <InfoRow
@@ -493,7 +493,7 @@ export default function ResponderIncidentDetail() {
                     {event.status || event.activity || 'Update'}
                   </p>
                   <p className="mt-1 text-[11px] text-resqnow-muted">
-                    {event.actor?.fullName || 'System'} · {formatDateTime(event.createdAt)}
+                    {event.actor?.fullName || 'System'} Â· {formatDateTime(event.createdAt)}
                   </p>
                   {(event.remarks || event.activity) && (
                     <p className="mt-1 text-[12px] leading-relaxed text-resqnow-secondary">
@@ -575,10 +575,10 @@ export default function ResponderIncidentDetail() {
 
 function ActionPreviewSheet({ action, onClose, onSave, isSaving, error }) {
   const [remarks, setRemarks] = useState('');
-  const needsOutcome = action.value === 'resolve';
-  const needsRemarks = ['note', 'support', 'unable-locate', 'invalid-finding', 'resolve'].includes(action.value);
-  const supportedNow = ['acknowledge', 'start', 'en-route', 'arrived', 'resolve'].includes(action.value);
-  const missingOutcome = needsOutcome && !remarks.trim();
+  const needsOutcome = action.value === 'field-outcome';
+  const needsRemarks = ['note', 'support', 'unable-locate', 'invalid-finding', 'field-outcome'].includes(action.value);
+  const supportedNow = ['acknowledge', 'start', 'en-route', 'arrived', 'field-outcome', 'note', 'support', 'unable-locate', 'invalid-finding'].includes(action.value);
+  const missingOutcome = needsRemarks && !remarks.trim();
 
   async function handleSubmit() {
     if (!supportedNow || isSaving || missingOutcome) return;
@@ -611,27 +611,27 @@ function ActionPreviewSheet({ action, onClose, onSave, isSaving, error }) {
             </div>
           ) : (
             <div className="rounded-xl border border-resqnow-caution/25 bg-resqnow-caution/10 p-3 text-[11px] leading-relaxed text-resqnow-secondary">
-              This secondary response form is prepared, but its dedicated server endpoint is not connected yet. Use the main lifecycle actions for tomorrow&apos;s demonstration.
+              This responder action will be saved to the ResQNow server. Support, location, and incident-review requests are forwarded to the barangay attention queue.
             </div>
           )}
 
           {needsRemarks && (
             <label className="mt-4 block">
               <span className="text-[11px] font-bold text-resqnow-secondary">
-                {needsOutcome ? 'Outcome summary' : 'Remarks'}
-                {needsOutcome ? ' *' : ''}
+                {needsOutcome ? 'Field outcome summary' : 'Remarks'}
+                {' *'}
               </span>
               <textarea
                 value={remarks}
                 onChange={(event) => setRemarks(event.target.value)}
                 rows={4}
                 maxLength={2000}
-                placeholder={needsOutcome ? 'Summarize the response outcome…' : 'Add field details or context…'}
+                placeholder={needsOutcome ? 'Summarize the response outcomeâ€¦' : 'Add field details or contextâ€¦'}
                 className="mt-1.5 w-full resize-none rounded-xl border border-resqnow-border bg-resqnow-canvas px-3 py-3 text-[12px] text-resqnow-primary outline-none focus:border-resqnow-violet/40 focus:ring-2 focus:ring-resqnow-violet/10"
               />
               {missingOutcome && (
                 <p className="mt-1.5 text-[10px] font-semibold text-resqnow-critical">
-                  An outcome summary is required before resolving the report.
+                  Remarks are required before submitting this responder action.
                 </p>
               )}
             </label>
@@ -658,7 +658,7 @@ function ActionPreviewSheet({ action, onClose, onSave, isSaving, error }) {
               disabled={!supportedNow || isSaving || missingOutcome}
               className="min-h-[46px] rounded-xl bg-brand-gradient px-3 text-[11px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-45"
             >
-              {isSaving ? 'Saving…' : supportedNow ? `Confirm ${action.label}` : 'API pending'}
+              {isSaving ? 'Savingâ€¦' : supportedNow ? `Confirm ${action.label}` : 'API pending'}
             </button>
           </div>
         </div>

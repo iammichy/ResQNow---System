@@ -40,10 +40,11 @@ class ResponderReportController extends Controller
                 ->orderByRaw(
                     "
                     CASE priority
-                        WHEN 'High' THEN 1
-                        WHEN 'Medium' THEN 2
-                        WHEN 'Low' THEN 3
-                        ELSE 4
+                        WHEN 'Critical' THEN 1
+                        WHEN 'High' THEN 2
+                        WHEN 'Moderate' THEN 3
+                        WHEN 'Low' THEN 4
+                        ELSE 5
                     END
                     "
                 )
@@ -165,9 +166,10 @@ class ResponderReportController extends Controller
 
                     $report->save();
 
-                    $report
-                        ->statusLogs()
-                        ->create([
+                    $statusLog =
+                        $report
+                            ->statusLogs()
+                            ->create([
                             'status' =>
                                 $report->status,
 
@@ -201,9 +203,8 @@ class ResponderReportController extends Controller
      * Perform one server-authorized lifecycle action.
      *
      * Allowed values are deliberately limited here.
-     * Secondary actions such as field notes and support
-     * requests will use their own endpoints so their
-     * payloads can be validated independently.
+     * Lifecycle and operational actions are authorized by ReportWorkflow.
+     * Required action remarks are validated before the event is saved.
      */
     public function action(
         Request $request,
@@ -224,14 +225,14 @@ class ResponderReportController extends Controller
                 'action' => [
                     'required',
                     'string',
-                    'in:start,en-route,arrived,resolve',
+                    'in:start,en-route,arrived,field-outcome,note,support,unable-locate,invalid-finding',
                 ],
 
                 'remarks' => [
                     'nullable',
                     'string',
                     'max:2000',
-                    'required_if:action,resolve',
+                    'required_if:action,field-outcome,note,support,unable-locate,invalid-finding',
                 ],
 
                 'expectedVersion' => [
@@ -299,8 +300,20 @@ class ResponderReportController extends Controller
                             'arrived' =>
                                 'Responder recorded arrival / response',
 
-                            'resolve' =>
-                                'Report resolved',
+                            'field-outcome' =>
+                                'Responder submitted field outcome',
+
+                            'note' =>
+                                'Responder added field update',
+
+                            'support' =>
+                                'Responder requested additional support',
+
+                            'unable-locate' =>
+                                'Responder requested location assistance',
+
+                            'invalid-finding' =>
+                                'Responder requested incident review',
                         };
 
                     $report->status =
@@ -309,20 +322,14 @@ class ResponderReportController extends Controller
                     $report->version =
                         ((int) $report->version) + 1;
 
-                    if (
-                        $action === 'resolve'
-                    ) {
-                        $report->resolved_remarks =
-                            trim(
-                                (string) $validated['remarks']
-                            );
-                    }
+
 
                     $report->save();
 
-                    $report
-                        ->statusLogs()
-                        ->create([
+                    $statusLog =
+                        $report
+                            ->statusLogs()
+                            ->create([
                             'status' =>
                                 $nextStatus,
 
@@ -345,11 +352,62 @@ class ResponderReportController extends Controller
                                 $user->id,
                         ]);
 
-                    ReportNotifications::progress(
-                        $report,
-                        $activity,
-                        $user->id
-                    );
+                    /*
+                     * Operational exceptions are sent to the Admin
+                     * attention queue. They do not close the report.
+                     */
+                    $attentionKind =
+                        match ($action) {
+                            'support' =>
+                                'support',
+
+                            'unable-locate' =>
+                                'location',
+
+                            'invalid-finding' =>
+                                'review',
+
+                            default =>
+                                null,
+                        };
+
+                    if ($attentionKind !== null) {
+                        $report
+                            ->attentionRequests()
+                            ->create([
+                                'event_id' =>
+                                    $statusLog->id,
+
+                                'kind' =>
+                                    $attentionKind,
+
+                                'requested_by' =>
+                                    $user->id,
+                            ]);
+                    }
+
+                    /*
+                     * Internal notes and exception requests are not
+                     * automatically exposed as resident progress.
+                     */
+                    if (
+                        !in_array(
+                            $action,
+                            [
+                                'note',
+                                'support',
+                                'unable-locate',
+                                'invalid-finding',
+                            ],
+                            true
+                        )
+                    ) {
+                        ReportNotifications::progress(
+                            $report,
+                            $activity,
+                            $user->id
+                        );
+                    }
 
                     // Keep the web-admin incident in step.
                     \App\Support\ReportBridge::syncIncident($report);

@@ -1462,7 +1462,7 @@ newPasswordInvalid:
     high:
       'Mataas',
 
-    medium:
+    moderate:
       'Katamtaman',
 
     low:

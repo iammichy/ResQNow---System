@@ -46,7 +46,7 @@ function getPriorityStyle(priority) {
     case 'High':
       return 'border bg-resqnow-pending/10 text-resqnow-pending border-resqnow-pending/25';
 
-    case 'Medium':
+    case 'Moderate':
       return 'border bg-bgy-yellow-soft text-bgy-navy border-bgy-yellow/60';
 
     case 'Low':
@@ -80,7 +80,7 @@ function getStatusLabel(status, t) {
 const priorityKeys = {
   Critical: 'priority.critical',
   High: 'priority.high',
-  Medium: 'priority.medium',
+  Moderate: 'priority.moderate',
   Low: 'priority.low',
 };
 

@@ -1430,8 +1430,8 @@ newPasswordInvalid:
     high:
       'High',
 
-    medium:
-      'Medium',
+    moderate:
+      'Moderate',
 
     low:
       'Low',
