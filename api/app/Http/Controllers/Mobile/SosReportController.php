@@ -19,6 +19,15 @@ class SosReportController extends Controller
         'Cancelled',
     ];
 
+    private const SOS_REASON_LABELS = [
+        'fire' => 'Fire / Smoke',
+        'flood' => 'Flood / Trapped',
+        'medical' => 'Medical Emergency',
+        'accident' => 'Road Accident / Obstruction Danger',
+        'violence' => 'Violence / Safety Threat',
+        'other' => 'Other / Unable to Describe',
+    ];
+
     /**
      * Create or replay a one-swipe resident SOS.
      *
@@ -55,6 +64,8 @@ class SosReportController extends Controller
 
         $data = $request->validated();
         $location = $data['location'] ?? null;
+        $reason = $data['reason'];
+        $reasonLabel = self::SOS_REASON_LABELS[$reason];
 
         /*
          * The fingerprint identifies the operation, not the GPS
@@ -62,6 +73,11 @@ class SosReportController extends Controller
          * different coordinates but must still replay the first SOS.
          */
         $requestFingerprint = hash(
+            'sha256',
+            'resident-sos-v2|' . $reason
+        );
+
+        $legacyFingerprint = hash(
             'sha256',
             'resident-sos-v1'
         );
@@ -71,7 +87,10 @@ class SosReportController extends Controller
                 $user,
                 $clientRequestId,
                 $requestFingerprint,
-                $location
+                $legacyFingerprint,
+                $location,
+                $reason,
+                $reasonLabel
             ) {
                 /*
                  * Serialize SOS creation per resident. This
@@ -91,7 +110,14 @@ class SosReportController extends Controller
                 if ($sameRequest) {
                     if (
                         $sameRequest->request_fingerprint !== null
-                        && $sameRequest->request_fingerprint !== $requestFingerprint
+                        && ! in_array(
+                            $sameRequest->request_fingerprint,
+                            [
+                                $requestFingerprint,
+                                $legacyFingerprint,
+                            ],
+                            true
+                        )
                     ) {
                         return [$sameRequest, 'conflict'];
                     }
@@ -153,9 +179,17 @@ class SosReportController extends Controller
                     'report_type' => 'Emergency',
                     'concern_code' => 'sos',
                     'concern_type' => 'SOS - Immediate Life Threat',
-                    'subcategory' => null,
+                    'subcategory' => $reason,
                     'status' => 'Submitted',
-                    'priority' => 'High',
+                    'priority' => 'Critical',
+                    'triage_score' => 100,
+                    'triage_recommendation' => 'Critical',
+                    'triage_flags' => [
+                        'SOS fast-track',
+                        "Resident quick reason: {$reasonLabel}",
+                    ],
+                    'triage_rule_version' => 'camunatan-sos-v1',
+                    'triage_recalculated_at' => now(),
                     'reporting_for' => 'Myself',
                     'subject_name' => null,
                     'subject_contact' => null,
@@ -169,7 +203,7 @@ class SosReportController extends Controller
                     'location_accuracy' => $locationAccuracy,
                     'location_captured_at' => $locationCapturedAt,
                     'description' =>
-                        'One-swipe SOS submitted by the resident. Immediate triage and callback are required.',
+                        "SOS submitted by the resident. Quick reason: {$reasonLabel}. Immediate triage and callback are required.",
                     'required_assistance' =>
                         'Immediate emergency response and dispatcher callback.',
                     'affected_individuals' => $affectedIndividuals,
@@ -189,7 +223,7 @@ class SosReportController extends Controller
                 $report->statusLogs()->create([
                     'status' => 'Submitted',
                     'remarks' =>
-                        'SOS triggered by resident. Immediate triage required.',
+                        "SOS triggered by resident. Quick reason: {$reasonLabel}. Immediate triage required.",
                     'changed_by_user_id' => $user->id,
                 ]);
 
@@ -219,7 +253,7 @@ class SosReportController extends Controller
                 ReportNotifications::admins(),
                 'report',
                 $report->report_code . ': Resident SOS',
-                'A resident triggered SOS. Open the report for location and vulnerability details.',
+                "A resident triggered SOS ({$reasonLabel}). Open the report for location and vulnerability details.",
                 $report->report_code
             );
         }

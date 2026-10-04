@@ -14,6 +14,7 @@ import {
   captureBestEffortLocation,
   clearPendingSosKey,
   getOrCreateSosKey,
+  SOS_REASONS,
   openSosSms,
   submitSos,
 } from '../../services/sosService';
@@ -35,6 +36,7 @@ export default function SOSAction({ user, hotline, onCreated, onCallHotline }) {
   const [holdProgress, setHoldProgress] = useState(0);
   const [lastLocation, setLastLocation] = useState(null);
   const [lastKey, setLastKey] = useState(null);
+  const [selectedReason, setSelectedReason] = useState(null);
   const [lastError, setLastError] = useState('');
 
   const isBusy = ['locating', 'sending'].includes(phase);
@@ -65,10 +67,23 @@ export default function SOSAction({ user, hotline, onCreated, onCallHotline }) {
     return 'Life-threatening emergency only';
   }, [phase]);
 
-  const executeSos = async ({ reuseLocation = false } = {}) => {
+  const executeSos = async ({ reuseLocation = false, reason = null } = {}) => {
     if (isBusy) return;
 
-    const idempotencyKey = lastKey || getOrCreateSosKey();
+    const chosenReason = reason || selectedReason;
+
+    if (!chosenReason) {
+      setPhase('reason');
+      setDragX(0);
+      setHoldProgress(0);
+      return;
+    }
+
+    setSelectedReason(chosenReason);
+
+    const idempotencyKey =
+      lastKey || getOrCreateSosKey(chosenReason);
+
     setLastKey(idempotencyKey);
     setLastError('');
 
@@ -87,6 +102,7 @@ export default function SOSAction({ user, hotline, onCreated, onCallHotline }) {
       const result = await submitSos({
         location,
         idempotencyKey,
+        reason: chosenReason,
       });
 
       clearPendingSosKey();
@@ -191,11 +207,64 @@ export default function SOSAction({ user, hotline, onCreated, onCallHotline }) {
         user,
         location: lastLocation,
         idempotencyKey: lastKey,
+        reason: selectedReason,
       });
     } catch (error) {
       setLastError(error?.message || 'Unable to open the SMS application.');
     }
   };
+
+  if (phase === 'reason') {
+    return (
+      <section className="rounded-3xl border-2 border-resqnow-critical/25 bg-white p-4 shadow-[0_12px_32px_rgba(217,45,32,0.10)]">
+        <div className="mb-3">
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-resqnow-critical">
+            Emergency SOS
+          </p>
+
+          <p className="text-[15px] font-extrabold text-resqnow-primary mt-1">
+            What is happening?
+          </p>
+
+          <p className="text-[10px] text-resqnow-muted mt-1 leading-relaxed">
+            Tap one quick reason. No additional questions are required before sending.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          {SOS_REASONS.map((item, index) => (
+            <button
+              key={item.code}
+              type="button"
+              onClick={() => executeSos({ reason: item.code })}
+              className="min-h-[62px] rounded-2xl border border-resqnow-critical/20 bg-resqnow-critical/5 px-3 py-2 text-left active:scale-[0.98] transition-transform"
+            >
+              <span className="block text-[9px] font-extrabold text-resqnow-critical mb-0.5">
+                {index + 1}
+              </span>
+
+              <span className="block text-[11px] font-extrabold text-resqnow-primary leading-tight">
+                {item.label}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            setPhase('idle');
+            setSelectedReason(null);
+            setDragX(0);
+            setHoldProgress(0);
+          }}
+          className="mt-3 w-full min-h-[40px] rounded-xl border border-resqnow-border-soft bg-resqnow-canvas text-[10px] font-extrabold text-resqnow-secondary"
+        >
+          Back
+        </button>
+      </section>
+    );
+  }
 
   if (phase === 'fallback') {
     return (
@@ -297,7 +366,7 @@ export default function SOSAction({ user, hotline, onCreated, onCallHotline }) {
             Need immediate rescue?
           </p>
           <p className="text-[10px] text-resqnow-muted mt-1 leading-relaxed">
-            {instruction}. Swipe fully to send your registered identity and the fastest available location.
+            {instruction}. Swipe fully, then tap one quick reason. ResQNow will immediately try to send your identity and the fastest available location.
           </p>
         </div>
       </div>

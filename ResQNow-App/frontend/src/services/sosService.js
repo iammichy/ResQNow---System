@@ -5,6 +5,18 @@ const PENDING_SOS_KEY = 'resqnow_pending_sos_request_v1';
 const SOS_KEY_MAX_AGE_MS = 10 * 60 * 1000;
 const SOS_REQUEST_TIMEOUT_MS = 5000;
 const SOS_GPS_TIMEOUT_MS = 3500;
+export const SOS_REASONS = Object.freeze([
+  { code: 'fire', label: 'Fire / Smoke' },
+  { code: 'flood', label: 'Flood / Trapped' },
+  { code: 'medical', label: 'Medical Emergency' },
+  { code: 'accident', label: 'Road Accident / Obstruction Danger' },
+  { code: 'violence', label: 'Violence / Safety Threat' },
+  { code: 'other', label: 'Other / Unable to Describe' },
+]);
+
+const SOS_REASON_LABELS = Object.fromEntries(
+  SOS_REASONS.map(({ code, label }) => [code, label])
+);
 
 function randomUuid() {
   if (crypto?.randomUUID) return crypto.randomUUID();
@@ -24,16 +36,30 @@ function randomUuid() {
   ].join('-');
 }
 
-export function getOrCreateSosKey() {
+export function getOrCreateSosKey(reason = null) {
   try {
     const raw = localStorage.getItem(PENDING_SOS_KEY);
     const saved = raw ? JSON.parse(raw) : null;
 
-    if (
+    const isFresh =
       saved?.uuid &&
       Number.isFinite(saved?.createdAt) &&
-      Date.now() - saved.createdAt < SOS_KEY_MAX_AGE_MS
+      Date.now() - saved.createdAt < SOS_KEY_MAX_AGE_MS;
+
+    if (
+      isFresh &&
+      (!saved?.reason || !reason || saved.reason === reason)
     ) {
+      if (reason && saved.reason !== reason) {
+        localStorage.setItem(
+          PENDING_SOS_KEY,
+          JSON.stringify({
+            ...saved,
+            reason,
+          })
+        );
+      }
+
       return saved.uuid;
     }
   } catch {
@@ -45,7 +71,11 @@ export function getOrCreateSosKey() {
   try {
     localStorage.setItem(
       PENDING_SOS_KEY,
-      JSON.stringify({ uuid, createdAt: Date.now() })
+      JSON.stringify({
+        uuid,
+        createdAt: Date.now(),
+        reason: reason || null,
+      })
     );
   } catch {
     // Persistence is best-effort. The in-memory key still works.
@@ -118,7 +148,7 @@ function extractReport(data) {
   return data?.report?.data || data?.report || data?.data || data;
 }
 
-async function postSos({ location, idempotencyKey }) {
+async function postSos({ location, idempotencyKey, reason }) {
   const controller = new AbortController();
   const timeoutId = window.setTimeout(() => controller.abort(), SOS_REQUEST_TIMEOUT_MS);
 
@@ -130,6 +160,7 @@ async function postSos({ location, idempotencyKey }) {
         'X-Idempotency-Key': `sos-${idempotencyKey}`,
       },
       body: JSON.stringify({
+        reason,
         location: location || null,
       }),
     });
@@ -148,18 +179,27 @@ async function postSos({ location, idempotencyKey }) {
 // Bearer-token auth has no CSRF cookie to refresh.
 async function refreshCsrfCookieFast() {}
 
-export async function submitSos({ location, idempotencyKey }) {
+export async function submitSos({ location, idempotencyKey, reason }) {
   try {
-    return await postSos({ location, idempotencyKey });
+    return await postSos({
+      location,
+      idempotencyKey,
+      reason,
+    });
   } catch (error) {
     if (error?.status !== 419) throw error;
 
     await refreshCsrfCookieFast();
-    return postSos({ location, idempotencyKey });
+
+    return postSos({
+      location,
+      idempotencyKey,
+      reason,
+    });
   }
 }
 
-export function buildSosSmsMessage({ user, location, idempotencyKey }) {
+export function buildSosSmsMessage({ user, location, idempotencyKey, reason }) {
   const latitude = Number.isFinite(location?.latitude)
     ? location.latitude
     : Number(user?.homeLocation?.latitude);
@@ -167,9 +207,11 @@ export function buildSosSmsMessage({ user, location, idempotencyKey }) {
     ? location.longitude
     : Number(user?.homeLocation?.longitude);
   const accuracy = Number.isFinite(location?.accuracy) ? Math.round(location.accuracy) : null;
+  const reasonLabel = SOS_REASON_LABELS[reason] || null;
 
   return [
     'RESQNOW SOS',
+    reasonLabel ? `Reason: ${reasonLabel}` : null,
     user?.fullName ? `Resident: ${user.fullName}` : null,
     user?.contactNumber ? `Mobile: ${user.contactNumber}` : null,
     user?.address ? `Saved address: ${user.address}` : null,
@@ -185,7 +227,19 @@ export function buildSosSmsMessage({ user, location, idempotencyKey }) {
     .join('\n');
 }
 
-export function openSosSms({ number, user, location, idempotencyKey }) {
-  const body = buildSosSmsMessage({ user, location, idempotencyKey });
+export function openSosSms({
+  number,
+  user,
+  location,
+  idempotencyKey,
+  reason,
+}) {
+  const body = buildSosSmsMessage({
+    user,
+    location,
+    idempotencyKey,
+    reason,
+  });
+
   openSmsComposer({ number, body });
 }

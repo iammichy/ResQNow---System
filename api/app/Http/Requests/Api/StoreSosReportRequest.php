@@ -25,6 +25,12 @@ class StoreSosReportRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'reason' => [
+                'required',
+                'string',
+                'in:fire,flood,medical,accident,violence,other',
+            ],
+
             'location' => [
                 'nullable',
                 'array',
@@ -61,6 +67,12 @@ class StoreSosReportRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'reason.required' =>
+                'Choose the SOS reason before sending.',
+
+            'reason.in' =>
+                'The selected SOS reason is invalid.',
+
             'location.latitude.between' =>
                 'The captured SOS latitude is invalid.',
 
