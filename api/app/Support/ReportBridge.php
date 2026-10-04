@@ -106,7 +106,7 @@ class ReportBridge
         self::record(
             $report,
             'Assigned',
-            "Assigned to {$personnel->name}.",
+            "A barangay responder has been assigned to your report.",
             $admin?->id,
             'Personnel assigned'
         );
