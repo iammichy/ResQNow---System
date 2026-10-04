@@ -139,6 +139,17 @@ function Prioritization({ onPriorityUpdate }) {
     filteredReports[0] ||
     null;
 
+  const usesAuthoritativeTriage = Boolean(
+    selectedReport?.svf ||
+      selectedReport?.triageRuleVersion?.startsWith(
+        "camunatan-",
+      ),
+  );
+
+  const systemPriority = usesAuthoritativeTriage
+    ? selectedReport?.triageRecommendation || ""
+    : selectedPriority;
+
   const handleAssessTriage = async () => {
     if (!selectedReport) {
       return;
@@ -172,28 +183,44 @@ function Prioritization({ onPriorityUpdate }) {
   ========================================= */
 
   const handleConfirmPriority = async () => {
-    if (!selectedReport || !selectedPriority) {
+    if (!selectedReport || !systemPriority) {
       return;
     }
 
     try {
       setIsSaving(true);
 
-      await assignReportPriority(selectedReport.databaseId, selectedPriority);
+      const confirmedReport =
+        await assignReportPriority(
+          selectedReport.databaseId,
+          usesAuthoritativeTriage
+            ? null
+            : systemPriority,
+        );
+
+      const confirmedPriority =
+        confirmedReport?.priority ||
+        systemPriority;
 
       onPriorityUpdate?.({
         id: selectedReport.id,
-        currentPriority: selectedPriority,
-        priority: selectedPriority,
+        currentPriority: confirmedPriority,
+        priority: confirmedPriority,
         priorityStatus: "Confirmed",
         status: "Prioritized",
       });
 
       await loadReports();
     } catch (error) {
-      console.error("Failed to assign priority:", error);
+      console.error(
+        "Failed to confirm priority:",
+        error,
+      );
 
-      alert(error.message || t("failedToAssignPriority"));
+      alert(
+        error.message ||
+          t("failedToAssignPriority"),
+      );
     } finally {
       setIsSaving(false);
     }
@@ -483,7 +510,7 @@ function Prioritization({ onPriorityUpdate }) {
                       {selectedReport.id}
                     </span>
 
-                    <span className="text-[#98A2B3]">•</span>
+                    <span className="text-[#98A2B3]">â€¢</span>
 
                     <span className="text-[#667085]">
                       {selectedReport.category}
@@ -495,7 +522,7 @@ function Prioritization({ onPriorityUpdate }) {
                   </h2>
 
                   <p className="mt-2 text-sm text-[#667085]">
-                    {selectedReport.location} • {selectedReport.submitted}
+                    {selectedReport.location} â€¢ {selectedReport.submitted}
                   </p>
                 </div>
 
@@ -554,7 +581,8 @@ function Prioritization({ onPriorityUpdate }) {
                 </p>
               </div>
 
-              {/* TRIAGE ASSESSMENT */}
+              {!usesAuthoritativeTriage && (
+                <>              {/* TRIAGE ASSESSMENT */}
 
               <div className="mt-4 rounded-xl border border-[#E4E7EC] bg-white p-5">
                 <div>
@@ -783,6 +811,91 @@ function Prioritization({ onPriorityUpdate }) {
                 )}
               </div>
 
+                </>
+              )}
+
+              {usesAuthoritativeTriage && (
+                <div className="mt-4 rounded-xl border border-[#C7D9EF] bg-[#F9F8FF] p-5">
+                  <div>
+                    <h3 className="font-bold text-[#101C2E]">
+                      System Triage Explanation
+                    </h3>
+
+                    <p className="mt-1 text-sm leading-6 text-[#667085]">
+                      This result was already computed from the verified
+                      situation facts. No second triage questionnaire is
+                      required, and Admin cannot manually change the priority.
+                    </p>
+                  </div>
+
+                  <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <TriageItem
+                      label="System Priority"
+                      value={displayPriority(
+                        selectedReport.triageRecommendation,
+                      )}
+                      critical={
+                        selectedReport.triageRecommendation ===
+                        "Critical"
+                      }
+                    />
+
+                    <TriageItem
+                      label="Triage Score"
+                      value={
+                        selectedReport.triageScore !== null &&
+                        selectedReport.triageScore !== undefined
+                          ? `${selectedReport.triageScore} / 100`
+                          : "Not recorded"
+                      }
+                    />
+
+                    <TriageItem
+                      label="Rule Version"
+                      value={
+                        selectedReport.triageRuleVersion ||
+                        "Not recorded"
+                      }
+                    />
+
+                    <TriageItem
+                      label="Last Recalculated"
+                      value={
+                        selectedReport.triageRecalculatedAt
+                          ? new Date(
+                              selectedReport.triageRecalculatedAt,
+                            ).toLocaleString()
+                          : "Not recorded"
+                      }
+                    />
+                  </div>
+
+                  <div className="mt-5 border-t border-[#D0D5DD] pt-4">
+                    <p className="text-xs font-bold uppercase tracking-wider text-[#667085]">
+                      Contributing Factors
+                    </p>
+
+                    {selectedReport.triageFlags?.length ? (
+                      <ul className="mt-3 space-y-2">
+                        {selectedReport.triageFlags.map(
+                          (flag, index) => (
+                            <li
+                              key={`${flag}-${index}`}
+                              className="rounded-lg bg-white px-3 py-2 text-sm text-[#475467]"
+                            >
+                              {String(flag)}
+                            </li>
+                          ),
+                        )}
+                      </ul>
+                    ) : (
+                      <p className="mt-2 text-sm text-[#667085]">
+                        No additional triage flags recorded.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
               {/* ZERO-BIAS SYSTEM PRIORITY DISPLAY (READ-ONLY) */}
 
               <div className="mt-4 rounded-xl border border-[#E4E7EC] bg-[#FCFCFD] p-5">
@@ -791,29 +904,28 @@ function Prioritization({ onPriorityUpdate }) {
                 </h3>
 
                 <p className="mt-1 text-sm text-[#667085]">
-                  Per zero-bias policy, priority is strictly computed by the
-                  system based on verified facts above. Manual override is
-                  disabled.
+                  Priority is generated by ResQNow from verified factual inputs.
+                  Admin confirms the system result but cannot manually change it.
                 </p>
 
                 <div className="mt-5 flex items-center justify-between border-t border-[#E4E7EC] pt-4">
                   <div>
                     <p className="text-sm font-semibold text-[#344054]">
-                      Final Assigned Priority (System Computed)
+                      System Priority Awaiting Confirmation
                     </p>
 
                     <p className="mt-1 text-sm text-[#667085]">
-                      Ready for automated or staff assignment queueing.
+                      Confirm this system result to continue to assignment.
                     </p>
                   </div>
 
                   <span
                     className={`rounded-full border px-4 py-2 text-sm font-bold ${
-                      priorityStyles[selectedPriority] ||
+                      priorityStyles[systemPriority] ||
                       "border-[#E4E7EC] bg-white text-[#667085]"
                     }`}
                   >
-                    {displayPriority(selectedPriority)}
+                    {displayPriority(systemPriority)}
                   </span>
                 </div>
               </div>
@@ -825,12 +937,12 @@ function Prioritization({ onPriorityUpdate }) {
               <button
                 type="button"
                 onClick={handleConfirmPriority}
-                disabled={!triageResult || !selectedPriority || isSaving}
+                disabled={(usesAuthoritativeTriage ? !systemPriority : !triageResult || !selectedPriority) || isSaving}
                 className="w-full rounded-lg bg-[#1F5FA6] px-5 py-4 text-sm font-bold text-white transition hover:bg-[#1F5FA6] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSaving
-                  ? "Saving System Priority..."
-                  : "Confirm & Apply System-Computed Priority"}
+                  ? "Confirming System Priority..."
+                  : "Confirm System Priority"}
               </button>
             </div>
           </section>

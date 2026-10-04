@@ -384,4 +384,193 @@ class AdminPriorityPhase4SmokeTest extends TestCase
             ]
         );
     }
+
+    public function test_authoritative_triage_cannot_be_reassessed_and_can_be_confirmed_without_client_priority(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        /*
+         * Modern resident report with an SVF-based triage result.
+         */
+        $report = Report::create([
+            'report_type' => 'Non-Emergency',
+            'category' => 'Road Obstruction',
+            'description' => 'Road obstruction report.',
+            'location' => 'Barangay road',
+            'verification_status' => 'Verified',
+            'status' => 'For Prioritization',
+            'priority' => 'High',
+            'triage_score' => 60,
+            'triage_recommendation' => 'High',
+            'triage_flags' => [
+                'Road access is partially blocked',
+                'People are at risk',
+            ],
+            'triage_rule_version' =>
+                'camunatan-non-emergency-v1',
+            'triage_recalculated_at' => now(),
+        ]);
+
+        $report->svfAnswer()->create([
+            'category' => 'road-obstruction',
+            'answers' => [
+                'roadAccess' => 'partial',
+                'peopleAtRisk' => 'yes',
+                'hazardCondition' => 'stable',
+            ],
+            'flags' => [
+                'Road access is partially blocked',
+                'People are at risk',
+            ],
+            'rule_version' =>
+                'camunatan-non-emergency-v1',
+        ]);
+
+        /*
+         * The obsolete 20-point questionnaire must not be
+         * allowed to replace this authoritative result.
+         */
+        $legacyAttempt = $this->postJson(
+            "/api/reports/{$report->id}/triage",
+            [
+                'water_level' => 'Waist level or higher',
+                'road_passability' => 'Impassable',
+                'affected_residents' => 50,
+                'location_risk' => 'Critical',
+                'assistance_evacuation_need' =>
+                    'Immediate evacuation required',
+            ]
+        );
+
+        $legacyAttempt
+            ->assertStatus(422)
+            ->assertJsonPath(
+                'success',
+                false
+            )
+            ->assertJsonPath(
+                'message',
+                'This report already has an authoritative system triage result. Confirm the existing system priority instead of reassessing it.'
+            );
+
+        $report->refresh();
+
+        $this->assertSame(
+            60,
+            $report->triage_score
+        );
+
+        $this->assertSame(
+            'High',
+            $report->triage_recommendation
+        );
+
+        /*
+         * Modern Admin UI sends no chosen priority.
+         * Backend must confirm its own stored result.
+         */
+        $confirmation = $this->patchJson(
+            "/api/reports/{$report->id}/priority",
+            []
+        );
+
+        $confirmation
+            ->assertOk()
+            ->assertJsonPath(
+                'success',
+                true
+            )
+            ->assertJsonPath(
+                'data.priority',
+                'High'
+            )
+            ->assertJsonPath(
+                'data.status',
+                'Prioritized'
+            );
+
+        $report->refresh();
+
+        $this->assertSame(
+            'High',
+            $report->priority
+        );
+
+        $this->assertSame(
+            'Prioritized',
+            $report->status
+        );
+
+        $this->assertSame(
+            $admin->id,
+            $report->priority_assigned_by
+        );
+
+        $this->assertDatabaseHas(
+            'audit_logs',
+            [
+                'target' => (string) $report->id,
+                'action' => 'System Priority Confirmed',
+                'new_value' => 'High',
+                'status' => 'Success',
+            ]
+        );
+
+        /*
+         * SOS has no SVF row, but its camunatan-sos-v1 result
+         * is also authoritative and must never enter legacy triage.
+         */
+        $sosReport = Report::create([
+            'report_type' => 'Emergency',
+            'category' => 'SOS',
+            'description' => 'Immediate emergency assistance requested.',
+            'location' => 'Barangay Camunatan',
+            'verification_status' => 'Verified',
+            'status' => 'For Prioritization',
+            'priority' => 'Critical',
+            'triage_score' => 100,
+            'triage_recommendation' => 'Critical',
+            'triage_flags' => [
+                'SOS emergency report',
+            ],
+            'triage_rule_version' =>
+                'camunatan-sos-v1',
+            'triage_recalculated_at' => now(),
+        ]);
+
+        $sosLegacyAttempt = $this->postJson(
+            "/api/reports/{$sosReport->id}/triage",
+            [
+                'water_level' => 'None',
+                'road_passability' => 'Fully passable',
+                'affected_residents' => 1,
+                'location_risk' => 'Low',
+                'assistance_evacuation_need' =>
+                    'No immediate assistance needed',
+            ]
+        );
+
+        $sosLegacyAttempt
+            ->assertStatus(422)
+            ->assertJsonPath(
+                'success',
+                false
+            );
+
+        $sosReport->refresh();
+
+        $this->assertSame(
+            100,
+            $sosReport->triage_score
+        );
+
+        $this->assertSame(
+            'Critical',
+            $sosReport->triage_recommendation
+        );
+    }
 }

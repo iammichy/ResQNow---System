@@ -238,31 +238,46 @@ export async function getReportsForPrioritization() {
  */
 export async function assignReportPriority(
   reportId,
-  priority,
-  overrideReason = "",
+  priority = null,
 ) {
-  const response = await apiFetch(`/reports/${reportId}/priority`, {
+  const options = {
     method: "PATCH",
-    headers: {
+  };
+
+  /*
+   * Modern SVF/SOS reports do not send a selected priority.
+   * The backend confirms its stored system-computed result.
+   *
+   * The optional priority remains only for legacy/manual reports.
+   */
+  if (priority) {
+    options.headers = {
       "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
+    };
+
+    options.body = JSON.stringify({
       priority,
-      override_reason: overrideReason,
-    }),
-  });
+    });
+  }
+
+  const response = await apiFetch(
+    `/reports/${reportId}/priority`,
+    options,
+  );
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
 
-    throw new Error(errorData?.message || "Failed to assign report priority.");
+    throw new Error(
+      errorData?.message ||
+        "Failed to confirm report priority.",
+    );
   }
 
   const result = await response.json();
 
   return result.data;
 }
-
 /**
  * Assess triage factors for a report.
  */

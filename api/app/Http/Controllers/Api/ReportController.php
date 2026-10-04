@@ -242,7 +242,7 @@ class ReportController extends Controller
     {
 
     
-        $reports = Report::with('user')
+        $reports = Report::with(['user', 'svfAnswer'])
             ->where('verification_status', 'Verified')
             ->where('status', 'For Prioritization')
             ->latest()
@@ -271,6 +271,29 @@ class ReportController extends Controller
             ], 422);
         }
 
+        $report->loadMissing('svfAnswer');
+
+        /*
+         * Resident/mobile reports with an SVF already received their
+         * authoritative triage result from the verified factual answers.
+         * They must not pass through the older manual assessment model.
+         */
+        $hasAuthoritativeTriage =
+            $report->svfAnswer !== null ||
+            (
+                is_string($report->triage_rule_version) &&
+                str_starts_with(
+                    $report->triage_rule_version,
+                    'camunatan-'
+                )
+            );
+
+        if ($hasAuthoritativeTriage) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This report already has an authoritative system triage result. Confirm the existing system priority instead of reassessing it.',
+            ], 422);
+        }
         $validated = $request->validate([
             'water_level' => [
                 'nullable',
