@@ -449,14 +449,14 @@ function ActiveMission({
           Navigate to Target
         </a>
 
-        {nextAction?.value === 'resolve' && (
+        {nextAction?.value === 'field-outcome' && (
           <label className="mt-3 block">
-            <span className="text-[10px] font-bold text-resqnow-secondary">Outcome summary *</span>
+            <span className="text-[10px] font-bold text-resqnow-secondary">Field outcome summary *</span>
             <textarea
               value={outcomeSummary}
               onChange={(event) => setResolveSummary(event.target.value.slice(0, 2000))}
               rows={3}
-              placeholder="Summarize assistance provided and the final outcome."
+              placeholder="Summarize what was found and the assistance provided."
               className="mt-1.5 w-full resize-none rounded-xl border border-resqnow-border bg-resqnow-canvas px-3 py-3 text-[12px] outline-none focus:border-resqnow-safe/50 focus:ring-2 focus:ring-resqnow-safe/10"
             />
           </label>

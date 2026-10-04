@@ -118,6 +118,45 @@ class ResponderPhase5ASmokeTest extends TestCase
                     $responder->id,
             ]
         );
+        /*
+         * The official field outcome is one-time only.
+         * A repeated direct API request must be rejected
+         * without changing the report or creating another
+         * official field-outcome record.
+         */
+        $duplicateFieldOutcome = $this->postJson(
+            "/api/app/responder/reports/{$report->report_code}/actions",
+            [
+                'action' => 'field-outcome',
+                'remarks' =>
+                    'Duplicate field outcome must not be accepted.',
+                'expectedVersion' => 2,
+            ]
+        );
+
+        $duplicateFieldOutcome
+            ->assertStatus(422)
+            ->assertJsonValidationErrors([
+                'action',
+            ]);
+
+        $report->refresh();
+
+        $this->assertSame(
+            2,
+            (int) $report->version
+        );
+
+        $this->assertSame(
+            1,
+            $report
+                ->statusLogs()
+                ->where(
+                    'activity',
+                    'Responder submitted field outcome'
+                )
+                ->count()
+        );
 
         /*
          * Operational exception requests must be recorded

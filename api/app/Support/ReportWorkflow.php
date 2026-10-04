@@ -111,6 +111,19 @@ class ReportWorkflow
                 ],
             ];
         }
+        /*
+         * A field outcome is the responder's single official
+         * operational handoff to Admin. Once submitted, it
+         * must not be offered or accepted again.
+         */
+        $hasFieldOutcome =
+            $report
+                ->statusLogs()
+                ->where(
+                    'activity',
+                    'Responder submitted field outcome'
+                )
+                ->exists();
 
         /*
          * Primary lifecycle actions.
@@ -135,10 +148,12 @@ class ReportWorkflow
                 'Responders En Route' => [
                     'arrived',
                 ],
-
-                'Responded' => [
-                    'field-outcome',
-                ],
+                'Responded' =>
+                    $hasFieldOutcome
+                        ? []
+                        : [
+                            'field-outcome',
+                        ],
 
                 default => [],
             };
