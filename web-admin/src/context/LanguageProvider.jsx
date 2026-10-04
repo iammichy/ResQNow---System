@@ -229,6 +229,7 @@ const translations = {
       "Search reports, locations, or reporters...",
 
     reportsCountOf: "of",
+    reportCount: "report",
 
     reportsCount: "reports",
 
@@ -346,7 +347,7 @@ const translations = {
     ========================= */
 
     prioritizationDescription:
-      "Review triage indicators and determine the response priority of verified reports.",
+      "Review the system-computed priority of verified reports and continue cases to assignment.",
 
     prioritizationQueueActive: "Prioritization Queue Active",
 
@@ -359,6 +360,7 @@ const translations = {
     priorityResponse: "Priority response",
 
     routineResponse: "Routine response",
+    lowPriorityResponse: "Low priority response",
 
     prioritizationQueue: "Prioritization Queue",
 
@@ -1104,6 +1106,7 @@ const translations = {
       "Maghanap ng mga ulat, lokasyon, o nag-ulat...",
 
     reportsCountOf: "mula sa",
+    reportCount: "ulat",
 
     reportsCount: "mga ulat",
 
@@ -1223,7 +1226,7 @@ const translations = {
     ========================= */
 
     prioritizationDescription:
-      "Suriin ang mga triage indicator at tukuyin ang prayoridad ng pagtugon sa mga na-beripikang ulat.",
+      "Suriin ang prayoridad na awtomatikong kinalkula ng sistema para sa mga na-beripikang ulat at ipagpatuloy ang mga kaso sa pag-assign ng responder.",
 
     prioritizationQueueActive: "Aktibo ang Queue ng Prayoridad",
 
@@ -1237,6 +1240,7 @@ const translations = {
     priorityResponse: "Mataas na prayoridad ng pagtugon",
 
     routineResponse: "Karaniwang pagtugon",
+    lowPriorityResponse: "Tugon sa mababang prayoridad",
 
     prioritizationQueue: "Queue ng Prayoridad",
 
