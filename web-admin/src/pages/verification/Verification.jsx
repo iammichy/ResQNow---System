@@ -69,6 +69,8 @@ function Verification({ onVerificationUpdate }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [actionMessage, setActionMessage] = useState("");
+  const [editedSvfAnswers, setEditedSvfAnswers] = useState({});
+  const [isVerifying, setIsVerifying] = useState(false);
 
   // Return for review modal state
 
@@ -137,32 +139,99 @@ function Verification({ onVerificationUpdate }) {
 
   const pendingCount = reports.length;
 
+  useEffect(() => {
+    if (!selectedReport?.svf) {
+      setEditedSvfAnswers({});
+      return;
+    }
+
+    const allowed =
+      selectedReport.svfAllowedAnswers || {};
+
+    const stored =
+      selectedReport.svf.answers || {};
+
+    const editableFacts = Object.keys(allowed).reduce(
+      (facts, key) => {
+        facts[key] = stored[key] || "";
+        return facts;
+      },
+      {},
+    );
+
+    setEditedSvfAnswers(editableFacts);
+  }, [selectedReport?.id]);
+
   const handleSelectReport = (reportId) => {
     setSelectedId(reportId);
     setActionMessage("");
   };
 
   const handleVerify = async () => {
-    if (!selectedReport) return;
+    if (!selectedReport || isVerifying) return;
 
     try {
-      await verifyReport(selectedReport.databaseId);
+      setIsVerifying(true);
+      setActionMessage("");
+
+      const allowedAnswers =
+        selectedReport.svfAllowedAnswers || {};
+
+      const hasEditableSvf =
+        selectedReport.svf &&
+        Object.keys(allowedAnswers).length > 0;
+
+      if (hasEditableSvf) {
+        const hasMissingFact = Object.keys(
+          allowedAnswers,
+        ).some(
+          (key) => !editedSvfAnswers[key],
+        );
+
+        if (hasMissingFact) {
+          setActionMessage(
+            "Review all Situation Verification Facts before verifying this report.",
+          );
+          return;
+        }
+      }
+
+      const result = await verifyReport(
+        selectedReport.databaseId,
+        hasEditableSvf
+          ? editedSvfAnswers
+          : null,
+      );
 
       onVerificationUpdate?.({
         ...selectedReport,
+        priority:
+          result?.data?.priority ||
+          selectedReport.priority,
         verification: "Verified",
         status: "For Prioritization",
       });
 
       setActionMessage(
-        t("reportVerifiedForwarded").replace("{id}", selectedReport.id),
+        t("reportVerifiedForwarded").replace(
+          "{id}",
+          selectedReport.id,
+        ),
       );
 
       await loadReports();
     } catch (error) {
-      console.error("Failed to verify report:", error);
+      console.error(
+        "Failed to verify report:",
+        error,
+      );
 
-      setActionMessage(t("verificationFailed"));
+      setActionMessage(
+        error.message ||
+          t("verificationFailed"),
+      );
+    } finally {
+      setIsVerifying(false);
     }
   };
 
@@ -503,31 +572,142 @@ function Verification({ onVerificationUpdate }) {
 
               {selectedReport.svf && (
                 <div className="mt-6 rounded-xl border border-[#D0D5DD] bg-white p-5">
-                  <h3 className="text-base font-bold text-[#101C2E]">
-                    Situation Verification Facts
-                  </h3>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <h3 className="text-base font-bold text-[#101C2E]">
+                        Situation Verification Facts
+                      </h3>
 
-                  <p className="mt-1 text-xs leading-5 text-[#667085]">
-                    These factual answers were submitted by the resident
-                    and are used by the system to determine priority.
-                  </p>
+                      <p className="mt-1 max-w-2xl text-xs leading-5 text-[#667085]">
+                        Review the factual situation information submitted
+                        by the resident. Correct a value only when your
+                        verification shows that the reported fact is inaccurate.
+                      </p>
+                    </div>
 
-                  <div className="mt-5 grid gap-5 sm:grid-cols-2">
+                    {Object.keys(
+                      selectedReport.svfAllowedAnswers || {},
+                    ).length > 0 && (
+                      <span className="w-fit rounded-full border border-[#B2DDFF] bg-[#EFF8FF] px-3 py-1 text-xs font-bold text-[#175CD3]">
+                        Facts editable
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="mt-5">
                     <InfoItem
                       label="Situation Type"
-                      value={formatFactValue(selectedReport.svf.category)}
+                      value={formatFactValue(
+                        selectedReport.svf.category,
+                      )}
                     />
+                  </div>
 
-                    {Object.entries(selectedReport.svf.answers || {}).map(
-                      ([key, value]) => (
+                  {Object.keys(
+                    selectedReport.svfAllowedAnswers || {},
+                  ).length > 0 ? (
+                    <div className="mt-5 grid gap-5 sm:grid-cols-2">
+                      {Object.entries(
+                        selectedReport.svfAllowedAnswers,
+                      ).map(([key, options]) => (
+                        <div key={key}>
+                          <label className="text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]">
+                            {formatFactLabel(key)}
+                          </label>
+
+                          <select
+                            value={editedSvfAnswers[key] || ""}
+                            onChange={(event) => {
+                              setEditedSvfAnswers(
+                                (current) => ({
+                                  ...current,
+                                  [key]: event.target.value,
+                                }),
+                              );
+
+                              setActionMessage("");
+                            }}
+                            className="mt-2 w-full rounded-lg border border-[#D0D5DD] bg-white px-3 py-3 text-sm font-semibold text-[#344054] outline-none focus:border-[#1F5FA6]"
+                          >
+                            <option value="" disabled>
+                              Select verified fact
+                            </option>
+
+                            {options.map((option) => (
+                              <option
+                                key={option}
+                                value={option}
+                              >
+                                {formatFactValue(option)}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="mt-5 grid gap-5 sm:grid-cols-2">
+                      {Object.entries(
+                        selectedReport.svf.answers || {},
+                      ).map(([key, value]) => (
                         <InfoItem
                           key={key}
                           label={formatFactLabel(key)}
                           value={formatFactValue(value)}
                         />
+                      ))}
+                    </div>
+                  )}
+
+                  {Object.entries(
+                    selectedReport.svf.answers || {},
+                  ).some(
+                    ([key]) =>
+                      !Object.prototype.hasOwnProperty.call(
+                        selectedReport.svfAllowedAnswers || {},
+                        key,
                       ),
-                    )}
-                  </div>
+                  ) && (
+                    <div className="mt-6 border-t border-[#E4E7EC] pt-5">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]">
+                        Submission Information
+                      </p>
+
+                      <div className="mt-4 grid gap-5 sm:grid-cols-2">
+                        {Object.entries(
+                          selectedReport.svf.answers || {},
+                        )
+                          .filter(
+                            ([key]) =>
+                              !Object.prototype.hasOwnProperty.call(
+                                selectedReport.svfAllowedAnswers || {},
+                                key,
+                              ),
+                          )
+                          .map(([key, value]) => (
+                            <InfoItem
+                              key={key}
+                              label={formatFactLabel(key)}
+                              value={formatFactValue(value)}
+                            />
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {Object.keys(
+                    selectedReport.svfAllowedAnswers || {},
+                  ).length > 0 && (
+                    <div className="mt-6 rounded-lg border border-[#B2DDFF] bg-[#EFF8FF] p-4">
+                      <p className="text-xs font-semibold leading-5 text-[#175CD3]">
+                        Admin verifies factual situation data only. Priority
+                        cannot be selected or overridden manually. When this
+                        report is verified, ResQNow automatically recalculates
+                        the triage result from the verified facts. Corrections
+                        are recorded in the Audit Log.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -553,9 +733,12 @@ function Verification({ onVerificationUpdate }) {
                 <button
                   type="button"
                   onClick={handleVerify}
-                  className="rounded-lg bg-[#1F5FA6] px-5 py-3 text-sm font-bold text-white hover:bg-[#1F5FA6]"
+                  disabled={isVerifying}
+                  className="rounded-lg bg-[#1F5FA6] px-5 py-3 text-sm font-bold text-white hover:bg-[#1F5FA6] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {t("verifyReport")}
+                  {isVerifying
+                    ? "Verifying & Recomputing..."
+                    : t("verifyReport")}
                 </button>
               </div>
             </>
@@ -590,7 +773,7 @@ function Verification({ onVerificationUpdate }) {
                 onClick={() => setShowReturnModal(false)}
                 className="text-lg font-bold text-[#98A2B3] hover:text-[#344054]"
               >
-                Ã—
+                Ãƒâ€”
               </button>
             </div>
 

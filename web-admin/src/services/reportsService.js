@@ -78,6 +78,7 @@ function formatReport(report) {
           ruleVersion: report.svf_answer.rule_version || null,
         }
       : null,
+    svfAllowedAnswers: report.svf_allowed_answers || {},
   };
 }
 
@@ -99,18 +100,44 @@ export async function getReportsForVerification() {
 /**
  * Verify a report.
  */
-export async function verifyReport(reportId) {
-  const response = await apiFetch(`/reports/${reportId}/verify`, {
+export async function verifyReport(reportId, svfAnswers = null) {
+  const options = {
     method: "PATCH",
-  });
+  };
+
+  if (svfAnswers) {
+    options.headers = {
+      "Content-Type": "application/json",
+    };
+
+    options.body = JSON.stringify({
+      svfAnswers,
+    });
+  }
+
+  const response = await apiFetch(
+    `/reports/${reportId}/verify`,
+    options,
+  );
 
   if (!response.ok) {
-    throw new Error("Failed to verify report.");
+    const errorData = await response.json().catch(() => null);
+
+    const validationMessage = errorData?.errors
+      ? Object.values(errorData.errors)
+          .flat()
+          .filter(Boolean)[0]
+      : null;
+
+    throw new Error(
+      validationMessage ||
+        errorData?.message ||
+        "Failed to verify report.",
+    );
   }
 
   return response.json();
 }
-
 /**
  * Return a report for review with remarks.
  */

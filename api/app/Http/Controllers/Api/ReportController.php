@@ -7,9 +7,11 @@ use App\Models\AuditLog;
 use App\Models\Report;
 use App\Services\TriageService;
 use App\Services\NotificationService;
+use App\Services\Triage\SvfVerificationService;
 use App\Support\ReportBridge;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ReportController extends Controller
 {
@@ -26,12 +28,20 @@ class ReportController extends Controller
         ]);
     }
 
-    public function forVerification(): JsonResponse
-    {
+    public function forVerification(
+        SvfVerificationService $svfVerification
+    ): JsonResponse {
         $reports = Report::with(['user', 'svfAnswer'])
             ->where('verification_status', 'Pending')
             ->latest()
             ->get();
+
+        $reports->each(function (Report $report) use ($svfVerification) {
+            $report->setAttribute(
+                'svf_allowed_answers',
+                $svfVerification->allowedAnswers($report)
+            );
+        });
 
         return response()->json([
             'success' => true,
@@ -40,8 +50,11 @@ class ReportController extends Controller
         ]);
     }
 
-    public function verify(Request $request, Report $report): JsonResponse
-    {
+    public function verify(
+        Request $request,
+        Report $report,
+        SvfVerificationService $svfVerification
+    ): JsonResponse {
         if ($report->verification_status !== 'Pending') {
             return response()->json([
                 'success' => false,
@@ -49,25 +62,110 @@ class ReportController extends Controller
             ], 422);
         }
 
-        $report->update([
-            'verification_status' => 'Verified',
-            'status' => 'For Prioritization',
+        $validated = $request->validate([
+            'svfAnswers' => ['sometimes', 'array'],
+            'svfAnswers.*' => ['nullable', 'string', 'max:80'],
         ]);
+
+        $submittedAnswers = array_key_exists('svfAnswers', $validated)
+            ? $validated['svfAnswers']
+            : null;
 
         $admin = $request->user();
 
-        AuditLog::create([
-            'action' => 'Report Verified',
-            'category' => 'Report',
-            'target' => (string) $report->id,
-            'field' => 'verification_status',
-            'old_value' => 'Pending',
-            'new_value' => 'Verified',
-            'remarks' => 'Report passed initial verification and is ready for triage.',
-            'user_name' => $admin?->name,
-            'user_role' => $admin?->role,
-            'status' => 'Success',
-        ]);
+        DB::transaction(function () use (
+            $report,
+            $submittedAnswers,
+            $svfVerification,
+            $admin
+        ) {
+            $prepared = $svfVerification->prepare(
+                $report,
+                $submittedAnswers
+            );
+
+            if ($prepared['hasSvf']) {
+                $result = $prepared['result'];
+
+                $report->svfAnswer->update([
+                    'answers' => $prepared['mergedAnswers'],
+                    'flags' => $result['flags'],
+                    'rule_version' => $result['ruleVersion'],
+                ]);
+
+                $oldPriority = $report->priority;
+                $oldScore = $report->triage_score;
+
+                $report->update([
+                    'priority' => $result['priority'],
+                    'triage_score' => $result['score'],
+                    'triage_recommendation' => $result['priority'],
+                    'triage_flags' => $result['flags'],
+                    'triage_rule_version' => $result['ruleVersion'],
+                    'triage_recalculated_at' => now(),
+                    'priority_override_reason' => null,
+                ]);
+
+                if ($prepared['oldFacts'] !== $prepared['facts']) {
+                    AuditLog::create([
+                        'action' => 'SVF Facts Corrected',
+                        'category' => 'Report',
+                        'target' => (string) $report->id,
+                        'field' => 'svf_answers',
+                        'old_value' => json_encode(
+                            $prepared['oldFacts'],
+                            JSON_UNESCAPED_SLASHES
+                        ),
+                        'new_value' => json_encode(
+                            $prepared['facts'],
+                            JSON_UNESCAPED_SLASHES
+                        ),
+                        'remarks' => 'Administrator corrected factual situation-check answers before verification.',
+                        'user_name' => $admin?->name,
+                        'user_role' => $admin?->role,
+                        'status' => 'Success',
+                    ]);
+                }
+
+                AuditLog::create([
+                    'action' => 'System Triage Recomputed',
+                    'category' => 'Report',
+                    'target' => (string) $report->id,
+                    'field' => 'priority',
+                    'old_value' => $oldPriority,
+                    'new_value' => $result['priority'],
+                    'remarks' => sprintf(
+                        'System recomputed triage from verified facts. Score: %s -> %s. Rule: %s.',
+                        $oldScore ?? 'none',
+                        $result['score'],
+                        $result['ruleVersion']
+                    ),
+                    'user_name' => $admin?->name,
+                    'user_role' => $admin?->role,
+                    'status' => 'Success',
+                ]);
+            }
+
+            $report->update([
+                'verification_status' => 'Verified',
+                'status' => 'For Prioritization',
+            ]);
+
+            AuditLog::create([
+                'action' => 'Report Verified',
+                'category' => 'Report',
+                'target' => (string) $report->id,
+                'field' => 'verification_status',
+                'old_value' => 'Pending',
+                'new_value' => 'Verified',
+                'remarks' => $prepared['hasSvf']
+                    ? 'Factual situation data verified and system triage recomputed.'
+                    : 'Report passed initial verification.',
+                'user_name' => $admin?->name,
+                'user_role' => $admin?->role,
+                'status' => 'Success',
+            ]);
+        });
 
         ReportBridge::record(
             $report,
@@ -76,10 +174,17 @@ class ReportController extends Controller
             $admin?->id
         );
 
+        $freshReport = $report->fresh(['user', 'svfAnswer']);
+
+        $freshReport->setAttribute(
+            'svf_allowed_answers',
+            $svfVerification->allowedAnswers($freshReport)
+        );
+
         return response()->json([
             'success' => true,
             'message' => 'Report verified successfully.',
-            'data' => $report->fresh(['user', 'svfAnswer']),
+            'data' => $freshReport,
         ]);
     }
 
