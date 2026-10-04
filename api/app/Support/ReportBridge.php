@@ -36,6 +36,7 @@ class ReportBridge
             'activity' => $activity,
             'remarks' => $remarks,
             'changed_by_user_id' => $userId,
+            'resident_visible' => true,
         ]);
 
         if ($report->user_id) {

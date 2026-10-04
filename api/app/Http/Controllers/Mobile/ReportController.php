@@ -231,6 +231,7 @@ class ReportController extends Controller
                         ? 'Resident cancelled SOS rescue'
                         : 'Resident cancelled report',
                     'remarks' => $remarks,
+                    'resident_visible' => true,
                     'changed_by_user_id' => $user->id,
                 ]);
 
@@ -393,6 +394,7 @@ class ReportController extends Controller
                 $report->statusLogs()->create([
                     'status' => 'Submitted',
                     'activity' => 'Resident submitted emergency report',
+                    'resident_visible' => false,
                     'remarks' => sprintf(
                         'Emergency report submitted. System triage computed as %s using rule %s.',
                         $triage['priority'],
@@ -811,6 +813,7 @@ class ReportController extends Controller
 
                                 'activity' =>
                                     'Resident submitted non-emergency report',
+                                'resident_visible' => false,
 
                                 'remarks' =>
                                     sprintf(
@@ -838,6 +841,7 @@ class ReportController extends Controller
 
                                 'activity' =>
                                     'Report queued for barangay verification',
+                                'resident_visible' => true,
 
                                 'remarks' =>
                                     'Waiting for barangay verification of the submitted facts.',

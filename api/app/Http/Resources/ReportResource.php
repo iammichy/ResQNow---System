@@ -17,6 +17,10 @@ class ReportResource extends JsonResource
     public function toArray(
         Request $request
     ): array {
+        $residentView =
+            $request->user()?->role ===
+            'resident';
+
         return [
             // ============ IDENTIFIERS ============
 
@@ -52,9 +56,11 @@ class ReportResource extends JsonResource
                 $this->appStatus(),
 
             'priority' =>
-                $this->priority,
+                $residentView
+                    ? null
+                    : $this->priority,
 
-            'triage' => [
+            'triage' => $residentView ? null : [
                 'computedResult' => $this->priority,
                 'score' => $this->triage_score !== null
                     ? (int) $this->triage_score
@@ -64,7 +70,8 @@ class ReportResource extends JsonResource
                 'recalculatedAt' => $this->triage_recalculated_at?->toISOString(),
             ],
 
-            'svf' => $this->relationLoaded('svfAnswer') && $this->svfAnswer
+            'svf' => ! $residentView &&
+                $this->relationLoaded('svfAnswer') && $this->svfAnswer
                 ? [
                     'category' => $this->svfAnswer->category,
                     'answers' => $this->svfAnswer->answers ?? [],
@@ -185,10 +192,14 @@ class ReportResource extends JsonResource
                 $this->buildTimeline(),
 
             'events' =>
-                $this->getEvents(),
+                $this->getEvents(
+                $residentView
+            ),
 
             'latestUpdate' =>
-                $this->getLatestUpdateText(),
+                $this->getLatestUpdateText(
+                $residentView
+            ),
 
 
             // ============ ASSIGNMENT ============
@@ -197,13 +208,17 @@ class ReportResource extends JsonResource
                 $this->getAssignedPersonnelText(),
 
             'assignedPersonnelList' =>
-                $this->getAssignedPersonnelList(),
+                $residentView
+                ? []
+                : $this->getAssignedPersonnelList(),
 
 
             // ============ SUPPORT / REVIEW ============
 
             'attentionRequests' =>
-                $this->getAttentionRequests(),
+                $residentView
+                ? []
+                : $this->getAttentionRequests(),
 
 
             // ============ RESPONDER ACTIONS ============
@@ -479,7 +494,9 @@ class ReportResource extends JsonResource
      *
      * @return array<int, array<string, mixed>>
      */
-    private function getEvents(): array
+    private function getEvents(
+        bool $residentView = false
+    ): array
     {
         if (
             !$this->relationLoaded(
@@ -489,8 +506,15 @@ class ReportResource extends JsonResource
             return [];
         }
 
-        return $this
-            ->statusLogs
+        $logs =
+            $residentView
+                ? $this->statusLogs->where(
+                    'resident_visible',
+                    true
+                )
+                : $this->statusLogs;
+
+        return $logs
             ->map(
                 function ($log) {
                     $actor =
@@ -557,7 +581,9 @@ class ReportResource extends JsonResource
     /**
      * Most recent readable update.
      */
-    private function getLatestUpdateText(): ?string
+    private function getLatestUpdateText(
+        bool $residentView = false
+    ): ?string
     {
         if (
             !$this->relationLoaded(
@@ -567,14 +593,56 @@ class ReportResource extends JsonResource
             return null;
         }
 
+        $logs =
+            $residentView
+                ? $this->statusLogs->where(
+                    'resident_visible',
+                    true
+                )
+                : $this->statusLogs;
+
         $latestLog =
-            $this
-                ->statusLogs
+            $logs
                 ->sortByDesc('id')
                 ->first();
 
         if (!$latestLog) {
-            return null;
+            return match (
+                $this->appStatus()
+            ) {
+                'Submitted' =>
+                    'Your report has been received and is awaiting barangay action.',
+
+                'Pending Verification' =>
+                    'Waiting for barangay verification.',
+
+                'Verified' =>
+                    'Your report has been verified by barangay personnel.',
+
+                'Assigned' =>
+                    'Personnel have been assigned to your report.',
+
+                'In Progress' =>
+                    'Response work has started.',
+
+                'Responders En Route' =>
+                    'Assigned responders are on the way.',
+
+                'Responded' =>
+                    'Barangay personnel recorded a response to the incident.',
+
+                'Resolved' =>
+                    'This report has been resolved.',
+
+                'Invalid' =>
+                    'This report has been marked invalid.',
+
+                'Cancelled' =>
+                    'This report was cancelled.',
+
+                default =>
+                    'Your report is being processed by the barangay.',
+            };
         }
 
         if ($latestLog->remarks) {

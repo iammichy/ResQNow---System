@@ -44,12 +44,12 @@ class EmergencyPhase1SmokeTest extends TestCase
         $first
             ->assertCreated()
             ->assertJsonPath('duplicateSubmissionPrevented', false)
-            ->assertJsonPath('report.priority', 'Moderate')
-            ->assertJsonPath('report.triage.computedResult', 'Moderate')
-            ->assertJsonPath('report.triage.score', 25)
-            ->assertJsonPath('report.triage.ruleVersion', 'camunatan-emergency-v1')
-            ->assertJsonPath('report.svf.category', 'fire')
-            ->assertJsonPath('report.svf.answers.fireCondition', 'small_contained');
+            ->assertJsonPath('report.priority', null)
+            ->assertJsonPath('report.triage.computedResult', null)
+            ->assertJsonPath('report.triage.score', null)
+            ->assertJsonPath('report.triage.ruleVersion', null)
+            ->assertJsonPath('report.svf.category', null)
+            ->assertJsonPath('report.svf.answers.fireCondition', null);
 
         $report = Report::query()
             ->where('user_id', $resident->id)
@@ -74,6 +74,7 @@ class EmergencyPhase1SmokeTest extends TestCase
             'report_id' => $report->id,
             'status' => 'Submitted',
             'activity' => 'Resident submitted emergency report',
+            'resident_visible' => false,
         ]);
 
         $second = $this->postJson('/api/app/reports/emergency', $payload);
@@ -81,7 +82,7 @@ class EmergencyPhase1SmokeTest extends TestCase
         $second
             ->assertOk()
             ->assertJsonPath('duplicateSubmissionPrevented', true)
-            ->assertJsonPath('report.priority', 'Moderate');
+            ->assertJsonPath('report.priority', null);
 
         $this->assertSame(
             1,

@@ -210,11 +210,11 @@ class AdminPriorityPhase4SmokeTest extends TestCase
             ->assertCreated()
             ->assertJsonPath(
                 'report.priority',
-                'High'
+                null
             )
             ->assertJsonPath(
                 'report.triage.score',
-                60
+                null
             );
 
         $report = Report::query()

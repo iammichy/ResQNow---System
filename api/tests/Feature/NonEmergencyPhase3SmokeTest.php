@@ -151,31 +151,31 @@ class NonEmergencyPhase3SmokeTest extends TestCase
             )
             ->assertJsonPath(
                 'report.priority',
-                'High'
+                null
             )
             ->assertJsonPath(
                 'report.triage.computedResult',
-                'High'
+                null
             )
             ->assertJsonPath(
                 'report.triage.score',
-                60
+                null
             )
             ->assertJsonPath(
                 'report.triage.ruleVersion',
-                'camunatan-non-emergency-v1'
+                null
             )
             ->assertJsonPath(
                 'report.svf.category',
-                'road-obstruction'
+                null
             )
             ->assertJsonPath(
                 'report.svf.answers.photoProvided',
-                'no'
+                null
             )
             ->assertJsonPath(
                 'report.svf.answers.noPhotoReason',
-                'Unsafe to approach the obstruction.'
+                null
             );
 
         $this->assertDatabaseHas(
@@ -253,6 +253,9 @@ class NonEmergencyPhase3SmokeTest extends TestCase
 
                 'status' =>
                     'Submitted',
+
+                'resident_visible' =>
+                    false,
             ]
         );
 
@@ -264,6 +267,9 @@ class NonEmergencyPhase3SmokeTest extends TestCase
 
                 'status' =>
                     'Pending Verification',
+
+                'resident_visible' =>
+                    true,
             ]
         );
 
@@ -283,7 +289,7 @@ class NonEmergencyPhase3SmokeTest extends TestCase
             )
             ->assertJsonPath(
                 'report.priority',
-                'High'
+                null
             );
 
         $this->assertDatabaseCount(
@@ -419,15 +425,15 @@ class NonEmergencyPhase3SmokeTest extends TestCase
             ->assertCreated()
             ->assertJsonPath(
                 'report.priority',
-                'Low'
+                null
             )
             ->assertJsonPath(
                 'report.triage.score',
-                0
+                null
             )
             ->assertJsonPath(
                 'report.svf.answers.photoProvided',
-                'no'
+                null
             );
 
         $this->assertDatabaseCount(

@@ -224,6 +224,7 @@ class SosReportController extends Controller
                     'status' => 'Submitted',
                     'remarks' =>
                         "SOS triggered by resident. Quick reason: {$reasonLabel}. Immediate triage required.",
+                    'resident_visible' => false,
                     'changed_by_user_id' => $user->id,
                 ]);
 

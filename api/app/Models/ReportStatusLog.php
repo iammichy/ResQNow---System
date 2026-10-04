@@ -25,6 +25,9 @@ class ReportStatusLog extends Model
         'checklist',
         'photo_path',
 
+        // Explicit Resident/API visibility boundary.
+        'resident_visible',
+
         // Request retry / duplicate protection.
         'client_request_id',
         'request_fingerprint',
@@ -37,6 +40,7 @@ class ReportStatusLog extends Model
     {
         return [
             'checklist' => 'array',
+            'resident_visible' => 'boolean',
         ];
     }
 

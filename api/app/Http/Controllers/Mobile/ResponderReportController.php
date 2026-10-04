@@ -178,6 +178,7 @@ class ResponderReportController extends Controller
 
                             'remarks' =>
                                 'The assigned responder acknowledged this incident.',
+                            'resident_visible' => false,
 
                             'changed_by_user_id' =>
                                 $user->id,
@@ -336,6 +337,17 @@ class ResponderReportController extends Controller
                             'activity' =>
                                 $activity,
 
+                            'resident_visible' =>
+                                in_array(
+                                    $action,
+                                    [
+                                        'start',
+                                        'en-route',
+                                        'arrived',
+                                    ],
+                                    true
+                                ),
+
                             'remarks' =>
                                 isset(
                                     $validated['remarks']
@@ -394,6 +406,7 @@ class ResponderReportController extends Controller
                         !in_array(
                             $action,
                             [
+                                'field-outcome',
                                 'note',
                                 'support',
                                 'unable-locate',

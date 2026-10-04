@@ -43,10 +43,10 @@ class SosPhase2SmokeTest extends TestCase
             ->assertJsonPath('activeRescue', false)
             ->assertJsonPath('report.concernCode', 'sos')
             ->assertJsonPath('report.subcategory', 'medical')
-            ->assertJsonPath('report.priority', 'Critical')
-            ->assertJsonPath('report.triage.computedResult', 'Critical')
-            ->assertJsonPath('report.triage.score', 100)
-            ->assertJsonPath('report.triage.ruleVersion', 'camunatan-sos-v1');
+            ->assertJsonPath('report.priority', null)
+            ->assertJsonPath('report.triage.computedResult', null)
+            ->assertJsonPath('report.triage.score', null)
+            ->assertJsonPath('report.triage.ruleVersion', null);
 
         $this->assertDatabaseHas('reports', [
             'user_id' => $resident->id,
@@ -72,6 +72,7 @@ class SosPhase2SmokeTest extends TestCase
         $this->assertDatabaseHas('report_status_logs', [
             'report_id' => $report->id,
             'status' => 'Submitted',
+            'resident_visible' => false,
         ]);
 
         $this->assertStringContainsString(
@@ -90,7 +91,7 @@ class SosPhase2SmokeTest extends TestCase
             ->assertJsonPath('idempotentReplay', true)
             ->assertJsonPath('activeRescue', false)
             ->assertJsonPath('report.subcategory', 'medical')
-            ->assertJsonPath('report.priority', 'Critical');
+            ->assertJsonPath('report.priority', null);
 
         $this->assertDatabaseCount('reports', 1);
 
@@ -117,7 +118,7 @@ class SosPhase2SmokeTest extends TestCase
             ->assertJsonPath('activeRescue', true)
             ->assertJsonPath('idempotentReplay', false)
             ->assertJsonPath('report.subcategory', 'medical')
-            ->assertJsonPath('report.priority', 'Critical');
+            ->assertJsonPath('report.priority', null);
 
         $this->assertDatabaseCount('reports', 1);
     }
