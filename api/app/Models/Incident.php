@@ -27,6 +27,133 @@ class Incident extends Model
     ];
 
     /**
+     * Computed operational assignment state returned
+     * with every Incident API response.
+     */
+    protected $appends = [
+        'assignment_monitor',
+    ];
+
+    /**
+     * Server-computed acknowledgement monitoring.
+     *
+     * This is derived from the active report assignment,
+     * so it works for every current and future responder.
+     */
+    public function getAssignmentMonitorAttribute(): array
+    {
+        $timeoutMinutes = max(
+            1,
+            (int) config(
+                'resqnow.assignment_acknowledgement_timeout_minutes',
+                5
+            )
+        );
+
+        $report = $this->relationLoaded('report')
+            ? $this->report
+            : $this->report()->first();
+
+        if (! $report) {
+            return [
+                'hasAssignment' => false,
+                'assignmentId' => null,
+                'assignedUserId' => null,
+                'assignedAt' => null,
+                'acknowledged' => false,
+                'acknowledgedAt' => null,
+                'timeoutMinutes' => $timeoutMinutes,
+                'deadlineAt' => null,
+                'minutesWaiting' => 0,
+                'overdue' => false,
+            ];
+        }
+
+        $assignment = $report->relationLoaded(
+            'activeAssignments'
+        )
+            ? $report
+                ->activeAssignments
+                ->sortByDesc('assigned_at')
+                ->first()
+            : $report
+                ->activeAssignments()
+                ->latest('assigned_at')
+                ->first();
+
+        if (! $assignment) {
+            return [
+                'hasAssignment' => false,
+                'assignmentId' => null,
+                'assignedUserId' => null,
+                'assignedAt' => null,
+                'acknowledged' => false,
+                'acknowledgedAt' => null,
+                'timeoutMinutes' => $timeoutMinutes,
+                'deadlineAt' => null,
+                'minutesWaiting' => 0,
+                'overdue' => false,
+            ];
+        }
+
+        $assignedAt = $assignment->assigned_at;
+
+        $deadlineAt = $assignedAt
+            ? $assignedAt
+                ->copy()
+                ->addMinutes($timeoutMinutes)
+            : null;
+
+        $acknowledged =
+            $assignment->acknowledged_at !== null;
+
+        $overdue =
+            ! $acknowledged &&
+            $deadlineAt !== null &&
+            now()->greaterThanOrEqualTo($deadlineAt);
+
+        $minutesWaiting =
+            ! $acknowledged &&
+            $assignedAt !== null
+                ? max(
+                    0,
+                    (int) floor(
+                        $assignedAt->diffInMinutes(now())
+                    )
+                )
+                : 0;
+
+        return [
+            'hasAssignment' => true,
+            'assignmentId' => $assignment->id,
+            'assignedUserId' => $assignment->assigned_user_id,
+
+            'assignedAt' =>
+                $assignedAt?->toISOString(),
+
+            'acknowledged' =>
+                $acknowledged,
+
+            'acknowledgedAt' =>
+                $assignment
+                    ->acknowledged_at
+                    ?->toISOString(),
+
+            'timeoutMinutes' =>
+                $timeoutMinutes,
+
+            'deadlineAt' =>
+                $deadlineAt?->toISOString(),
+
+            'minutesWaiting' =>
+                $minutesWaiting,
+
+            'overdue' =>
+                $overdue,
+        ];
+    }
+
+    /**
      * The original hazard/incident report.
      */
     public function report()

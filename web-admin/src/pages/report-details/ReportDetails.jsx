@@ -283,6 +283,21 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
   const [priorityLoading, setPriorityLoading] = useState(false);
   const [priorityError, setPriorityError] = useState("");
 
+  /*
+   * Keeps the acknowledgement timeout current while
+   * the Admin remains on this report page.
+   */
+  const [assignmentMonitorNow, setAssignmentMonitorNow] =
+    useState(() => Date.now());
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setAssignmentMonitorNow(Date.now());
+    }, 30000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
+
   useEffect(() => {
     const loadAssignmentData = async () => {
       setStatus(report.status);
@@ -582,6 +597,51 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
       (log) => log.activity === "Responder submitted field outcome",
     ),
   );
+
+  const assignmentMonitor =
+    incident?.assignment_monitor || null;
+
+  const assignmentDeadlineMs =
+    assignmentMonitor?.deadlineAt
+      ? new Date(assignmentMonitor.deadlineAt).getTime()
+      : null;
+
+  const assignmentAssignedAtMs =
+    assignmentMonitor?.assignedAt
+      ? new Date(assignmentMonitor.assignedAt).getTime()
+      : null;
+
+  const liveMinutesWaiting =
+    Number.isFinite(assignmentAssignedAtMs) &&
+    !assignmentMonitor?.acknowledged
+      ? Math.max(
+          0,
+          Math.floor(
+            (assignmentMonitorNow - assignmentAssignedAtMs) / 60000,
+          ),
+        )
+      : assignmentMonitor?.minutesWaiting || 0;
+
+  const isAssignmentOverdue = Boolean(
+    assignmentMonitor?.hasAssignment &&
+      !assignmentMonitor?.acknowledged &&
+      (
+        assignmentMonitor?.overdue ||
+        (
+          Number.isFinite(assignmentDeadlineMs) &&
+          assignmentMonitorNow >= assignmentDeadlineMs
+        )
+      ),
+  );
+
+  const acknowledgementStatus =
+    !assignmentMonitor?.hasAssignment
+      ? "Not yet assigned"
+      : assignmentMonitor.acknowledged
+        ? "Acknowledged"
+        : isAssignmentOverdue
+          ? `Overdue — ${liveMinutesWaiting} min waiting`
+          : "Awaiting responder acknowledgement";
 
   const nextIncidentStatus =
     status === "In Progress" && hasFieldOutcome
@@ -1259,6 +1319,45 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
               </div>
 
               <div className="space-y-4 p-5">
+                {isAssignmentOverdue && (
+                  <div
+                    role="alert"
+                    className="rounded-lg border border-[#FDA29B] bg-[#FEF3F2] p-4"
+                  >
+                    <p className="text-sm font-bold text-[#B42318]">
+                      Unacknowledged Assignment
+                    </p>
+
+                    <p className="mt-1 text-xs leading-5 text-[#B42318]">
+                      {assignment.personnel !== "Unassigned"
+                        ? assignment.personnel
+                        : "The assigned responder"}{" "}
+                      has not acknowledged this case within the configured{" "}
+                      {assignmentMonitor?.timeoutMinutes || 5}-minute
+                      acknowledgement period.
+                    </p>
+
+                    <p className="mt-2 text-[11px] leading-4 text-[#912018]">
+                      Waiting for approximately {liveMinutesWaiting} minute
+                      {liveMinutesWaiting === 1 ? "" : "s"}. ResQNow does not
+                      automatically dispatch another responder. Barangay
+                      personnel should contact the responder or reassign the
+                      case when necessary.
+                    </p>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAssignmentError("");
+                        setShowAssignmentModal(true);
+                      }}
+                      className="mt-3 rounded-lg border border-[#D92D20] bg-white px-3 py-2 text-xs font-bold text-[#B42318] transition hover:bg-[#FFF1F0]"
+                    >
+                      Change Primary Responder
+                    </button>
+                  </div>
+                )}
+
                 <InfoItem label="Response Unit" value={assignment.team} />
 
                 <InfoItem
@@ -1267,6 +1366,13 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                 />
 
                 <InfoItem label="Assigned At" value={assignment.assignedAt} />
+
+                {incident?.assigned_personnel_id && (
+                  <InfoItem
+                    label="Acknowledgement Status"
+                    value={acknowledgementStatus}
+                  />
+                )}
 
                 {!incident && status === "Prioritized" ? (
                   <button
