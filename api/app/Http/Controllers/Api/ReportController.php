@@ -248,49 +248,53 @@ class ReportController extends Controller
             ],
         ]);
     }
-
- public function assignPriority(
-    Request $request,
-    Report $report,
-    NotificationService $notificationService
-): JsonResponse {
+    public function assignPriority(
+        Request $request,
+        Report $report,
+        NotificationService $notificationService
+    ): JsonResponse {
         if (
             $report->verification_status !== 'Verified' ||
             $report->status !== 'For Prioritization'
         ) {
             return response()->json([
                 'success' => false,
-                'message' => 'Only verified reports awaiting prioritization can be assigned a final priority.',
+                'message' => 'Only verified reports awaiting prioritization can be confirmed.',
             ], 422);
         }
 
-        if ($report->triage_recommendation === null) {
+        $systemPriority = $report->triage_recommendation;
+
+        if (
+            $systemPriority === null ||
+            ! in_array(
+                $systemPriority,
+                ['Critical', 'High', 'Moderate', 'Low'],
+                true
+            )
+        ) {
             return response()->json([
                 'success' => false,
-                'message' => 'Complete the triage assessment before assigning final priority.',
+                'message' => 'A valid system-computed triage result is required before prioritization can be confirmed.',
             ], 422);
         }
 
-        $validated = $request->validate([
-            'priority' => [
-                'required',
-                'string',
-                'in:Critical,High,Moderate,Low',
-            ],
-            'override_reason' => [
-                'nullable',
-                'string',
-                'max:2000',
-            ],
-        ]);
+        /*
+         * Backward-compatible protection while the Admin frontend is
+         * being updated:
+         *
+         * The client may still send the currently displayed priority,
+         * but it can never change the system-computed result.
+         */
+        $requestedPriority = $request->input('priority');
 
-        $isOverride =
-            $validated['priority'] !== $report->triage_recommendation;
-
-        if ($isOverride && empty(trim($validated['override_reason'] ?? ''))) {
+        if (
+            $requestedPriority !== null &&
+            $requestedPriority !== $systemPriority
+        ) {
             return response()->json([
                 'success' => false,
-                'message' => 'An override reason is required when the final priority differs from the system recommendation.',
+                'message' => 'Manual priority changes are not allowed. Verify or correct the factual situation data so the system can recompute the priority.',
             ], 422);
         }
 
@@ -298,41 +302,34 @@ class ReportController extends Controller
         $admin = $request->user();
 
         $report->update([
-            'priority' => $validated['priority'],
-            'priority_override_reason' => $isOverride
-                ? trim($validated['override_reason'])
-                : null,
+            'priority' => $systemPriority,
+            'priority_override_reason' => null,
             'priority_assigned_at' => now(),
             'priority_assigned_by' => $admin?->id,
             'status' => 'Prioritized',
         ]);
 
         AuditLog::create([
-            'action' => $isOverride
-                ? 'Priority Override'
-                : 'Priority Assigned',
+            'action' => 'System Priority Confirmed',
             'category' => 'Prioritization',
             'target' => (string) $report->id,
             'field' => 'priority',
             'old_value' => $oldPriority,
-            'new_value' => $validated['priority'],
-            'remarks' => $isOverride
-                ? 'System recommendation: ' . $report->triage_recommendation .
-                    '. Override reason: ' . trim($validated['override_reason'])
-                : 'Final priority accepted from system recommendation: ' .
-                    $report->triage_recommendation . '.',
+            'new_value' => $systemPriority,
+            'remarks' =>
+                'System-computed priority confirmed. Manual priority override is disabled.',
             'user_name' => $admin?->name,
             'user_role' => $admin?->role,
             'status' => 'Success',
         ]);
 
-        if ($validated['priority'] === 'Critical') {
-    $notificationService->notifyCriticalReport($report);
-}
+        if ($systemPriority === 'Critical') {
+            $notificationService->notifyCriticalReport($report);
+        }
 
         return response()->json([
             'success' => true,
-            'message' => 'Final report priority assigned successfully.',
+            'message' => 'System-computed report priority confirmed successfully.',
             'data' => $report->fresh('user'),
         ]);
     }
