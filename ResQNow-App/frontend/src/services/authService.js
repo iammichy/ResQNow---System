@@ -43,7 +43,8 @@ export async function registerResident(
 // ============ LOGIN ============
 
 export async function loginResident(
-  credentials
+  credentials,
+  portal
 ) {
   await getCsrfCookie();
 
@@ -54,22 +55,23 @@ export async function loginResident(
         method: 'POST',
 
         body:
-          JSON.stringify(
-            credentials
-          ),
+          JSON.stringify({
+            ...credentials,
+            portal,
+          }),
       }
     );
 
-  // Bearer token for every later request.
-  if (data?.token) {
-    setAuthToken(data.token);
-  }
+  return {
+    user:
+      getUserFromResponse(
+        data
+      ),
 
-  return getUserFromResponse(
-    data
-  );
+    token:
+      data?.token || null,
+  };
 }
-
 // ============ FORGOT PASSWORD ============
 
 export async function forgotPassword({ email }) {
@@ -126,7 +128,9 @@ export async function updateResidentProfile(
 
 // ============ LOGOUT ============
 
-export async function logoutResident() {
+export async function logoutResident(
+  role
+) {
   try {
     return await apiRequest(
       '/api/logout',
@@ -135,6 +139,6 @@ export async function logoutResident() {
       }
     );
   } finally {
-    clearAuthToken();
+    clearAuthToken(role);
   }
 }

@@ -128,6 +128,18 @@ class AuthController extends Controller
             ], 403);
         }
 
+        // Resident and responder use the same authentication endpoint,
+        // but an account may only sign in through its assigned portal.
+        // Keep the response generic so account roles are not disclosed.
+        if (
+            isset($data['portal']) &&
+            $user->role !== $data['portal']
+        ) {
+            return response()->json([
+                'message' => 'The email or password you entered is incorrect.',
+            ], 422);
+        }
+
         if ($user->account_status !== 'Verified') {
             $accountStatus = $user->account_status;
 

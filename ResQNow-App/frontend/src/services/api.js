@@ -16,32 +16,106 @@ function toAppEndpoint(endpoint) {
 // ============ AUTH TOKEN ============
 // The app (Vercel) and the API (Render) are different sites, so a cookie
 // session would be blocked as third-party. Sanctum bearer tokens are used.
-const TOKEN_KEY = 'resqnow_token';
+const TOKEN_KEYS = {
+  resident: 'resqnow_resident_token',
+  responder: 'resqnow_responder_token',
+};
 
-export function getAuthToken() {
+const ACTIVE_ROLE_KEY = 'resqnow_active_role';
+
+function roleFromPath() {
+  if (
+    typeof window !== 'undefined' &&
+    window.location.pathname.startsWith('/responder')
+  ) {
+    return 'responder';
+  }
+
+  return 'resident';
+}
+
+export function setActiveAuthRole(role) {
+  if (!TOKEN_KEYS[role]) {
+    return;
+  }
+
   try {
-    return localStorage.getItem(TOKEN_KEY);
+    sessionStorage.setItem(
+      ACTIVE_ROLE_KEY,
+      role
+    );
+  } catch {
+    // Route detection remains available as a fallback.
+  }
+}
+
+export function getActiveAuthRole() {
+  try {
+    const storedRole =
+      sessionStorage.getItem(
+        ACTIVE_ROLE_KEY
+      );
+
+    if (TOKEN_KEYS[storedRole]) {
+      return storedRole;
+    }
+  } catch {
+    // Fall through to route detection.
+  }
+
+  return roleFromPath();
+}
+
+export function getAuthToken(
+  role = getActiveAuthRole()
+) {
+  const key = TOKEN_KEYS[role];
+
+  if (!key) {
+    return null;
+  }
+
+  try {
+    return localStorage.getItem(key);
   } catch {
     return null;
   }
 }
 
-export function setAuthToken(token) {
+export function setAuthToken(
+  token,
+  role = getActiveAuthRole()
+) {
+  const key = TOKEN_KEYS[role];
+
+  if (!key) {
+    return;
+  }
+
   try {
     if (token) {
-      localStorage.setItem(TOKEN_KEY, token);
+      localStorage.setItem(
+        key,
+        token
+      );
     } else {
-      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(
+        key
+      );
     }
   } catch {
-    // Storage unavailable (private mode); the session lasts until reload.
+    // Storage unavailable.
   }
 }
 
-export function clearAuthToken() {
-  setAuthToken(null);
+export function clearAuthToken(
+  role = getActiveAuthRole()
+) {
+  setAuthToken(
+    null,
+    role
+  );
 }
-
 // ============ WAKE SERVER ============
 // Render's free tier sleeps when idle. Ping the health check on app open so
 // the server is already awake by the time the user logs in or submits.

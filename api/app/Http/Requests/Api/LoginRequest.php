@@ -36,6 +36,12 @@ class LoginRequest extends FormRequest
                 'sometimes',
                 'boolean',
             ],
+
+            'portal' => [
+                'sometimes',
+                'string',
+                'in:resident,responder',
+            ],
         ];
     }
 }

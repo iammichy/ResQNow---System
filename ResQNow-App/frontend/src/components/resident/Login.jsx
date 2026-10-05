@@ -151,15 +151,18 @@ export default function Login() {
 
     try {
       // Login using the shared Laravel Sanctum session.
-      const loggedInUser = await login({
-        email: email
-          .trim()
-          .toLowerCase(),
+      const loggedInUser = await login(
+        {
+          email: email
+            .trim()
+            .toLowerCase(),
 
-        password,
+          password,
 
-        remember: rememberMe,
-      });
+          remember: rememberMe,
+        },
+        'resident'
+      );
 
       // Save only the email
       if (rememberMe) {
@@ -177,9 +180,7 @@ export default function Login() {
 
       // Route the authenticated account to its own interface.
       navigate(
-        loggedInUser?.role === 'responder'
-          ? '/responder/dashboard'
-          : '/dashboard',
+        '/dashboard',
         { replace: true }
       );
     } catch (loginError) {

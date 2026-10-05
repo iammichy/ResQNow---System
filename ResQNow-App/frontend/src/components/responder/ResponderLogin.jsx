@@ -49,11 +49,14 @@ export default function ResponderLogin() {
     setIsSubmitting(true);
 
     try {
-      const account = await login({
-        email: email.trim().toLowerCase(),
-        password,
-        remember,
-      });
+      const account = await login(
+        {
+          email: email.trim().toLowerCase(),
+          password,
+          remember,
+        },
+        'responder'
+      );
 
       if (account?.role !== 'responder') {
         await logout();
