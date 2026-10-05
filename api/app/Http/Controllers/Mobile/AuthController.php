@@ -99,8 +99,6 @@ class AuthController extends Controller
                 'reason' => $user ? 'bad_password' : 'no_such_user',
                 'email' => strtolower($data['email']),
                 'role' => $user?->role,
-                'hash_prefix' => $user ? substr((string) $user->password, 0, 7) : null,
-                'hash_length' => $user ? strlen((string) $user->password) : null,
             ]);
 
             return response()->json([
