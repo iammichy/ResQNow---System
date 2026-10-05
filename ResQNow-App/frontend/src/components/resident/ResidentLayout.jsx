@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 // src/components/resident/ResidentLayout.jsx
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -17,6 +17,8 @@ import { useAuth } from '../../context/AuthContext';
 import useOnlineStatus from '../../hooks/useOnlineStatus';
 import { getNotifications } from '../../services/notificationService';
 
+const NOTIFICATION_VISIBILITY_FRESH_MS = 10000;
+
 // ============ RESIDENT LAYOUT ============
 // Keeps the original folder-shaped ResQNow shell while applying the
 // official Barangay blue/yellow identity. Existing routes are unchanged.
@@ -29,7 +31,10 @@ export default function ResidentLayout() {
 
   const [unreadCount, setUnreadCount] = useState(0);
 
+  const lastNotificationRequestAt = useRef(0);
+
   const refreshUnreadCount = useCallback(async () => {
+    lastNotificationRequestAt.current = Date.now();
     try {
       const result = await getNotifications();
       setUnreadCount(result.unreadCount || 0);
@@ -48,7 +53,11 @@ export default function ResidentLayout() {
     }, 30000);
 
     const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
+      if (
+        document.visibilityState === 'visible' &&
+        Date.now() - lastNotificationRequestAt.current >=
+          NOTIFICATION_VISIBILITY_FRESH_MS
+      ) {
         refreshUnreadCount();
       }
     };

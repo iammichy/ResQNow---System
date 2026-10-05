@@ -41,7 +41,7 @@ export async function getContactDirectory() {
         timeout = setTimeout(() => {
           controller.abort();
           reject(new Error('Contact request timed out.'));
-        }, 7000);
+        }, 2500);
       }),
     ]);
     return {

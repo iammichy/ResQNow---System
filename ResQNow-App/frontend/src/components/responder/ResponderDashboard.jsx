@@ -74,23 +74,49 @@ export default function ResponderDashboard() {
   const [outcomeSummary, setResolveSummary] = useState('');
 
   const load = useCallback(async ({ quiet = false } = {}) => {
-    if (!quiet) setIsLoading(true);
+    if (!quiet) {
+      setIsLoading(true);
+    }
+
     setError('');
 
-    try {
-      const [assignedReports, operationalState] = await Promise.all([
-        getAssignedReports(),
-        getResponderOperations(),
-      ]);
+    let firstError = null;
 
-      setReports(assignedReports);
-      setOperations(operationalState);
+    const reportsRequest =
+      getAssignedReports()
+        .then((assignedReports) => {
+          setReports(assignedReports);
+        })
+        .catch((requestError) => {
+          firstError ??= requestError;
+        });
+
+    const operationsRequest =
+      getResponderOperations()
+        .then((operationalState) => {
+          // This can render the operational dashboard immediately
+          // even if the assigned-report request is still finishing.
+          setOperations(operationalState);
+        })
+        .catch((requestError) => {
+          firstError ??= requestError;
+        });
+
+    await Promise.allSettled([
+      reportsRequest,
+      operationsRequest,
+    ]);
+
+    if (firstError) {
+      setError(
+        firstError?.message ||
+          'Unable to load responder operations.'
+      );
+    } else {
       setLastUpdated(new Date());
-    } catch (requestError) {
-      setError(requestError?.message || 'Unable to load responder operations.');
-    } finally {
-      setIsLoading(false);
     }
+
+    setIsLoading(false);
   }, []);
 
   useEffect(() => {
@@ -179,7 +205,27 @@ export default function ResponderDashboard() {
       )}
 
       {isLoading && !operations ? (
-        <div className="h-[520px] rounded-2xl border border-resqnow-border-soft bg-white animate-pulse" />
+        <div className="space-y-3">
+          <div className="rounded-2xl border border-resqnow-border-soft bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <Loader2 className="h-5 w-5 animate-spin text-resqnow-violet" />
+
+              <div>
+                <p className="text-sm font-bold text-resqnow-ink">
+                  Preparing responder workspace
+                </p>
+
+                <p className="mt-1 text-[11px] text-resqnow-muted">
+                  Syncing your duty status and assigned incidents...
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="h-[220px] rounded-2xl border border-resqnow-border-soft bg-white animate-pulse" />
+
+          <div className="h-[120px] rounded-2xl border border-resqnow-border-soft bg-white animate-pulse" />
+        </div>
       ) : (
         <>
           {activeMission ? (

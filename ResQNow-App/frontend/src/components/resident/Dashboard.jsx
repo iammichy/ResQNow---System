@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
@@ -33,6 +33,11 @@ const TERMINAL_STATUSES = ['Resolved', 'Invalid', 'Cancelled'];
 const HOME_REPORT_POLL_MS = 15000;
 const HOME_OPERATIONS_POLL_MS = 30000;
 
+// Avoid repeating requests when the user returns to the tab
+// only a few seconds after the last refresh.
+const HOME_REPORT_VISIBILITY_FRESH_MS = 5000;
+const HOME_OPERATIONS_VISIBILITY_FRESH_MS = 10000;
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -48,7 +53,11 @@ export default function Dashboard() {
   const [hotline, setHotline] = useState(null);
   const [cancelTarget, setCancelTarget] = useState(null);
 
+  const lastReportRequestAt = useRef(0);
+  const lastOperationsRequestAt = useRef(0);
+
   const loadReports = useCallback(async () => {
+    lastReportRequestAt.current = Date.now();
     try {
       const result = await getReports();
       setReports(Array.isArray(result) ? result : []);
@@ -59,6 +68,7 @@ export default function Dashboard() {
   }, []);
 
   const loadOperations = useCallback(async () => {
+    lastOperationsRequestAt.current = Date.now();
     const homeLat = Number(user?.homeLocation?.latitude);
     const homeLng = Number(user?.homeLocation?.longitude);
     const hasHomeCoordinates = Number.isFinite(homeLat) && Number.isFinite(homeLng);
@@ -124,8 +134,23 @@ export default function Dashboard() {
     }, HOME_OPERATIONS_POLL_MS);
 
     const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState !== 'visible') {
+        return;
+      }
+
+      const now = Date.now();
+
+      if (
+        now - lastReportRequestAt.current >=
+        HOME_REPORT_VISIBILITY_FRESH_MS
+      ) {
         loadReports();
+      }
+
+      if (
+        now - lastOperationsRequestAt.current >=
+        HOME_OPERATIONS_VISIBILITY_FRESH_MS
+      ) {
         loadOperations();
       }
     };
@@ -599,9 +624,9 @@ function SafetySnapshot({ offline, onOpen }) {
         </div>
       </div>
       <div className="p-3.5 space-y-2 text-[10px] text-resqnow-secondary leading-relaxed">
-        <p>• Move to higher ground before floodwater becomes difficult to cross.</p>
-        <p>• Turn off electricity only when it is safe to do so.</p>
-        <p>• Never walk or drive through fast-moving floodwater.</p>
+        <p>â€¢ Move to higher ground before floodwater becomes difficult to cross.</p>
+        <p>â€¢ Turn off electricity only when it is safe to do so.</p>
+        <p>â€¢ Never walk or drive through fast-moving floodwater.</p>
         <button
           type="button"
           onClick={onOpen}
