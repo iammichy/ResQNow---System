@@ -22,6 +22,7 @@ class StoreNonEmergencyReportRequest extends FormRequest
         'road-obstruction',
         'damaged-facility',
         'cleanup',
+        'community-concern',
     ];
 
     public function authorize(): bool

@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Support\ReportWorkflow;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class ReportResource extends JsonResource
@@ -167,9 +168,13 @@ class ReportResource extends JsonResource
              */
             'photoUrl' =>
                 $this->photo_path
-                    ? asset(
-                        'storage/' .
-                        $this->photo_path
+                    ? URL::temporarySignedRoute(
+                        'reports.evidence',
+                        now()->addMinutes(5),
+                        [
+                            'reportCode' =>
+                                $this->report_code,
+                        ]
                     )
                     : null,
 

@@ -388,7 +388,7 @@ const tl = {
       'I-pin ang Lokasyon ng Insidente',
 
     mapLater:
-      'Ikokonekta ang map pin integration sa susunod.',
+      'Ang naka-save na lokasyon ng bahay ay maaaring gamitin bilang fallback kapag hindi available ang lokasyon ng insidente.',
 
     sampleCoordinates:
       'Halimbawang coordinates: {{coordinates}}',
@@ -781,7 +781,7 @@ const tl = {
       'I-tap ang isa sa mga lokasyon sa ibaba.',
 
     mapLater:
-      'Ikokonekta ang map integration sa susunod.',
+      'Available na ang map location at maaaring i-adjust ang pin kung kinakailangan.',
 
     lguServices:
       'LGU at Emergency Services',
@@ -1059,7 +1059,7 @@ const tl = {
       'Home location pin',
 
     mapLater:
-      'Ikokonekta ang map integration sa susunod.',
+      'Available na ang map location at maaaring i-adjust ang pin kung kinakailangan.',
 
     confirmInformation:
       'Kinukumpirma ko na tama at totoo ang impormasyong ibinigay ko. Nauunawaan ko na sasailalim sa beripikasyon ng barangay ang aking account.',
@@ -1245,7 +1245,7 @@ const tl = {
       'Naka-save na Lokasyon ng Bahay',
 
     mapLater:
-      'Ikokonekta ang map pin integration sa susunod.',
+      'Ang naka-save na lokasyon ng bahay ay maaaring gamitin bilang fallback kapag hindi available ang lokasyon ng insidente.',
 
     householdInformation:
       'Impormasyon ng Sambahayan',

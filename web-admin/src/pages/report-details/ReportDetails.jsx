@@ -1,8 +1,5 @@
 import { Check } from "lucide-react";
 import { useEffect, useState } from "react";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-
 import {
   getAllIncidents,
   getAllPersonnel,
@@ -11,7 +8,17 @@ import {
   updateIncidentStatus,
 
   createIncidentFromReport,
+  verifyReport,
+  returnReportForReview,
+  assignReportPriority,
 } from "../../services/reportsService";
+
+import {
+  getReportCategoryLabel,
+  getReportDisplayTitle,
+  getSosReasonLabel,
+} from "../../utils/reportDisplay";
+import IncidentLocationCard from "../../components/IncidentLocationCard";
 
 const priorityStyles = {
   Critical: "border-[#FECDCA] bg-[#FEF3F2] text-[#D92D20]",
@@ -22,9 +29,13 @@ const priorityStyles = {
 
 const statusStyles = {
   "For Verification": "bg-[#FFF7ED] text-[#B54708]",
+  "For Prioritization": "bg-[#EFF8FF] text-[#175CD3]",
+  Prioritized: "bg-[#ECFDF3] text-[#027A48]",
   "Pending Response": "bg-[#EAF1FA] text-[#174A86]",
   Dispatched: "bg-[#EEF4FF] text-[#174A86]",
   "In Progress": "bg-[#EEF4FF] text-[#174A86]",
+  "Responders En Route": "bg-[#FFF7ED] text-[#B54708]",
+  Responded: "bg-[#ECFDF3] text-[#027A48]",
   Resolved: "bg-[#ECFDF3] text-[#027A48]",
   Closed: "bg-[#F2F4F7] text-[#475467]",
 };
@@ -142,7 +153,38 @@ function formatHistoryTime(value) {
   });
 }
 
-function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
+function resolveReportDatabaseId(report) {
+  if (report?.databaseId) {
+    return Number(report.databaseId);
+  }
+
+  const match = String(report?.id || "").match(/\d+$/);
+
+  return match ? Number(match[0]) : null;
+}
+
+function formatVerificationFactLabel(key) {
+  return String(key || "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function formatVerificationFactValue(value) {
+  if (value === null || value === undefined || value === "") {
+    return "Not specified";
+  }
+
+  if (typeof value === "boolean") {
+    return value ? "Yes" : "No";
+  }
+
+  return String(value)
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function ReportDetails({
+  report: selectedReport, onBack, onReportUpdate }) {
   const report = {
     ...(selectedReport || {}),
     id: selectedReport?.id || "Not available",
@@ -166,9 +208,32 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
     contact:
       selectedReport?.contact ||
       selectedReport?.contact_number ||
+      selectedReport?.user?.profile?.contact_number ||
       selectedReport?.user?.contact_number ||
       "Not provided",
     location: selectedReport?.location || "Not provided",
+    latitude:
+      selectedReport?.latitude ??
+      null,
+
+    longitude:
+      selectedReport?.longitude ??
+      null,
+
+    locationSource:
+      selectedReport?.locationSource ??
+      selectedReport?.location_source ??
+      null,
+
+    locationAccuracy:
+      selectedReport?.locationAccuracy ??
+      selectedReport?.location_accuracy ??
+      null,
+
+    locationCapturedAt:
+      selectedReport?.locationCapturedAt ??
+      selectedReport?.location_captured_at ??
+      null,
     submitted: formatDisplayDate(
       selectedReport?.created_at || selectedReport?.submitted,
     ),
@@ -258,6 +323,238 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
       : [],
   };
 
+  /*
+   * Assessment presentation follows the kind of report.
+   * The authoritative priority still comes from ResQNow's
+   * triage logic; this only removes irrelevant UI fields.
+   */
+  const normalizedReportIdentity = [
+    selectedReport?.concern_code,
+    selectedReport?.concernCode,
+    report.type,
+    report.category,
+    report.id,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  const isSosReport =
+    selectedReport?.concern_code === "sos" ||
+    selectedReport?.concernCode === "sos" ||
+    normalizedReportIdentity.includes(" sos");
+
+  const reportDisplaySource = {
+    ...(selectedReport || {}),
+    ...report,
+  };
+
+  const sosReasonLabel =
+    getSosReasonLabel(
+      reportDisplaySource,
+    );
+
+  const displayCategory =
+    getReportCategoryLabel(
+      reportDisplaySource,
+    );
+
+  const displayTitle =
+    getReportDisplayTitle(
+      reportDisplaySource,
+    );
+
+  const isNonEmergencyReport =
+    !isSosReport &&
+    (
+      normalizedReportIdentity.includes(
+        "non-emergency",
+      ) ||
+      normalizedReportIdentity.includes(
+        "non emergency",
+      ) ||
+      String(report.id)
+        .toUpperCase()
+        .startsWith("NE-")
+    );
+
+  const assessmentVariant =
+    isSosReport
+      ? "sos"
+      : isNonEmergencyReport
+        ? "non-emergency"
+        : "emergency";
+
+  const assessmentTitle =
+    assessmentVariant === "sos"
+      ? "Emergency Triage Summary"
+      : assessmentVariant === "non-emergency"
+        ? "Situation Assessment"
+        : "Emergency Assessment";
+
+  const assessmentSubtitle =
+    assessmentVariant === "sos"
+      ? "Fast-track summary of the immediate life-safety information used by ResQNow."
+      : assessmentVariant === "non-emergency"
+        ? "System assessment based only on the factual information applicable to this situation."
+        : "System assessment based only on the verified facts applicable to this emergency.";
+
+  const isMeaningfulAssessmentValue =
+    (value) => {
+      if (
+        value === null ||
+        value === undefined ||
+        value === ""
+      ) {
+        return false;
+      }
+
+      const normalized =
+        String(value)
+          .trim()
+          .toLowerCase();
+
+      return ![
+        "not assessed",
+        "not reported",
+        "not specified",
+        "n/a",
+      ].includes(normalized);
+    };
+
+  const submittedSvfAnswers =
+    selectedReport?.svf?.answers &&
+    typeof selectedReport.svf.answers ===
+      "object"
+      ? selectedReport.svf.answers
+      : {};
+
+  const svfAssessmentFacts =
+    Object.entries(
+      submittedSvfAnswers,
+    )
+      .filter(([, value]) =>
+        isMeaningfulAssessmentValue(
+          value,
+        ),
+      )
+      .map(([key, value]) => ({
+        label:
+          formatVerificationFactLabel(
+            key,
+          ),
+        value:
+          formatVerificationFactValue(
+            value,
+          ),
+      }));
+
+  const fallbackAssessmentFacts = [
+    {
+      label: "Threat to Life",
+      value: report.triage.threatToLife,
+    },
+    {
+      label: "Assistance Need",
+      value: report.triage.assistanceNeed,
+    },
+    {
+      label: "People Affected",
+      value:
+        report.triage.peopleAffected !==
+          null
+          ? `${report.triage.peopleAffected}`
+          : null,
+    },
+    {
+      label: "Vulnerable Persons",
+      value:
+        report.triage.vulnerablePersons,
+    },
+    {
+      label: "Access Impact",
+      value: report.triage.accessImpact,
+    },
+    {
+      label: "Location Risk",
+      value: report.triage.locationRisk,
+    },
+    {
+      label: "Hazard Severity",
+      value:
+        report.triage.hazardSeverity,
+    },
+    {
+      label: "Rate of Worsening",
+      value:
+        report.triage.rateOfWorsening,
+    },
+    {
+      label: "Water Level",
+      value: report.triage.waterLevel,
+    },
+    {
+      label: "Road Passability",
+      value:
+        report.triage.roadPassability,
+    },
+    {
+      label: "Evacuation Need",
+      value:
+        report.triage.evacuationNeed,
+    },
+  ].filter((fact) =>
+    isMeaningfulAssessmentValue(
+      fact.value,
+    ),
+  );
+
+  const assessmentFacts = [
+    ...(
+      isSosReport &&
+      isMeaningfulAssessmentValue(
+        sosReasonLabel,
+      )
+        ? [
+            {
+              label: "SOS Reason",
+              value:
+                formatVerificationFactValue(
+                  sosReasonLabel,
+                ),
+            },
+          ]
+        : []
+    ),
+    ...(
+      selectedReport?.svf?.category &&
+      isMeaningfulAssessmentValue(
+        selectedReport.svf.category,
+      )
+        ? [
+            {
+              label: "Situation Type",
+              value:
+                formatVerificationFactValue(
+                  selectedReport.svf.category,
+                ),
+            },
+          ]
+        : []
+    ),
+    ...(
+      svfAssessmentFacts.length > 0
+        ? svfAssessmentFacts
+        : fallbackAssessmentFacts
+    ),
+  ];
+
+  const isHighlightedAssessmentFact =
+    (value) =>
+      /critical|high|immediate|required|yes|blocked|impassable|severe|life[- ]threat/i.test(
+        String(value || ""),
+      );
+
   const [status, setStatus] = useState(report.status);
   const [assignment, setAssignment] = useState(() => ({
     ...(report.assignment || {}),
@@ -277,6 +574,38 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
 
   const [personnelList, setPersonnelList] = useState([]);
   const [incident, setIncident] = useState(null);
+
+ /*
+  * The report carries detailed responder progress.
+  * The incident carries the broader Admin coordination state.
+  */
+ const reportDisplayStatus =
+   incident?.report?.status ||
+   report.status;
+
+ const reportStatusDescription =
+   reportDisplayStatus === "For Verification"
+     ? "This report is awaiting barangay verification."
+     : reportDisplayStatus === "For Prioritization"
+       ? "The verified report is awaiting priority confirmation."
+       : reportDisplayStatus === "Prioritized"
+         ? "The system-computed priority has been confirmed."
+         : reportDisplayStatus === "Pending Response"
+           ? "The case is ready for response coordination."
+           : reportDisplayStatus === "Assigned"
+             ? "A primary responder has been assigned."
+             : reportDisplayStatus === "In Progress"
+               ? "The assigned responder has started field response."
+               : reportDisplayStatus === "Responders En Route"
+                 ? "The assigned responder is traveling to the incident."
+                 : reportDisplayStatus === "Responded"
+                   ? "Responder arrival / response has been recorded."
+                   : reportDisplayStatus === "Resolved"
+                     ? "The report has been resolved."
+                     : reportDisplayStatus === "Closed"
+                       ? "The case has been administratively closed."
+                       : "Current report lifecycle status.";
+  const [assignmentDecline, setAssignmentDecline] = useState(null);
   const [assignmentLoading, setAssignmentLoading] = useState(false);
   const [assignmentError, setAssignmentError] = useState("");
   const [selectedPriority, setSelectedPriority] = useState(
@@ -313,6 +642,33 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
   const [lifecycleError, setLifecycleError] =
     useState("");
 
+  const [inlineSvfAnswers, setInlineSvfAnswers] =
+    useState({});
+
+  const [verificationActionLoading, setVerificationActionLoading] =
+    useState(false);
+
+  const [verificationActionError, setVerificationActionError] =
+    useState("");
+
+  const [showReturnReviewModal, setShowReturnReviewModal] =
+    useState(false);
+
+  const [returnReviewRemarks, setReturnReviewRemarks] =
+    useState("");
+
+  const [returnReviewError, setReturnReviewError] =
+    useState("");
+
+  const [returnReviewLoading, setReturnReviewLoading] =
+    useState(false);
+
+  const [priorityActionLoading, setPriorityActionLoading] =
+    useState(false);
+
+  const [priorityActionError, setPriorityActionError] =
+    useState("");
+
   const [closureChecklist, setClosureChecklist] =
     useState({
       fieldOutcomeReviewed: false,
@@ -320,6 +676,27 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
       handoffVerified: false,
       readyConfirmed: false,
     });
+
+  useEffect(() => {
+    const allowed =
+      selectedReport?.svfAllowedAnswers || {};
+
+    const stored =
+      selectedReport?.svf?.answers || {};
+
+    const editableFacts =
+      Object.keys(allowed).reduce(
+        (facts, key) => {
+          facts[key] = stored[key] || "";
+          return facts;
+        },
+        {},
+      );
+
+    setInlineSvfAnswers(editableFacts);
+    setVerificationActionError("");
+    setPriorityActionError("");
+  }, [selectedReport?.id]);
 
   /*
    * Keeps the acknowledgement timeout current while
@@ -337,43 +714,133 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
   }, []);
 
   useEffect(() => {
-    const loadAssignmentData = async () => {
-      setStatus(report.status);
-      setSelectedPriority(
-        report.priority !== "Not Prioritized" ? report.priority : "",
-      );
-      setAssignment({
-        team: report.assignment?.team || "Unassigned",
-        personnel: report.assignment?.personnel || "Unassigned",
-        assignedAt: report.assignment?.assignedAt || "Not yet assigned",
-      });
-      setHistory(report.history || []);
-      setIncident(null);
-      setSelectedPersonnel("");
-      setSelectedTeam("");
+    const loadAssignmentData = async ({ silent = false } = {}) => {
+      /*
+       * The initial load hydrates the screen from the selected
+       * report. Background refreshes must not briefly reset the
+       * current incident to stale report values while a fresh
+       * operational snapshot is being requested.
+       */
+      if (!silent) {
+        setStatus(report.status);
+        setSelectedPriority(
+          report.priority !== "Not Prioritized" ? report.priority : "",
+        );
+        setAssignment({
+          team: report.assignment?.team || "Unassigned",
+          personnel: report.assignment?.personnel || "Unassigned",
+          assignedAt: report.assignment?.assignedAt || "Not yet assigned",
+        });
+        setHistory(report.history || []);
+        setIncident(null);
+        setSelectedPersonnel("");
+        setSelectedTeam("");
+      }
 
       try {
-        const [personnelData, incidentsData, auditLogsData] = await Promise.all(
-          [getAllPersonnel(), getAllIncidents(), getAllAuditLogs()],
-        );
+        const reportIdMatch =
+          String(selectedReport?.id || "").match(/\d+$/);
 
-        setPersonnelList(personnelData || []);
-        const auditLogs = Array.isArray(auditLogsData) ? auditLogsData : [];
-
-        const reportIdMatch = String(selectedReport?.id || "").match(/\d+$/);
         const reportDatabaseId =
           selectedReport?.databaseId ??
-          (reportIdMatch ? Number(reportIdMatch[0]) : null);
+          (
+            reportIdMatch
+              ? Number(reportIdMatch[0])
+              : null
+          );
 
-        const matchedIncident = (incidentsData || []).find(
-          (item) =>
-            item.report_id === reportDatabaseId ||
-            item.report?.id === reportDatabaseId ||
-            item.incident_code ===
-              `INC-${String(reportDatabaseId || "").padStart(4, "0")}`,
+        /*
+         * Verification and prioritization do not need
+         * responder, incident, or audit-log collections.
+         *
+         * Render the factual report immediately instead of
+         * blocking the page on operational data that cannot
+         * yet be used.
+         */
+        const preCoordinationStatuses =
+          new Set([
+            "For Verification",
+            "For Prioritization",
+          ]);
+
+        if (
+          preCoordinationStatuses.has(
+            report.status,
+          )
+        ) {
+          setIncident(null);
+          setPersonnelList([]);
+          setAssignmentDecline(null);
+          return;
+        }
+
+        /*
+         * Once a report reaches prioritization/response
+         * coordination, first locate its incident.
+         *
+         * Personnel and audit logs are requested only if
+         * an incident actually exists.
+         */
+        const incidentsData =
+          await getAllIncidents();
+
+        const matchedIncident =
+          (incidentsData || []).find(
+            (item) =>
+              Number(item.report_id) ===
+                Number(reportDatabaseId) ||
+              Number(item.report?.id) ===
+                Number(reportDatabaseId) ||
+              item.incident_code ===
+                `INC-${String(
+                  reportDatabaseId || "",
+                ).padStart(4, "0")}`,
+          );
+
+        setIncident(
+          matchedIncident || null,
         );
 
-        setIncident(matchedIncident || null);
+        /*
+         * LIGHTWEIGHT LIVE POLL
+         *
+         * Three-second polling only needs the current
+         * incident/report snapshot. Personnel and full
+         * audit history are loaded only during a full refresh.
+         */
+        if (silent) {
+          if (matchedIncident) {
+            setStatus(
+              matchedIncident.status ||
+              report.status,
+            );
+          }
+
+          return;
+        }
+
+        if (!matchedIncident) {
+          setPersonnelList([]);
+          setAssignmentDecline(null);
+          return;
+        }
+
+        const [
+          personnelData,
+          auditLogsData,
+        ] = await Promise.all([
+          getAllPersonnel(),
+          getAllAuditLogs(),
+        ]);
+
+        setPersonnelList(
+          personnelData || [],
+        );
+
+        const auditLogs =
+          Array.isArray(auditLogsData)
+            ? auditLogsData
+            : [];
 
         if (matchedIncident) {
           setStatus(matchedIncident.status);
@@ -396,59 +863,616 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
 
           const incidentHistory = [];
 
-          if (selectedReport?.created_at) {
+          let historySequence = 0;
+
+          const addHistoryEvent = ({
+            status: eventStatus,
+            detail,
+            rawTime,
+          }) => {
+            if (!eventStatus) {
+              return;
+            }
+
+            const parsedTime =
+              rawTime
+                ? new Date(rawTime).getTime()
+                : 0;
+
             incidentHistory.push({
-              status: "Report Submitted",
-              detail: "Report recorded in ResQNow.",
-              time: formatHistoryTime(selectedReport.created_at),
+              status: eventStatus,
+              detail:
+                detail ||
+                "Lifecycle event recorded.",
+              time:
+                rawTime
+                  ? formatHistoryTime(rawTime)
+                  : "Time not recorded",
+              rawTime:
+                rawTime ||
+                null,
+              sortTime:
+                Number.isFinite(parsedTime)
+                  ? parsedTime
+                  : 0,
+              sequence:
+                historySequence++,
+            });
+          };
+
+          /*
+           * Report status logs are authoritative for
+           * Resident / Responder lifecycle progress.
+           */
+          const reportStatusLogs =
+            matchedIncident?.report?.status_logs ??
+            matchedIncident?.report?.statusLogs ??
+            [];
+
+          if (Array.isArray(reportStatusLogs)) {
+            [...reportStatusLogs]
+              .sort(
+                (left, right) =>
+                  new Date(
+                    left?.created_at ??
+                    left?.createdAt ??
+                    0,
+                  ).getTime() -
+                  new Date(
+                    right?.created_at ??
+                    right?.createdAt ??
+                    0,
+                  ).getTime(),
+              )
+              .forEach((log) => {
+                const rawTime =
+                  log?.created_at ??
+                  log?.createdAt ??
+                  null;
+
+                const activity =
+                  String(
+                    log?.activity ||
+                    "",
+                  )
+                    .trim()
+                    .toLowerCase();
+
+                /*
+                 * Named responder assignments are taken
+                 * from the richer Incident audit trail.
+                 */
+                if (
+                  activity === "personnel assigned" ||
+                  activity === "responder assigned"
+                ) {
+                  return;
+                }
+
+                if (
+                  activity ===
+                  "assignment acknowledged"
+                ) {
+                  addHistoryEvent({
+                    status:
+                      "Assignment Acknowledged",
+                    detail:
+                      "The assigned responder acknowledged the incident.",
+                    rawTime,
+                  });
+
+                  return;
+                }
+
+                if (
+                  activity ===
+                  "response started"
+                ) {
+                  addHistoryEvent({
+                    status:
+                      "Response Started",
+                    detail:
+                      "The assigned responder started field response.",
+                    rawTime,
+                  });
+
+                  return;
+                }
+
+                if (
+                  activity ===
+                  "responder marked en route"
+                ) {
+                  addHistoryEvent({
+                    status:
+                      "Responders En Route",
+                    detail:
+                      "The responder marked the team en route to the incident.",
+                    rawTime,
+                  });
+
+                  return;
+                }
+
+                if (
+                  activity ===
+                  "responder recorded arrival / response"
+                ) {
+                  addHistoryEvent({
+                    status:
+                      "Responder Arrived / Response Recorded",
+                    detail:
+                      "The responder recorded arrival and initial response at the incident.",
+                    rawTime,
+                  });
+
+                  return;
+                }
+
+                if (
+                  activity ===
+                  "responder submitted field outcome"
+                ) {
+                  addHistoryEvent({
+                    status:
+                      "Field Outcome Submitted",
+                    detail:
+                      "The responder submitted the field outcome for Admin review.",
+                    rawTime,
+                  });
+
+                  return;
+                }
+
+                if (
+                  activity ===
+                  "responder added field update"
+                ) {
+                  addHistoryEvent({
+                    status:
+                      "Field Update",
+                    detail:
+                      log?.remarks ||
+                      "The responder added an operational update.",
+                    rawTime,
+                  });
+
+                  return;
+                }
+
+                if (
+                  activity ===
+                  "responder requested additional support"
+                ) {
+                  addHistoryEvent({
+                    status:
+                      "Additional Support Requested",
+                    detail:
+                      log?.remarks ||
+                      "The responder requested additional support.",
+                    rawTime,
+                  });
+
+                  return;
+                }
+
+                if (
+                  activity ===
+                  "responder requested location assistance"
+                ) {
+                  addHistoryEvent({
+                    status:
+                      "Location Assistance Requested",
+                    detail:
+                      log?.remarks ||
+                      "The responder requested location assistance.",
+                    rawTime,
+                  });
+
+                  return;
+                }
+
+                if (
+                  activity ===
+                  "responder requested incident review"
+                ) {
+                  addHistoryEvent({
+                    status:
+                      "Incident Review Requested",
+                    detail:
+                      log?.remarks ||
+                      "The responder requested Admin review.",
+                    rawTime,
+                  });
+
+                  return;
+                }
+
+                if (
+                  activity ===
+                  "responder declined assignment"
+                ) {
+                  addHistoryEvent({
+                    status:
+                      "Assignment Declined",
+                    detail:
+                      log?.remarks ||
+                      "The responder declined the assignment.",
+                    rawTime,
+                  });
+
+                  return;
+                }
+
+                addHistoryEvent({
+                  status:
+                    log?.status ||
+                    log?.activity ||
+                    "Report Update",
+                  detail:
+                    log?.remarks ||
+                    log?.activity ||
+                    "Report status updated.",
+                  rawTime,
+                });
+              });
+          }
+
+
+          /*
+           * Compatibility fallback only if the Incident API
+           * has no raw report status logs.
+           */
+          if (
+            !Array.isArray(reportStatusLogs) ||
+            reportStatusLogs.length === 0
+          ) {
+            (report.history || []).forEach((item) => {
+              addHistoryEvent({
+                status:
+                  item?.status,
+                detail:
+                  item?.detail,
+                rawTime:
+                  item?.rawTime ||
+                  null,
+              });
             });
           }
 
-          if (matchedIncident.created_at) {
-            incidentHistory.push({
-              status: "Response Coordination Started",
-              detail: `${matchedIncident.incident_code} opened for responder assignment and response monitoring.`,
-              time: formatHistoryTime(matchedIncident.created_at),
-            });
-          }
+          const reportCreatedAt =
+            selectedReport?.created_at ??
+            selectedReport?.createdAt ??
+            null;
 
-          const incidentAuditLogs = auditLogs.filter((log) => {
-            return (
-              log.category === "Incident" &&
-              log.target === matchedIncident.incident_code
+          const hasSubmitted =
+            incidentHistory.some(
+              (item) =>
+                String(
+                  item.status ||
+                  "",
+                ).toLowerCase() ===
+                "submitted",
             );
-          });
 
-          incidentAuditLogs.forEach((log) => {
-            if (log.action === "Incident Status Updated") {
-              incidentHistory.push({
-                status: log.new_value,
-                detail: log.remarks,
-                time: formatHistoryTime(log.created_at),
-              });
-            }
-
-            if (log.action === "Incident Personnel Assigned") {
-              incidentHistory.push({
-                status: "Personnel Assigned",
-                detail: log.remarks,
-                time: formatHistoryTime(log.created_at),
-              });
-            }
-          });
-
-          if (incidentHistory.length > 0) {
-            setHistory(incidentHistory);
+          if (
+            !hasSubmitted &&
+            reportCreatedAt
+          ) {
+            addHistoryEvent({
+              status:
+                "Submitted",
+              detail:
+                "Report recorded in ResQNow.",
+              rawTime:
+                reportCreatedAt,
+            });
           }
+
+          /*
+           * Response Coordination is an Incident milestone.
+           */
+          if (matchedIncident.created_at) {
+            addHistoryEvent({
+              status:
+                "Response Coordination Started",
+              detail:
+                `${matchedIncident.incident_code} opened for responder assignment and response monitoring.`,
+              rawTime:
+                matchedIncident.created_at,
+            });
+          }
+
+          const incidentAuditLogs =
+            auditLogs.filter((log) => {
+              return (
+                log.category === "Incident" &&
+                log.target ===
+                  matchedIncident.incident_code
+              );
+            });
+
+          const latestAssignmentDecline =
+            incidentAuditLogs
+              .filter(
+                (log) =>
+                  log.action ===
+                  "Responder Assignment Declined",
+              )
+              .sort(
+                (left, right) =>
+                  new Date(
+                    right.created_at ||
+                    0,
+                  ) -
+                  new Date(
+                    left.created_at ||
+                    0,
+                  ),
+              )[0] || null;
+
+          setAssignmentDecline(
+            latestAssignmentDecline,
+          );
+
+          /*
+           * Use Incident audit logs for named assignment
+           * changes so generic "Assigned" report logs do not
+           * appear multiple times.
+           */
+          const assignmentAuditLogs =
+            incidentAuditLogs
+              .filter(
+                (log) =>
+                  log.action ===
+                  "Incident Personnel Assigned",
+              )
+              .sort(
+                (left, right) =>
+                  new Date(
+                    left.created_at ||
+                    0,
+                  ) -
+                  new Date(
+                    right.created_at ||
+                    0,
+                  ),
+              );
+
+          assignmentAuditLogs.forEach(
+            (log, index) => {
+              addHistoryEvent({
+                status:
+                  index === 0
+                    ? "Responder Assigned"
+                    : "Responder Reassigned",
+                detail:
+                  log.remarks ||
+                  (
+                    index === 0
+                      ? "Primary responder assigned."
+                      : "Primary responder assignment changed."
+                  ),
+                rawTime:
+                  log.created_at,
+              });
+            },
+          );
+
+          /*
+           * Admin lifecycle milestones.
+           */
+          incidentAuditLogs.forEach((log) => {
+            if (
+              log.action ===
+                "Incident Status Updated" &&
+              (
+                log.new_value === "Resolved" ||
+                log.new_value === "Closed"
+              )
+            ) {
+              addHistoryEvent({
+                status:
+                  log.new_value,
+                detail:
+                  log.remarks ||
+                  (
+                    log.new_value === "Resolved"
+                      ? "Incident resolved after field-response review."
+                      : "Incident administratively closed."
+                  ),
+                rawTime:
+                  log.created_at,
+              });
+            }
+
+            if (
+              log.action ===
+              "Responder Assignment Declined"
+            ) {
+              addHistoryEvent({
+                status:
+                  "Assignment Declined",
+                detail:
+                  log.remarks ||
+                  "Responder declined the assignment.",
+                rawTime:
+                  log.created_at,
+              });
+            }
+          });
+
+          /*
+           * Real chronological ordering.
+           */
+          incidentHistory.sort(
+            (left, right) => {
+              if (
+                left.sortTime ===
+                right.sortTime
+              ) {
+                return (
+                  left.sequence -
+                  right.sequence
+                );
+              }
+
+              return (
+                left.sortTime -
+                right.sortTime
+              );
+            },
+          );
+
+          /*
+           * Exact duplicate protection.
+           */
+          const seenHistoryEvents =
+            new Set();
+
+          const uniqueHistory =
+            incidentHistory.filter((item) => {
+              const key = [
+                item.status,
+                item.detail,
+                item.rawTime ||
+                  item.time,
+              ].join("|");
+
+              if (
+                seenHistoryEvents.has(key)
+              ) {
+                return false;
+              }
+
+              seenHistoryEvents.add(key);
+
+              return true;
+            });
+
+          setHistory(
+            uniqueHistory.map(
+              ({
+                sortTime,
+                sequence,
+                ...item
+              }) => item,
+            ),
+          );
         }
       } catch (error) {
-        console.error("Failed to load incident data:", error);
-        setAssignmentError("Failed to load incident and personnel data.");
+        /*
+         * Initial-load errors must be visible to the Admin.
+         * A single failed background poll should keep the last
+         * known good operational state instead of replacing the
+         * screen with an error.
+         */
+        if (!silent) {
+          console.error("Failed to load incident data:", error);
+          setAssignmentError(
+            "Failed to load incident and personnel data.",
+          );
+        }
       }
     };
 
+    /*
+     * Do not overwrite selections while the Admin is actively
+     * editing assignment/resolution controls.
+     */
+    if (
+      showAssignmentModal ||
+      showResolutionModal ||
+      showClosureModal ||
+      assignmentLoading ||
+      lifecycleLoading
+    ) {
+      return undefined;
+    }
+
     loadAssignmentData();
-  }, [selectedReport?.id]);
+
+    let refreshInFlight = false;
+
+    const refreshOperationalData = async (
+      silent = true,
+    ) => {
+      if (
+        refreshInFlight ||
+        document.visibilityState === "hidden"
+      ) {
+        return;
+      }
+
+      refreshInFlight = true;
+
+      try {
+        await loadAssignmentData({
+          silent,
+        });
+      } finally {
+        refreshInFlight = false;
+      }
+    };
+
+    /*
+     * Three seconds is quick enough for an emergency-response
+     * dashboard without creating an aggressive request loop.
+     */
+    const intervalId =
+      window.setInterval(
+        refreshOperationalData,
+        3000,
+      );
+
+    /*
+     * During the localhost demo the Admin and Responder are
+     * commonly switched between tabs/windows. Refresh
+     * immediately when Admin becomes active again.
+     */
+    const handleWindowFocus = () => {
+      refreshOperationalData(false);
+    };
+
+    const handleVisibilityChange = () => {
+      if (
+        document.visibilityState === "visible"
+      ) {
+        refreshOperationalData(false);
+      }
+    };
+
+    window.addEventListener(
+      "focus",
+      handleWindowFocus,
+    );
+
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange,
+    );
+
+    return () => {
+      window.clearInterval(intervalId);
+
+      window.removeEventListener(
+        "focus",
+        handleWindowFocus,
+      );
+
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange,
+      );
+    };
+  }, [
+    selectedReport?.id,
+    showAssignmentModal,
+    showResolutionModal,
+    showClosureModal,
+    assignmentLoading,
+    lifecycleLoading,
+  ]);
 
   const handleStatusChange = async (
     newStatus,
@@ -718,10 +1742,23 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
       setAssignmentLoading(true);
       setAssignmentError("");
 
-      const updatedIncident = await assignIncidentPersonnel(
-        incident.id,
-        selectedPerson.id || selectedPerson.databaseId,
-      );
+      const incidentId =
+        incident?.id ??
+        incident?.databaseId ??
+        incident?.data?.id;
+
+      if (!incidentId) {
+        throw new Error(
+          "Response coordination is missing its incident ID. Refresh this report before assigning a responder.",
+        );
+      }
+
+      const updatedIncident =
+        await assignIncidentPersonnel(
+          incidentId,
+          selectedPerson.id ||
+            selectedPerson.databaseId,
+        );
 
       setIncident(updatedIncident);
 
@@ -746,6 +1783,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
       };
 
       setAssignment(newAssignment);
+      setAssignmentDecline(null);
 
       const auditLogsData = await getAllAuditLogs();
       const auditLogs = Array.isArray(auditLogsData) ? auditLogsData : [];
@@ -883,8 +1921,30 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
   };
   const canAssignPriority = !incident && report.status === "For Prioritization";
 
-  const handleExportPDF = () => {
-    const doc = new jsPDF();
+  const handleExportPDF = async () => {
+    const [
+      jsPdfModule,
+      autoTableModule,
+    ] = await Promise.all([
+      import("jspdf"),
+      import("jspdf-autotable"),
+    ]);
+
+    const JsPDF =
+      jsPdfModule.jsPDF ??
+      jsPdfModule.default;
+
+    const autoTable =
+      autoTableModule.default ??
+      autoTableModule.autoTable;
+
+    if (!JsPDF || !autoTable) {
+      throw new Error(
+        "PDF export libraries could not be loaded.",
+      );
+    }
+
+    const doc = new JsPDF();
 
     const pageWidth = doc.internal.pageSize.getWidth();
 
@@ -921,9 +1981,9 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
       body: [
         ["Report ID", report.id],
         ["Report Type", report.type],
-        ["Category", report.category],
+        ["Category", displayCategory],
         ["Priority", report.priority],
-        ["Current Status", status],
+        ["Current Status", reportDisplayStatus],
         ["Verification", report.verification],
         ["Reporter", report.reporter],
         ["Contact Number", report.contact],
@@ -963,40 +2023,70 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
 
     currentY += descriptionLines.length * 5 + 16;
 
-    // TRIAGE ASSESSMENT
-    doc.setTextColor(31, 29, 71);
-    doc.setFontSize(13);
-    doc.setFont("helvetica", "bold");
-    doc.text("Triage Assessment", 14, currentY);
+    // CONTEXTUAL SYSTEM ASSESSMENT
+  doc.setTextColor(31, 29, 71);
+  doc.setFontSize(13);
+  doc.setFont("helvetica", "bold");
 
-    autoTable(doc, {
-      startY: currentY + 6,
-      head: [["Assessment", "Result"]],
-      body: [
-        ["Threat to Life", report.triage.threatToLife],
-        ["Assistance Need", report.triage.assistanceNeed],
-        ["People Affected", report.triage.peopleAffected],
-        ["Vulnerable Persons", report.triage.vulnerablePersons],
-        ["Access Impact", report.triage.accessImpact],
-        ["Location Risk", report.triage.locationRisk],
-        ["Hazard Severity", report.triage.hazardSeverity],
-        ["Rate of Worsening", report.triage.rateOfWorsening],
-        ["Water Level", report.triage.waterLevel],
-        ["Road Passability", report.triage.roadPassability],
-        ["Evacuation Need", report.triage.evacuationNeed],
+  doc.text(
+    assessmentTitle,
+    14,
+    currentY,
+  );
+
+  autoTable(doc, {
+    startY: currentY + 6,
+    head: [["Assessment", "Result"]],
+    body: [
+      [
+        "System Priority",
+        report.triage.recommendation ||
+          report.priority,
       ],
-      theme: "grid",
-      headStyles: {
-        fillColor: [31, 29, 71],
-        textColor: [255, 255, 255],
-      },
-      styles: {
-        fontSize: 8,
-        cellPadding: 3,
-      },
-    });
+      ...(
+        report.triage.score !== null &&
+        report.triage.score !== undefined
+          ? [
+              [
+                "System Score",
+                String(
+                  report.triage.score,
+                ),
+              ],
+            ]
+          : []
+      ),
+      ...assessmentFacts.map(
+        (fact) => [
+          fact.label,
+          String(fact.value),
+        ],
+      ),
+      ...(
+        report.triage.remarks
+          ? [
+              [
+                "Assessment Basis",
+                report.triage.remarks,
+              ],
+            ]
+          : []
+      ),
+    ],
+    theme: "grid",
+    headStyles: {
+      fillColor: [31, 29, 71],
+      textColor: [255, 255, 255],
+    },
+    styles: {
+      fontSize: 8,
+      cellPadding: 3,
+    },
+  });
 
-    // ASSIGNMENT
+  currentY =
+    doc.lastAutoTable.finalY + 12;
+  // ASSIGNMENT
     currentY = doc.lastAutoTable.finalY + 12;
 
     // Check if we need another page
@@ -1082,7 +2172,244 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
 
   const visibleHistory = showMoreHistory ? history : history.slice(-4);
 
-  const statusDescription =
+  const handleInlineVerifyReport = async () => {
+  if (verificationActionLoading) {
+    return;
+  }
+
+  const reportDatabaseId =
+    resolveReportDatabaseId(selectedReport);
+
+  if (!reportDatabaseId) {
+    setVerificationActionError(
+      "The report database ID could not be determined.",
+    );
+    return;
+  }
+
+  const allowedAnswers =
+    selectedReport?.svfAllowedAnswers || {};
+
+  const hasEditableSvf =
+    Boolean(
+      selectedReport?.svf &&
+        Object.keys(allowedAnswers).length > 0,
+    );
+
+  if (hasEditableSvf) {
+    const hasMissingFact =
+      Object.keys(allowedAnswers).some(
+        (key) => !inlineSvfAnswers[key],
+      );
+
+    if (hasMissingFact) {
+      setVerificationActionError(
+        "Review all Situation Verification Facts before verifying this report.",
+      );
+      return;
+    }
+  }
+
+  try {
+    setVerificationActionLoading(true);
+    setVerificationActionError("");
+
+    const result =
+      await verifyReport(
+        reportDatabaseId,
+        hasEditableSvf
+          ? inlineSvfAnswers
+          : null,
+      );
+
+    const computedPriority =
+      result?.data?.priority ||
+      report.priority;
+
+    setSelectedPriority(
+      computedPriority &&
+        computedPriority !== "Not Prioritized"
+        ? computedPriority
+        : "",
+    );
+
+    setStatus("For Prioritization");
+
+    onReportUpdate?.({
+      ...selectedReport,
+      priority: computedPriority,
+      currentPriority: computedPriority,
+      verification: "Verified",
+      verification_status: "Verified",
+      status: "For Prioritization",
+    });
+  } catch (error) {
+    console.error(
+      "Failed to verify report:",
+      error,
+    );
+
+    setVerificationActionError(
+      error.message ||
+        "Failed to verify report.",
+    );
+  } finally {
+    setVerificationActionLoading(false);
+  }
+};
+
+
+const handleInlineReturnForReview = async () => {
+  if (returnReviewLoading) {
+    return;
+  }
+
+  if (!returnReviewRemarks.trim()) {
+    setReturnReviewError(
+      "Please provide a reason before returning this report for review.",
+    );
+    return;
+  }
+
+  const reportDatabaseId =
+    resolveReportDatabaseId(selectedReport);
+
+  if (!reportDatabaseId) {
+    setReturnReviewError(
+      "The report database ID could not be determined.",
+    );
+    return;
+  }
+
+  try {
+    setReturnReviewLoading(true);
+    setReturnReviewError("");
+
+    await returnReportForReview(
+      reportDatabaseId,
+      returnReviewRemarks.trim(),
+    );
+
+    onReportUpdate?.({
+      ...selectedReport,
+      verification: "Returned",
+      verification_status: "Returned",
+      verificationRemarks:
+        returnReviewRemarks.trim(),
+    });
+
+    setShowReturnReviewModal(false);
+    setReturnReviewRemarks("");
+  } catch (error) {
+    console.error(
+      "Failed to return report for review:",
+      error,
+    );
+
+    setReturnReviewError(
+      error.message ||
+        "Failed to return report for review.",
+    );
+  } finally {
+    setReturnReviewLoading(false);
+  }
+};
+
+
+const handleInlineConfirmPriority = async () => {
+  if (priorityActionLoading) {
+    return;
+  }
+
+  const reportDatabaseId =
+    resolveReportDatabaseId(selectedReport);
+
+  if (!reportDatabaseId) {
+    setPriorityActionError(
+      "The report database ID could not be determined.",
+    );
+    return;
+  }
+
+  const usesAuthoritativeTriage =
+    Boolean(
+      selectedReport?.svf ||
+        selectedReport?.triageRuleVersion?.startsWith(
+          "camunatan-",
+        ) ||
+        report.triage?.ruleVersion?.startsWith(
+          "camunatan-",
+        ),
+    );
+
+  const systemPriority =
+    report.triage?.recommendation ||
+    report.priority ||
+    selectedPriority;
+
+  if (
+    !systemPriority ||
+    systemPriority === "Not Prioritized"
+  ) {
+    setPriorityActionError(
+      "No system-computed priority is available for confirmation.",
+    );
+    return;
+  }
+
+  try {
+    setPriorityActionLoading(true);
+    setPriorityActionError("");
+
+    const confirmedReport =
+      await assignReportPriority(
+        reportDatabaseId,
+        usesAuthoritativeTriage
+          ? null
+          : systemPriority,
+      );
+
+    const confirmedPriority =
+      confirmedReport?.priority ||
+      systemPriority;
+
+    setSelectedPriority(
+      confirmedPriority,
+    );
+
+    setStatus("Prioritized");
+
+    onReportUpdate?.({
+      ...selectedReport,
+      currentPriority:
+        confirmedPriority,
+      priority:
+        confirmedPriority,
+      priorityStatus:
+        "Confirmed",
+      verification:
+        "Verified",
+      verification_status:
+        "Verified",
+      status:
+        "Prioritized",
+    });
+  } catch (error) {
+    console.error(
+      "Failed to confirm priority:",
+      error,
+    );
+
+    setPriorityActionError(
+      error.message ||
+        "Failed to confirm the system-computed priority.",
+    );
+  } finally {
+    setPriorityActionLoading(false);
+  }
+};
+
+const statusDescription =
     status === "For Verification"
       ? "This report is awaiting verification before entering the response workflow."
       : status === "Pending Response"
@@ -1129,7 +2456,9 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
 
           <div className="mt-1 flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-bold tracking-tight text-[#101C2E]">
-              {report.type}
+              {isSosReport
+              ? displayTitle
+              : report.type}
             </h1>
 
             <span
@@ -1142,10 +2471,10 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
 
             <span
               className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
-                statusStyles[status] || statusStyles["For Verification"]
+                statusStyles[reportDisplayStatus] || statusStyles["For Verification"]
               }`}
             >
-              {status}
+              {reportDisplayStatus}
             </span>
           </div>
 
@@ -1183,11 +2512,13 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                 <InfoItem label="Report ID" value={report.id} />
                 <InfoItem label="Reporter" value={report.reporter} />
                 <InfoItem label="Contact Number" value={report.contact} />
-                <InfoItem label="Category" value={report.category} />
+                <InfoItem label="Category" value={displayCategory} />
                 <InfoItem label="Location" value={report.location} />
                 <InfoItem label="Submitted" value={report.submitted} />
               </div>
             </section>
+
+          <IncidentLocationCard report={report} />
 
             {/* DESCRIPTION */}
             <section className="rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
@@ -1203,7 +2534,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                 </p>
               </div>
             </section>
-            {/* AUTOMATED RISK ASSESSMENT */}
+            {/* CONTEXTUAL SYSTEM ASSESSMENT */}
             <section className="rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
               <div className="border-b border-[#E4E7EC] px-5 py-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -1222,43 +2553,53 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                     </div>
 
                     <div>
-                      <h2 className="text-sm font-bold text-[#101C2E]">
-                        Automated Risk Assessment
-                      </h2>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="text-sm font-bold text-[#101C2E]">
+                          {assessmentTitle}
+                        </h2>
 
-                      <p className="mt-0.5 text-xs text-[#667085]">
-                        System-generated assessment based on resident-submitted
-                        information.
+                        {isSosReport && (
+                          <span className="rounded-full bg-[#FEF3F2] px-2 py-1 text-[10px] font-extrabold uppercase tracking-wider text-[#B42318]">
+                            Immediate Life Threat
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="mt-1 max-w-xl text-xs leading-5 text-[#667085]">
+                        {assessmentSubtitle}
                       </p>
                     </div>
                   </div>
 
                   {report.triage.recommendation ? (
                     <div
-                      className={`rounded-lg border px-4 py-2.5 ${
-                        getRecommendationStyle(report.triage.recommendation)
-                          .container
+                      className={`shrink-0 rounded-lg border px-4 py-2.5 ${
+                        getRecommendationStyle(
+                          report.triage.recommendation,
+                        ).container
                       }`}
                     >
-                      <p className="text-[11px] font-bold uppercase tracking-wider text-[#667085]">
-                        Assessment Status
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#667085]">
+                        System Priority
                       </p>
 
                       <div className="mt-1 flex items-center justify-between gap-4">
                         <span
-                          className={`text-sm font-bold ${
-                            getRecommendationStyle(report.triage.recommendation)
-                              .text
+                          className={`text-sm font-extrabold ${
+                            getRecommendationStyle(
+                              report.triage.recommendation,
+                            ).text
                           }`}
                         >
                           {report.triage.recommendation}
                         </span>
 
-                        {report.triage.score !== null && (
-                          <span className="text-xs font-bold text-[#667085]">
-                            System Score: {report.triage.score}
-                          </span>
-                        )}
+                        {report.triage.score !== null &&
+                          report.triage.score !== undefined && (
+                            <span className="text-xs font-bold text-[#667085]">
+                              Score: {report.triage.score}
+                            </span>
+                          )}
                       </div>
                     </div>
                   ) : (
@@ -1270,63 +2611,58 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
               </div>
 
               {report.triage.recommendation ? (
-                <>
-                  <div className="grid grid-cols-1 gap-3 p-5 md:grid-cols-2">
-                    <AutomatedRiskItem
-                      label="Water Level"
-                      value={report.triage.waterLevel}
-                      score={null}
-                    />
+                <div className="space-y-4 p-5">
+                  {isSosReport && (
+                    <div className="rounded-lg border border-[#FECDCA] bg-[#FEF3F2] p-4">
+                      <p className="text-xs font-bold text-[#B42318]">
+                        SOS fast-track case
+                      </p>
 
-                    <AutomatedRiskItem
-                      label="Affected Residents"
-                      value={
-                        report.triage.affectedResidents !== null
-                          ? `${report.triage.affectedResidents} residents`
-                          : "Not reported"
-                      }
-                      score={null}
-                    />
+                      <p className="mt-1 text-xs leading-5 text-[#B42318]">
+                        This report is presented as an immediate
+                        life-safety case. Only information relevant
+                        to rapid triage and response is shown here.
+                      </p>
+                    </div>
+                  )}
 
-                    <AutomatedRiskItem
-                      label="Road Passability"
-                      value={report.triage.roadPassability}
-                      score={null}
-                    />
-
-                    <AutomatedRiskItem
-                      label="Location Risk"
-                      value={report.triage.locationRisk}
-                      score={null}
-                      highlighted={["High", "Critical"].includes(
-                        report.triage.locationRisk,
+                  {assessmentFacts.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      {assessmentFacts.map(
+                        (fact, index) => (
+                          <AutomatedRiskItem
+                            key={`${fact.label}-${index}`}
+                            label={fact.label}
+                            value={fact.value}
+                            score={null}
+                            highlighted={
+                              isHighlightedAssessmentFact(
+                                fact.value,
+                              )
+                            }
+                          />
+                        ),
                       )}
-                    />
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-[#E4E7EC] bg-[#F8FAFC] p-4">
+                      <p className="text-xs font-bold text-[#475467]">
+                        No additional assessment fields are applicable
+                      </p>
 
-                    <AutomatedRiskItem
-                      label="Assistance / Evacuation Need"
-                      value={report.triage.assistanceEvacuationNeed}
-                      score={null}
-                      highlighted={
-                        report.triage.assistanceEvacuationNeed ===
-                          "Immediate evacuation required" ||
-                        report.triage.assistanceEvacuationNeed ===
-                          "Evacuation recommended"
-                      }
-                    />
-
-                    <AutomatedRiskItem
-                      label="Assessment Status"
-                      value="System Generated"
-                      score={null}
-                      highlighted
-                    />
-                  </div>
+                      <p className="mt-1 text-xs leading-5 text-[#667085]">
+                        ResQNow has already produced the system priority
+                        from the information available for this report.
+                        Irrelevant assessment fields are intentionally
+                        not displayed.
+                      </p>
+                    </div>
+                  )}
 
                   {report.triage.remarks && (
-                    <div className="mx-5 mb-5 rounded-lg border border-[#E4E7EC] bg-[#F8FAFC] p-4">
+                    <div className="rounded-lg border border-[#E4E7EC] bg-[#F8FAFC] p-4">
                       <p className="text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]">
-                        Assessment Remarks
+                        Assessment Basis
                       </p>
 
                       <p className="mt-2 text-sm leading-6 text-[#475467]">
@@ -1335,51 +2671,38 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                     </div>
                   )}
 
-                  <div className="mx-5 mb-5 rounded-lg border border-[#FEDF89] bg-[#FFFCF5] p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#FEF0C7] text-[#B54708]">
-                        !
-                      </div>
-
-                      <div>
-                        <p className="text-xs font-bold text-[#7A2E0E]">
-                          Automated recommendation
-                        </p>
-
-                        <p className="mt-1 text-xs leading-5 text-[#8A4B08]">
-                          ResQNow computed this priority from the reported
-                          situation facts. Barangay personnel verify or correct
-                          those facts; the priority itself is not manually selected.
-                        </p>
-                      </div>
-                    </div>
+                  <div className="rounded-lg border border-[#B2DDFF] bg-[#EFF8FF] p-3">
+                    <p className="text-[11px] font-semibold leading-4 text-[#175CD3]">
+                      Priority remains system-controlled. Admin verifies
+                      factual information and confirms the computed result;
+                      Admin does not manually override the priority.
+                    </p>
                   </div>
-                </>
+                </div>
               ) : (
                 <div className="p-5">
-                  <div className="rounded-lg border border-dashed border-[#D0D5DD] bg-[#F8FAFC] px-5 py-8 text-center">
-                    <p className="text-sm font-bold text-[#344054]">
-                      Risk assessment not yet available
-                    </p>
-
-                    <p className="mt-1 text-xs leading-5 text-[#667085]">
-                      Assessment data is not available for this report yet. Only
-                      information recorded in the report database is displayed.
+                  <div className="rounded-lg border border-[#E4E7EC] bg-[#F8FAFC] p-4">
+                    <p className="text-xs font-semibold text-[#667085]">
+                      The system assessment will be displayed when
+                      sufficient report information is available.
                     </p>
                   </div>
                 </div>
               )}
             </section>
-
             {/* EVIDENCE */}
-            <section className="rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
+            {(!isSosReport || report.evidence.length > 0) && (
+          <section className="rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
               <div className="border-b border-[#E4E7EC] px-5 py-4">
                 <h2 className="text-sm font-bold text-[#101C2E]">
                   Submitted Evidence
                 </h2>
 
                 <p className="mt-0.5 text-xs text-[#667085]">
-                  {(report.evidence || []).length} attachments submitted report.
+                  {(report.evidence || []).length}{" "}
+                {(report.evidence || []).length === 1
+                  ? "attachment submitted with this report."
+                  : "attachments submitted with this report."}
                 </p>
               </div>
 
@@ -1413,6 +2736,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                 </div>
               )}
             </section>
+          )}
           </div>
         </div>
 
@@ -1430,15 +2754,15 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
               <div className="p-5">
                 <div className="rounded-lg bg-[#EEF4FF] p-4">
                   <p className="text-[11px] font-bold uppercase tracking-wider text-[#667085]">
-                    Response Status
+                    Report Status
                   </p>
 
                   <p className="mt-1 text-lg font-bold text-[#174A86]">
-                    {status}
+                    {reportDisplayStatus}
                   </p>
 
                   <p className="mt-1 text-xs leading-5 text-[#667085]">
-                    {statusDescription}
+                    {reportStatusDescription}
                   </p>
                 </div>
 
@@ -1451,9 +2775,19 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                     {status}
                   </div>
 
-                  {!incident ? (
+                  {!incident && status === "For Verification" ? (
+                    <p className="mt-2 text-[11px] font-medium text-[#B54708]">
+                      Verification must be completed before response
+                      coordination can begin.
+                    </p>
+                  ) : !incident && status === "Prioritized" ? (
+                    <p className="mt-2 text-[11px] font-medium text-[#175CD3]">
+                      Verification and prioritization are complete.
+                      Response coordination can now be started.
+                    </p>
+                  ) : !incident ? (
                     <p className="mt-2 text-[11px] text-[#667085]">
-                      Loading response coordination details...
+                      No response coordination case has been started yet.
                     </p>
                   ) : status === "Pending Response" ? (
                     <p className="mt-2 text-[11px] text-[#667085]">
@@ -1484,72 +2818,416 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
               </div>
             </section>
 
+            {/* VERIFICATION */}
+            <section
+              className={`rounded-xl border bg-white shadow-sm ${
+                report.verification === "Verified"
+                  ? "border-[#A6F4C5]"
+                  : report.verification === "Returned"
+                    ? "border-[#FDA29B]"
+                    : "border-[#FEDF89]"
+              }`}
+            >
+              <div className="border-b border-[#E4E7EC] px-5 py-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#667085]">
+                      Step 1
+                    </p>
+
+                    <h2 className="mt-0.5 text-sm font-bold text-[#101C2E]">
+                      Verify Report Facts
+                    </h2>
+
+                    <p className="mt-1 text-xs leading-5 text-[#667085]">
+                      Review the factual information submitted by the resident.
+                      Correct a value only when barangay verification shows that
+                      the reported fact is inaccurate.
+                    </p>
+                  </div>
+
+                  <span
+                    className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                      report.verification === "Verified"
+                        ? "bg-[#ECFDF3] text-[#027A48]"
+                        : report.verification === "Returned"
+                          ? "bg-[#FEF3F2] text-[#B42318]"
+                          : "bg-[#FFF7ED] text-[#B54708]"
+                    }`}
+                  >
+                    {report.verification}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-4 p-5">
+                {report.verification === "Verified" ? (
+                  <div className="rounded-lg border border-[#A6F4C5] bg-[#ECFDF3] p-4">
+                    <p className="text-sm font-bold text-[#027A48]">
+                      Verification complete
+                    </p>
+
+                    <p className="mt-1 text-xs leading-5 text-[#027A48]">
+                      The factual report information has been verified.
+                      Continue to Step 2 to confirm the system-computed priority.
+                    </p>
+                  </div>
+                ) : report.verification === "Returned" ? (
+                  <div className="rounded-lg border border-[#FDA29B] bg-[#FEF3F2] p-4">
+                    <p className="text-sm font-bold text-[#B42318]">
+                      Returned for resident review
+                    </p>
+
+                    <p className="mt-1 text-xs leading-5 text-[#B42318]">
+                      This report was returned for correction or clarification.
+                      Wait for the resident to resubmit before verifying it.
+                    </p>
+
+                    {report.verificationRemarks && (
+                      <p className="mt-2 rounded-lg bg-white px-3 py-2 text-xs text-[#475467]">
+                        {report.verificationRemarks}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    {selectedReport?.svf && (
+                      <div className="rounded-xl border border-[#D0D5DD] bg-[#F8FAFC] p-4">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <p className="text-xs font-bold text-[#101C2E]">
+                              Situation Verification Facts
+                            </p>
+
+                            <p className="mt-1 text-[11px] leading-4 text-[#667085]">
+                              Review every factual field before clicking
+                              Verify Report.
+                            </p>
+                          </div>
+
+                          {Object.keys(
+                            selectedReport.svfAllowedAnswers || {},
+                          ).length > 0 && (
+                            <span className="rounded-full border border-[#B2DDFF] bg-[#EFF8FF] px-2.5 py-1 text-[10px] font-bold text-[#175CD3]">
+                              Facts editable
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="mt-4">
+                          <InfoItem
+                            label="Situation Type"
+                            value={formatVerificationFactValue(
+                              selectedReport.svf.category,
+                            )}
+                          />
+                        </div>
+
+                        {Object.keys(
+                          selectedReport.svfAllowedAnswers || {},
+                        ).length > 0 ? (
+                          <div className="mt-4 grid gap-4 md:grid-cols-2">
+                            {Object.entries(
+                              selectedReport.svfAllowedAnswers,
+                            ).map(([key, options]) => (
+                              <div key={key}>
+                                <label className="text-[10px] font-bold uppercase tracking-wider text-[#98A2B3]">
+                                  {formatVerificationFactLabel(key)}
+                                </label>
+
+                                <select
+                                  value={inlineSvfAnswers[key] || ""}
+                                  onChange={(event) => {
+                                    setInlineSvfAnswers(
+                                      (current) => ({
+                                        ...current,
+                                        [key]:
+                                          event.target.value,
+                                      }),
+                                    );
+
+                                    setVerificationActionError("");
+                                  }}
+                                  className="mt-2 w-full rounded-lg border border-[#D0D5DD] bg-white px-3 py-2.5 text-sm font-semibold text-[#344054] outline-none focus:border-[#1F5FA6]"
+                                >
+                                  <option value="" disabled>
+                                    Select verified fact
+                                  </option>
+
+                                  {options.map((option) => (
+                                    <option
+                                      key={option}
+                                      value={option}
+                                    >
+                                      {formatVerificationFactValue(
+                                        option,
+                                      )}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="mt-4 grid gap-4 md:grid-cols-2">
+                            {Object.entries(
+                              selectedReport.svf.answers || {},
+                            ).map(([key, value]) => (
+                              <InfoItem
+                                key={key}
+                                label={formatVerificationFactLabel(
+                                  key,
+                                )}
+                                value={formatVerificationFactValue(
+                                  value,
+                                )}
+                              />
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="mt-4 rounded-lg border border-[#B2DDFF] bg-[#EFF8FF] p-3">
+                          <p className="text-[11px] font-semibold leading-4 text-[#175CD3]">
+                            Admin verifies factual information only.
+                            Priority is recomputed automatically by ResQNow
+                            and cannot be manually overridden.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {verificationActionError && (
+                      <p
+                        role="alert"
+                        className="rounded-lg border border-[#FDA29B] bg-[#FEF3F2] px-3 py-2.5 text-xs font-semibold text-[#B42318]"
+                      >
+                        {verificationActionError}
+                      </p>
+                    )}
+
+                    <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setReturnReviewRemarks("");
+                          setReturnReviewError("");
+                          setShowReturnReviewModal(true);
+                        }}
+                        disabled={verificationActionLoading}
+                        className="rounded-lg border border-[#FDA29B] bg-white px-4 py-2.5 text-sm font-bold text-[#D92D20] transition hover:bg-[#FEF3F2] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Return for Review
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleInlineVerifyReport}
+                        disabled={verificationActionLoading}
+                        className="rounded-lg bg-[#1F5FA6] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#174A86] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {verificationActionLoading
+                          ? "Verifying & Recomputing..."
+                          : "Verify Report"}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </section>
             {/* SYSTEM-COMPUTED PRIORITY */}
             <section className="rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
               <div className="border-b border-[#E4E7EC] px-5 py-4">
-                <h2 className="text-sm font-bold text-[#101C2E]">
-                  System-Computed Priority
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[#667085]">
+                  Step 2
+                </p>
+
+                <h2 className="mt-0.5 text-sm font-bold text-[#101C2E]">
+                  Confirm System Priority
                 </h2>
 
-                <p className="mt-0.5 text-xs text-[#667085]">
-                  ResQNow calculates this result from the verified Situation
-                  Verification Facts. Barangay personnel cannot select or
-                  override the priority manually.
+                <p className="mt-1 text-xs leading-5 text-[#667085]">
+                  Review the priority generated by ResQNow from the verified
+                  facts. Admin confirms the result but does not manually select
+                  or override the priority.
                 </p>
               </div>
 
               <div className="space-y-4 p-5">
-                <div
-                  className={`rounded-lg border p-4 ${
-                    report.triage.recommendation || report.priority
-                      ? getRecommendationStyle(
-                          report.triage.recommendation || report.priority,
-                        ).container
-                      : "border-[#E4E7EC] bg-[#F8FAFC]"
-                  }`}
-                >
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-[#667085]">
-                    System Priority
-                  </p>
-
-                  <div className="mt-1 flex items-center justify-between gap-3">
-                    <p className="text-lg font-bold text-[#101C2E]">
-                      {report.triage.recommendation ||
-                        report.priority ||
-                        "Not assessed"}
+                {report.verification !== "Verified" ? (
+                  <div className="rounded-lg border border-[#E4E7EC] bg-[#F8FAFC] p-4">
+                    <p className="text-xs font-bold text-[#667085]">
+                      Step 2 is locked
                     </p>
 
-                    {report.triage.score !== null &&
-                      report.triage.score !== undefined && (
-                        <span className="text-xs font-bold text-[#667085]">
-                          System Score: {report.triage.score}
-                        </span>
-                      )}
+                    <p className="mt-1 text-xs leading-5 text-[#667085]">
+                      Complete Step 1 Report Verification first.
+                    </p>
                   </div>
-                </div>
+                ) : (
+                  <>
+                    <div
+                      className={`rounded-lg border p-4 ${
+                        report.triage.recommendation ||
+                        report.priority
+                          ? getRecommendationStyle(
+                              report.triage.recommendation ||
+                                report.priority,
+                            ).container
+                          : "border-[#E4E7EC] bg-[#F8FAFC]"
+                      }`}
+                    >
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#667085]">
+                        System Priority
+                      </p>
 
-                <div className="rounded-lg border border-[#B2DDFF] bg-[#EFF8FF] p-4">
-                  <p className="text-xs font-bold text-[#175CD3]">
-                    Admin verification rule
-                  </p>
+                      <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+                        <p className="text-lg font-extrabold text-[#101C2E]">
+                          {report.triage.recommendation ||
+                            report.priority ||
+                            "Not assessed"}
+                        </p>
 
-                  <p className="mt-1 text-xs leading-5 text-[#175CD3]">
-                    Verify or correct the factual Situation Verification
-                    answers in the Verification Center. ResQNow automatically
-                    recomputes the priority from the verified facts.
-                  </p>
-                </div>
+                        {report.triage.score !== null &&
+                          report.triage.score !== undefined && (
+                            <span className="text-xs font-bold text-[#667085]">
+                              System Score: {report.triage.score}
+                            </span>
+                          )}
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border border-[#B2DDFF] bg-[#EFF8FF] p-4">
+                      <p className="text-xs font-bold text-[#175CD3]">
+                        System-controlled priority
+                      </p>
+
+                      <p className="mt-1 text-xs leading-5 text-[#175CD3]">
+                        ResQNow has already recalculated this result from the
+                        verified facts. Confirming continues the workflow;
+                        it does not change the priority.
+                      </p>
+                    </div>
+
+                    {priorityActionError && (
+                      <p
+                        role="alert"
+                        className="rounded-lg border border-[#FDA29B] bg-[#FEF3F2] px-3 py-2.5 text-xs font-semibold text-[#B42318]"
+                      >
+                        {priorityActionError}
+                      </p>
+                    )}
+
+                    {status === "For Prioritization" ? (
+                      <button
+                        type="button"
+                        onClick={handleInlineConfirmPriority}
+                        disabled={priorityActionLoading}
+                        className="w-full rounded-lg bg-[#1F5FA6] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#174A86] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {priorityActionLoading
+                          ? "Confirming Priority..."
+                          : "Confirm Priority & Continue"}
+                      </button>
+                    ) : status === "Prioritized" || incident ? (
+                      <div className="rounded-lg border border-[#A6F4C5] bg-[#ECFDF3] p-4">
+                        <p className="text-xs font-bold text-[#027A48]">
+                          Priority confirmed
+                        </p>
+
+                        <p className="mt-1 text-xs leading-5 text-[#027A48]">
+                          Continue to Step 3 for responder coordination.
+                        </p>
+                      </div>
+                    ) : null}
+                  </>
+                )}
               </div>
             </section>
             {/* ASSIGNMENT */}
             <section className="rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
               <div className="border-b border-[#E4E7EC] px-5 py-4">
-                <h2 className="text-sm font-bold text-[#101C2E]">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[#667085]">
+                  Step 3
+                </p>
+
+                <h2 className="mt-0.5 text-sm font-bold text-[#101C2E]">
                   Response Coordination
                 </h2>
+
+                <p className="mt-1 text-xs leading-5 text-[#667085]">
+                  Assign and monitor responders only after report verification
+                  and system prioritization are complete.
+                </p>
               </div>
 
               <div className="space-y-4 p-5">
+              {assignmentDecline &&
+                incident &&
+                !incident.assigned_personnel_id && (
+                  <div
+                    role="alert"
+                    className="rounded-lg border border-[#FDA29B] bg-[#FEF3F2] p-4"
+                  >
+                    <p className="text-sm font-bold text-[#B42318]">
+                      Responder Declined - Reassignment Required
+                    </p>
+
+                    <p className="mt-1 text-xs leading-5 text-[#B42318]">
+                      The assigned responder declined this case.
+                      Select another Primary Responder before continuing.
+                    </p>
+
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      <div className="rounded-lg border border-[#FECDCA] bg-white px-3 py-2.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-[#912018]">
+                          Declined By
+                        </p>
+
+                        <p className="mt-1 text-xs font-semibold text-[#344054]">
+                          {assignmentDecline.user_name ||
+                            "Assigned responder"}
+                        </p>
+                      </div>
+
+                      <div className="rounded-lg border border-[#FECDCA] bg-white px-3 py-2.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-[#912018]">
+                          Declined At
+                        </p>
+
+                        <p className="mt-1 text-xs font-semibold text-[#344054]">
+                          {assignmentDecline.created_at
+                            ? formatHistoryTime(
+                                assignmentDecline.created_at,
+                              )
+                            : "Time unavailable"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-2 rounded-lg border border-[#FECDCA] bg-white px-3 py-2.5">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#912018]">
+                        Decline Details
+                      </p>
+
+                      <p className="mt-1 text-xs leading-5 text-[#344054]">
+                        {assignmentDecline.remarks ||
+                          "No decline reason was available."}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAssignmentError("");
+                        setShowAssignmentModal(true);
+                      }}
+                      className="mt-3 rounded-lg border border-[#D92D20] bg-white px-3 py-2 text-xs font-bold text-[#B42318] transition hover:bg-[#FFF1F0]"
+                    >
+                      Choose New Primary Responder
+                    </button>
+                  </div>
+                )}
+
                 {isAssignmentOverdue && (
                   <div
                     role="alert"
@@ -1605,63 +3283,58 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                   />
                 )}
 
-                {!incident && status === "Prioritized" ? (
-                  <button
-                    type="button"
-                    onClick={handleCreateIncident}
-                    disabled={assignmentLoading}
-                    className="w-full rounded-lg bg-[#1F5FA6] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1F5FA6] disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {assignmentLoading
-                      ? "Starting Response Coordination..."
-                      : "Start Response Coordination"}
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAssignmentError("");
-                      setShowAssignmentModal(true);
-                    }}
-                    disabled={!incident}
-                    className="w-full rounded-lg border border-[#1F5FA6] bg-white px-4 py-2.5 text-sm font-semibold text-[#1F5FA6] transition hover:bg-[#EAF1FA] disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {incident?.assigned_personnel_id ? "Change Primary Responder" : "Assign Primary Responder"}
-                  </button>
-                )}
-              </div>
-            </section>
+                {!incident && status === "For Verification" ? (
+                <div className="rounded-lg border border-[#FEDF89] bg-[#FFFAEB] p-4">
+                  <p className="text-xs font-bold text-[#B54708]">
+                    Step 3 is locked
+                  </p>
 
-            {/* VERIFICATION */}
-            <section className="rounded-xl border border-[#E4E7EC] bg-white shadow-sm">
-              <div className="border-b border-[#E4E7EC] px-5 py-4">
-                <h2 className="text-sm font-bold text-[#101C2E]">
-                  Verification
-                </h2>
-              </div>
-
-              <div className="p-5">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-semibold text-[#344054]">
-                      Verification Status
-                    </p>
-
-                    <p className="mt-0.5 text-xs text-[#667085]">
-                      {verificationDescription}
-                    </p>
-                  </div>
-
-                  <span
-                    className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
-                      report.verification === "Verified"
-                        ? "bg-[#ECFDF3] text-[#027A48]"
-                        : "bg-[#FFF7ED] text-[#B54708]"
-                    }`}
-                  >
-                    {report.verification}
-                  </span>
+                  <p className="mt-1 text-xs leading-5 text-[#B54708]">
+                    Complete Step 1 Report Verification above.
+                  </p>
                 </div>
+              ) : !incident && status === "For Prioritization" ? (
+                <div className="rounded-lg border border-[#B2DDFF] bg-[#EFF8FF] p-4">
+                  <p className="text-xs font-bold text-[#175CD3]">
+                    Step 3 is locked
+                  </p>
+
+                  <p className="mt-1 text-xs leading-5 text-[#175CD3]">
+                    Confirm the system-computed priority in Step 2 above.
+                  </p>
+                </div>
+              ) : !incident && status === "Prioritized" ? (
+                <button
+                  type="button"
+                  onClick={handleCreateIncident}
+                  disabled={assignmentLoading}
+                  className="w-full rounded-lg bg-[#1F5FA6] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#174A86] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {assignmentLoading
+                    ? "Starting Response Coordination..."
+                    : "Start Response Coordination"}
+                </button>
+              ) : incident ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAssignmentError("");
+                    setShowAssignmentModal(true);
+                  }}
+                  className="w-full rounded-lg border border-[#1F5FA6] bg-white px-4 py-3 text-sm font-bold text-[#1F5FA6] transition hover:bg-[#EAF1FA]"
+                >
+                  {incident.assigned_personnel_id
+                    ? "Change Primary Responder"
+                    : "Assign Primary Responder"}
+                </button>
+              ) : (
+                <div className="rounded-lg border border-[#E4E7EC] bg-[#F8FAFC] p-4">
+                  <p className="text-xs font-semibold text-[#667085]">
+                    Response coordination is not available at the current
+                    report stage.
+                  </p>
+                </div>
+              )}
               </div>
             </section>
 
@@ -2134,7 +3807,73 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
         </div>
       )}
 
-      {/* ASSIGNMENT MODAL */}
+      {/* RETURN FOR REVIEW MODAL */}
+    {showReturnReviewModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#101C2E]/40 p-4">
+        <div className="w-full max-w-md rounded-xl bg-white shadow-lg">
+          <div className="border-b border-[#E4E7EC] px-6 py-4">
+            <h2 className="text-lg font-bold text-[#101C2E]">
+              Return Report for Review
+            </h2>
+
+            <p className="mt-1 text-xs leading-5 text-[#667085]">
+              Explain what information the resident needs to correct or
+              clarify before this report can be verified.
+            </p>
+          </div>
+
+          <div className="space-y-3 p-6">
+            <label className="text-xs font-bold text-[#475467]">
+              Review Remarks *
+            </label>
+
+            <textarea
+              rows="4"
+              value={returnReviewRemarks}
+              onChange={(event) => {
+                setReturnReviewRemarks(event.target.value);
+                setReturnReviewError("");
+              }}
+              placeholder="Example: Please clarify the exact location and current hazard condition."
+              className="w-full rounded-lg border border-[#D0D5DD] px-3 py-3 text-sm outline-none focus:border-[#1F5FA6]"
+            />
+
+            {returnReviewError && (
+              <p className="rounded-lg border border-[#FDA29B] bg-[#FEF3F2] px-3 py-2 text-xs font-semibold text-[#B42318]">
+                {returnReviewError}
+              </p>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-3 border-t border-[#E4E7EC] px-6 py-4">
+            <button
+              type="button"
+              onClick={() => {
+                setShowReturnReviewModal(false);
+                setReturnReviewRemarks("");
+                setReturnReviewError("");
+              }}
+              disabled={returnReviewLoading}
+              className="rounded-lg border border-[#D0D5DD] px-4 py-2.5 text-sm font-semibold text-[#475467]"
+            >
+              Cancel
+            </button>
+
+            <button
+              type="button"
+              onClick={handleInlineReturnForReview}
+              disabled={returnReviewLoading}
+              className="rounded-lg bg-[#D92D20] px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {returnReviewLoading
+                ? "Returning..."
+                : "Confirm Return for Review"}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    {/* ASSIGNMENT MODAL */}
       {showAssignmentModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#101C2E]/40 p-4">
           <div className="w-full max-w-md rounded-xl bg-white shadow-lg">

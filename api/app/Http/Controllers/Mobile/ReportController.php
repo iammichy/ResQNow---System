@@ -625,7 +625,7 @@ class ReportController extends Controller
                             $photoPath =
                                 $photo->store(
                                     'reports',
-                                    'public'
+                                    'local'
                                 );
                         }
 
@@ -763,7 +763,7 @@ class ReportController extends Controller
                                     $photoPath,
 
                                 'photo_disk' =>
-                                    'public',
+                                    'local',
 
                                 'barangay_remarks' =>
                                     null,
@@ -866,7 +866,7 @@ class ReportController extends Controller
              */
             if ($photoPath) {
                 Storage::disk(
-                    'public'
+                    'local'
                 )->delete(
                     $photoPath
                 );

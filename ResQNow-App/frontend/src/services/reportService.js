@@ -8,6 +8,21 @@ import {
 // ============ RESPONSE HELPER ============
 // Laravel may return a Resource directly
 // or inside a "report" / "data" property.
+function normalizePurokForApi(value) {
+  const text =
+    String(value || "").trim();
+
+  const match =
+    text.match(/^Purok\s+\d+/i);
+
+  return match
+    ? match[0].replace(
+        /^purok/i,
+        "Purok",
+      )
+    : text;
+}
+
 function extractReport(data) {
   return (
     data?.report?.data ||
@@ -144,7 +159,9 @@ export async function createNonEmergencyReport(
 
   formData.append(
     'purok',
-    reportData.purok
+    normalizePurokForApi(
+      reportData.purok
+    )
   );
 
   formData.append(

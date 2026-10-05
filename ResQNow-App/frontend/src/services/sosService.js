@@ -216,8 +216,19 @@ export function buildSosSmsMessage({ user, location, idempotencyKey, reason }) {
     user?.contactNumber ? `Mobile: ${user.contactNumber}` : null,
     user?.address ? `Saved address: ${user.address}` : null,
     user?.purok ? `Purok: ${user.purok}` : null,
-    Number.isFinite(latitude) && Number.isFinite(longitude)
-      ? `GPS: ${latitude.toFixed(6)},${longitude.toFixed(6)}`
+    location?.label
+      ? `Incident location: ${location.label}`
+      : null,
+    location?.source
+      ? `Location source: ${
+          location.source === 'gps'
+            ? 'Device GPS'
+            : location.source === 'manual'
+              ? 'Resident-provided / pinned'
+              : location.source
+        }`
+      : null,    Number.isFinite(latitude) && Number.isFinite(longitude)
+      ? `Coordinates: ${latitude.toFixed(6)},${longitude.toFixed(6)}`
       : null,
     accuracy !== null ? `Accuracy: ${accuracy}m` : null,
     idempotencyKey ? `Ref: ${idempotencyKey.slice(0, 8)}` : null,

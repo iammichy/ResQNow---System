@@ -17,6 +17,42 @@ export const REPORT_CATEGORIES = [
 /**
  * Convert backend report data into frontend-friendly format.
  */
+function formatReportHistory(report) {
+  const logs =
+    report?.status_logs ??
+    report?.statusLogs ??
+    [];
+
+  if (!Array.isArray(logs)) {
+    return [];
+  }
+
+  return logs.map((log) => {
+    const rawTime =
+      log?.created_at ??
+      log?.createdAt ??
+      null;
+
+    return {
+      status:
+        log?.status ||
+        log?.activity ||
+        "Report Update",
+
+      detail:
+        log?.remarks ||
+        log?.activity ||
+        "Report status updated.",
+
+      time:
+        rawTime
+          ? new Date(rawTime).toLocaleString()
+          : "Time not recorded",
+
+      rawTime,
+    };
+  });
+}
 function formatReport(report) {
   return {
     id:
@@ -35,7 +71,46 @@ function formatReport(report) {
       ? new Date(report.created_at).toLocaleString()
       : "Unknown",
 
-    reporter: report.user?.name || "Unknown Resident",
+    reporter:
+      report.user?.name ||
+      report.reporter?.fullName ||
+      report.reporter_name ||
+      "Unknown Resident",
+
+    contact:
+      report.user?.profile?.contact_number ||
+      report.user?.contact_number ||
+      report.reporter?.contactNumber ||
+      report.contact_number ||
+      report.contact ||
+      null,
+
+    user:
+      report.user ||
+      null,
+
+    created_at:
+      report.created_at ??
+      report.createdAt ??
+      null,
+
+    createdAt:
+      report.created_at ??
+      report.createdAt ??
+      null,
+
+    updated_at:
+      report.updated_at ??
+      report.updatedAt ??
+      null,
+
+    statusLogs:
+      report.status_logs ??
+      report.statusLogs ??
+      [],
+
+    history:
+      formatReportHistory(report),
 
     priority: report.priority || "Not Prioritized",
     currentPriority: report.priority || null,
@@ -47,6 +122,20 @@ function formatReport(report) {
 
     latitude: report.latitude,
     longitude: report.longitude,
+    locationSource:
+      report.location_source ??
+      report.locationSource ??
+      null,
+
+    locationAccuracy:
+      report.location_accuracy ??
+      report.locationAccuracy ??
+      null,
+
+    locationCapturedAt:
+      report.location_captured_at ??
+      report.locationCapturedAt ??
+      null,
 
     userId: report.user_id,
 
@@ -363,7 +452,25 @@ export async function createIncidentFromReport(reportId) {
     throw new Error(errorData?.message || "Failed to create incident.");
   }
 
-  return response.json();
+  const result = await response.json();
+
+  const incident =
+    result?.data ??
+    result?.incident ??
+    result;
+
+  if (
+    !incident ||
+    typeof incident !== "object" ||
+    Array.isArray(incident) ||
+    !incident.id
+  ) {
+    throw new Error(
+      "The server created response coordination but did not return a valid incident record.",
+    );
+  }
+
+  return incident;
 }
 
 /**

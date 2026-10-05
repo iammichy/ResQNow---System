@@ -39,6 +39,7 @@ const secondaryActionValues = [
   'support',
   'unable-locate',
   'invalid-finding',
+  'decline',
 ];
 
 const tacticalActionLabels = {
@@ -47,6 +48,7 @@ const tacticalActionLabels = {
   'en-route': 'Mark En Route',
   arrived: 'On Scene',
   'field-outcome': 'Submit Field Outcome',
+  decline: 'Decline Assignment',
 };
 
 function tacticalActionLabel(action) {
@@ -101,6 +103,91 @@ export default function ResponderIncidentDetail() {
 
   const call = contactTarget(report);
   const directions = directionsInfo(report);
+  const locationSource =
+    String(
+      report?.locationSource ||
+      ''
+    )
+      .trim()
+      .toLowerCase();
+
+  const locationSourceLabel =
+    locationSource === 'gps'
+      ? 'Device GPS'
+      : locationSource === 'manual'
+        ? 'Resident-provided / pinned'
+        : locationSource === 'saved'
+          ? 'Registered address fallback'
+          : 'Not recorded';
+
+  const rawLocationAccuracy =
+    report?.locationAccuracy;
+
+  const parsedLocationAccuracy =
+    rawLocationAccuracy === null ||
+    rawLocationAccuracy === undefined ||
+    rawLocationAccuracy === ''
+      ? null
+      : Number(
+          rawLocationAccuracy
+        );
+
+  const locationAccuracyLabel =
+    parsedLocationAccuracy !== null &&
+    Number.isFinite(
+      parsedLocationAccuracy
+    )
+      ? `±${Math.round(
+          parsedLocationAccuracy
+        )} m`
+      : 'Not available';
+
+  const locationCapturedLabel =
+    report?.locationCapturedAt
+      ? formatDateTime(
+          report.locationCapturedAt
+        )
+      : 'Not recorded';
+
+  const rawLatitude =
+    report?.latitude;
+
+  const rawLongitude =
+    report?.longitude;
+
+  const parsedLatitude =
+    rawLatitude === null ||
+    rawLatitude === undefined ||
+    rawLatitude === ''
+      ? null
+      : Number(
+          rawLatitude
+        );
+
+  const parsedLongitude =
+    rawLongitude === null ||
+    rawLongitude === undefined ||
+    rawLongitude === ''
+      ? null
+      : Number(
+          rawLongitude
+        );
+
+  const incidentCoordinatesLabel =
+    parsedLatitude !== null &&
+    parsedLongitude !== null &&
+    Number.isFinite(
+      parsedLatitude
+    ) &&
+    Number.isFinite(
+      parsedLongitude
+    )
+      ? `${parsedLatitude.toFixed(
+          6
+        )}, ${parsedLongitude.toFixed(
+          6
+        )}`
+      : 'Not provided';
   const nextAction = getPrimaryAction(report);
 
   const secondaryActions = useMemo(
@@ -146,6 +233,15 @@ export default function ResponderIncidentDetail() {
 
       setReport(updated);
       setLastUpdated(new Date());
+
+      if (action.value === 'decline') {
+        setActionSheet(null);
+        navigate('/responder/missions', {
+          replace: true,
+        });
+        return;
+      }
+
       setActionSheet(null);
       setActionSuccess(`${action.label} saved successfully.`);
     } catch (requestError) {
@@ -265,7 +361,7 @@ export default function ResponderIncidentDetail() {
             <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
             <span>
               {report.location || 'Location unavailable'}
-              {report.landmark ? ` Â· ${report.landmark}` : ''}
+              {report.landmark ? ` - ${report.landmark}` : ''}
             </span>
           </div>
         </div>
@@ -274,9 +370,9 @@ export default function ResponderIncidentDetail() {
       <section className="rounded-2xl border border-resqnow-border-soft bg-white p-4 shadow-[0_5px_18px_rgba(31,29,71,.05)]">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
-            <p className="text-[9px] font-extrabold uppercase tracking-[.14em] text-resqnow-violet">Reporter location</p>
+            <p className="text-[9px] font-extrabold uppercase tracking-[.14em] text-resqnow-violet">Incident location</p>
             <h2 className="mt-0.5 text-[14px] font-bold text-resqnow-primary">Incident map</h2>
-            <p className="mt-0.5 text-[9px] text-resqnow-muted">Submitted report coordinates Â· not live resident tracking</p>
+            <p className="mt-0.5 text-[9px] text-resqnow-muted">Submitted report coordinates - not live resident tracking</p>
           </div>
           <MapPin className="h-5 w-5 shrink-0 text-resqnow-critical" />
         </div>
@@ -284,8 +380,62 @@ export default function ResponderIncidentDetail() {
           reports={[report]}
           heightClass="h-[240px]"
           showLegend={false}
-          ariaLabel={`Reporter location for ${report.id}`}
+          ariaLabel={`Incident location for ${report.id}`}
         />
+        {locationSource === 'saved' && (
+          <div className="mt-3 rounded-xl border border-resqnow-caution/25 bg-resqnow-caution/10 p-3">
+            <p className="text-[10px] font-bold text-resqnow-secondary">
+              Registered address fallback
+            </p>
+
+            <p className="mt-1 text-[9px] leading-relaxed text-resqnow-muted">
+              This is the resident's saved address/home location, not confirmed
+              current GPS. Confirm the actual incident location when possible.
+            </p>
+          </div>
+        )}
+
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <div className="rounded-xl border border-resqnow-border-soft bg-resqnow-canvas p-2.5">
+            <p className="text-[9px] font-extrabold uppercase tracking-wide text-resqnow-muted">
+              Location source
+            </p>
+
+            <p className="mt-1 text-[11px] font-bold text-resqnow-primary">
+              {locationSourceLabel}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-resqnow-border-soft bg-resqnow-canvas p-2.5">
+            <p className="text-[9px] font-extrabold uppercase tracking-wide text-resqnow-muted">
+              Accuracy
+            </p>
+
+            <p className="mt-1 text-[11px] font-bold text-resqnow-primary">
+              {locationAccuracyLabel}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-resqnow-border-soft bg-resqnow-canvas p-2.5">
+            <p className="text-[9px] font-extrabold uppercase tracking-wide text-resqnow-muted">
+              Captured
+            </p>
+
+            <p className="mt-1 text-[11px] font-bold text-resqnow-primary">
+              {locationCapturedLabel}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-resqnow-border-soft bg-resqnow-canvas p-2.5">
+            <p className="text-[9px] font-extrabold uppercase tracking-wide text-resqnow-muted">
+              Coordinates
+            </p>
+
+            <p className="mt-1 break-all text-[11px] font-bold text-resqnow-primary">
+              {incidentCoordinatesLabel}
+            </p>
+          </div>
+        </div>
       </section>
 
       {actionSuccess && (
@@ -398,14 +548,14 @@ export default function ResponderIncidentDetail() {
           <InfoRow
             icon={MapPin}
             label="Incident location"
-            value={`${report.location || 'Location unavailable'}${report.landmark ? ` Â· ${report.landmark}` : ''}`}
+            value={`${report.location || 'Location unavailable'}${report.landmark ? ` - ${report.landmark}` : ''}`}
           />
           <InfoRow
             icon={UserRound}
             label="Reporter"
             value={
               report.reporter
-                ? `${report.reporter.fullName || 'Resident'}${report.reporter.contactNumber ? ` Â· ${report.reporter.contactNumber}` : ''}`
+                ? `${report.reporter.fullName || 'Resident'}${report.reporter.contactNumber ? ` - ${report.reporter.contactNumber}` : ''}`
                 : 'Reporter details unavailable'
             }
           />
@@ -413,7 +563,7 @@ export default function ResponderIncidentDetail() {
             <InfoRow
               icon={UserRound}
               label="Person involved"
-              value={`${report.subjectName || 'Name unavailable'}${report.subjectContact ? ` Â· ${report.subjectContact}` : ''}`}
+              value={`${report.subjectName || 'Name unavailable'}${report.subjectContact ? ` - ${report.subjectContact}` : ''}`}
             />
           )}
           <InfoRow
@@ -493,7 +643,7 @@ export default function ResponderIncidentDetail() {
                     {event.status || event.activity || 'Update'}
                   </p>
                   <p className="mt-1 text-[11px] text-resqnow-muted">
-                    {event.actor?.fullName || 'System'} Â· {formatDateTime(event.createdAt)}
+                    {event.actor?.fullName || 'System'} - {formatDateTime(event.createdAt)}
                   </p>
                   {(event.remarks || event.activity) && (
                     <p className="mt-1 text-[12px] leading-relaxed text-resqnow-secondary">
@@ -576,8 +726,36 @@ export default function ResponderIncidentDetail() {
 function ActionPreviewSheet({ action, onClose, onSave, isSaving, error }) {
   const [remarks, setRemarks] = useState('');
   const needsOutcome = action.value === 'field-outcome';
-  const needsRemarks = ['note', 'support', 'unable-locate', 'invalid-finding', 'field-outcome'].includes(action.value);
-  const supportedNow = ['acknowledge', 'start', 'en-route', 'arrived', 'field-outcome', 'note', 'support', 'unable-locate', 'invalid-finding'].includes(action.value);
+  const needsDeclineReason = action.value === 'decline';
+
+  const needsRemarks = [
+    'note',
+    'support',
+    'unable-locate',
+    'invalid-finding',
+    'field-outcome',
+    'decline',
+  ].includes(action.value);
+
+  const supportedNow = [
+    'acknowledge',
+    'start',
+    'en-route',
+    'arrived',
+    'field-outcome',
+    'note',
+    'support',
+    'unable-locate',
+    'invalid-finding',
+    'decline',
+  ].includes(action.value);
+
+  const residentVisibleAction = [
+    'start',
+    'en-route',
+    'arrived',
+  ].includes(action.value);
+
   const missingOutcome = needsRemarks && !remarks.trim();
 
   async function handleSubmit() {
@@ -607,7 +785,11 @@ function ActionPreviewSheet({ action, onClose, onSave, isSaving, error }) {
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 pb-[110px] sm:pb-4">
           {supportedNow ? (
             <div className="rounded-xl border border-resqnow-info/20 bg-resqnow-info/8 p-3 text-[11px] leading-relaxed text-resqnow-secondary">
-              This action will be saved to the ResQNow server and added to the incident history. The resident will see the updated report state after refresh.
+              {action.value === 'decline'
+                ? 'Declining this assignment returns the case to barangay personnel for reassignment. Your reason is internal and is not shown to the resident.'
+                : residentVisibleAction
+                  ? 'This field progress update will be saved to ResQNow and will appear in resident tracking after refresh.'
+                  : 'This action will be saved to ResQNow as an internal operational record. Its details are not shown to the resident.'}
             </div>
           ) : (
             <div className="rounded-xl border border-resqnow-caution/25 bg-resqnow-caution/10 p-3 text-[11px] leading-relaxed text-resqnow-secondary">
@@ -618,7 +800,7 @@ function ActionPreviewSheet({ action, onClose, onSave, isSaving, error }) {
           {needsRemarks && (
             <label className="mt-4 block">
               <span className="text-[11px] font-bold text-resqnow-secondary">
-                {needsOutcome ? 'Field outcome summary' : 'Remarks'}
+                {needsOutcome ? 'Field outcome summary' : needsDeclineReason ? 'Reason for declining' : 'Remarks'}
                 {' *'}
               </span>
               <textarea
@@ -626,12 +808,12 @@ function ActionPreviewSheet({ action, onClose, onSave, isSaving, error }) {
                 onChange={(event) => setRemarks(event.target.value)}
                 rows={4}
                 maxLength={2000}
-                placeholder={needsOutcome ? 'Summarize the response outcomeâ€¦' : 'Add field details or contextâ€¦'}
+                placeholder={needsOutcome ? 'Summarize the response outcome...' : 'Add field details or context...'}
                 className="mt-1.5 w-full resize-none rounded-xl border border-resqnow-border bg-resqnow-canvas px-3 py-3 text-[12px] text-resqnow-primary outline-none focus:border-resqnow-violet/40 focus:ring-2 focus:ring-resqnow-violet/10"
               />
               {missingOutcome && (
                 <p className="mt-1.5 text-[10px] font-semibold text-resqnow-critical">
-                  Remarks are required before submitting this responder action.
+                  {needsDeclineReason ? 'A reason is required before declining this assignment.' : 'Remarks are required before submitting this responder action.'}
                 </p>
               )}
             </label>
@@ -658,7 +840,7 @@ function ActionPreviewSheet({ action, onClose, onSave, isSaving, error }) {
               disabled={!supportedNow || isSaving || missingOutcome}
               className="min-h-[46px] rounded-xl bg-brand-gradient px-3 text-[11px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-45"
             >
-              {isSaving ? 'Savingâ€¦' : supportedNow ? `Confirm ${action.label}` : 'API pending'}
+              {isSaving ? 'Saving...' : supportedNow ? `Confirm ${action.label}` : 'API pending'}
             </button>
           </div>
         </div>

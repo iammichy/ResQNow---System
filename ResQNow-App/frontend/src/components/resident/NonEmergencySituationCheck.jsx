@@ -142,10 +142,15 @@ const CONFIG = {
     },
   ],
 
+  /*
+   * Internal code "cleanup" is retained for API/database
+   * compatibility, but the Resident-facing category is now
+   * Drainage / Flood Risk.
+   */
   cleanup: [
     {
       key: 'areaImpact',
-      label: 'How much of the area is affected?',
+      label: 'How much of the area has water buildup or drainage overflow?',
       options: [
         ['small', 'Small area'],
         ['moderate', 'Moderate area'],
@@ -155,7 +160,7 @@ const CONFIG = {
     },
     {
       key: 'accessImpact',
-      label: 'Does the waste or debris affect access?',
+      label: 'Does the drainage or water buildup affect access?',
       options: [
         ['none', 'No'],
         ['limited', 'Limited access'],
@@ -165,19 +170,24 @@ const CONFIG = {
     },
     {
       key: 'materialRisk',
-      label: 'What kind of material is present?',
+      label: 'What is visible around the drainage or water?',
       options: [
-        ['ordinary_waste', 'Ordinary waste / debris'],
-        ['sharp_or_contaminated', 'Sharp / contaminated material'],
+        ['ordinary_waste', 'Leaves / waste / debris clogging drainage'],
+        ['sharp_or_contaminated', 'Contaminated / sharp material present'],
         ['unknown', 'Unsure'],
       ],
     },
   ],
 
+  /*
+   * Internal code "community-concern" is retained for
+   * compatibility, but the category is now a specific
+   * Electrical / Streetlight Hazard.
+   */
   'community-concern': [
     {
       key: 'peopleAtRisk',
-      label: 'Are people directly at risk from this concern?',
+      label: 'Are people directly at risk from the electrical or streetlight hazard?',
       options: [
         ['no', 'No'],
         ['yes', 'Yes'],
@@ -186,20 +196,20 @@ const CONFIG = {
     },
     {
       key: 'accessImpact',
-      label: 'Does it affect access to a road or public area?',
+      label: 'Does the hazard affect safe access to the road or public area?',
       options: [
         ['none', 'No'],
         ['limited', 'Limited'],
-        ['blocked', 'Blocked'],
+        ['blocked', 'Blocked / unsafe'],
         ['unknown', 'Unsure'],
       ],
     },
     {
       key: 'conditionTrend',
-      label: 'What best describes the concern?',
+      label: 'What best describes the condition?',
       options: [
         ['stable', 'Stable'],
-        ['recurring', 'Keeps happening'],
+        ['recurring', 'Recurring / intermittent'],
         ['worsening', 'Getting worse'],
         ['unknown', 'Unsure'],
       ],
@@ -240,12 +250,12 @@ const CONFIG = {
 };
 
 const CATEGORY_LABELS = {
-  'evac-assistance': 'Evacuation Help',
-  'bhw-assistance': 'Health Worker Assistance',
-  'road-obstruction': 'Blocked Road / Obstruction',
+  'evac-assistance': 'Evacuation Assistance',
+  'bhw-assistance': 'Health Worker / BHW Assistance',
+  'road-obstruction': 'Road Obstruction / Fallen Tree',
   'damaged-facility': 'Damaged Public Facility',
-  cleanup: 'Community Clean-Up',
-  'community-concern': 'Community Concern',
+  cleanup: 'Drainage / Flood Risk',
+  'community-concern': 'Electrical / Streetlight Hazard',
   'other-assistance': 'Other Barangay Assistance',
 };
 

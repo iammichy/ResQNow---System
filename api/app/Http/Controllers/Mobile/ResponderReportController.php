@@ -226,14 +226,14 @@ class ResponderReportController extends Controller
                 'action' => [
                     'required',
                     'string',
-                    'in:start,en-route,arrived,field-outcome,note,support,unable-locate,invalid-finding',
+                    'in:start,en-route,arrived,field-outcome,note,support,unable-locate,invalid-finding,decline',
                 ],
 
                 'remarks' => [
                     'nullable',
                     'string',
                     'max:2000',
-                    'required_if:action,field-outcome,note,support,unable-locate,invalid-finding',
+                    'required_if:action,field-outcome,note,support,unable-locate,invalid-finding,decline',
                 ],
 
                 'expectedVersion' => [
@@ -266,14 +266,15 @@ class ResponderReportController extends Controller
                      * This prevents an assignment change from
                      * racing the field action in the same row set.
                      */
-                    $report
-                        ->activeAssignments()
-                        ->where(
-                            'assigned_user_id',
-                            $user->id
-                        )
-                        ->lockForUpdate()
-                        ->firstOrFail();
+                    $assignment =
+                        $report
+                            ->activeAssignments()
+                            ->where(
+                                'assigned_user_id',
+                                $user->id
+                            )
+                            ->lockForUpdate()
+                            ->firstOrFail();
 
                     $this->assertVersion(
                         $report->version,
@@ -315,6 +316,9 @@ class ResponderReportController extends Controller
 
                             'invalid-finding' =>
                                 'Responder requested incident review',
+
+                            'decline' =>
+                                'Responder declined assignment',
                         };
 
                     $report->status =
@@ -379,6 +383,9 @@ class ResponderReportController extends Controller
                             'invalid-finding' =>
                                 'review',
 
+                            'decline' =>
+                                'reassignment',
+
                             default =>
                                 null,
                         };
@@ -399,6 +406,114 @@ class ResponderReportController extends Controller
                     }
 
                     /*
+                     * A declined assignment returns the case to Admin
+                     * for manual reassignment. The report itself stays
+                     * active and is not resolved, cancelled, or closed.
+                     */
+                    if ($action === 'decline') {
+                        $assignment
+                            ->forceFill([
+                                'unassigned_at' =>
+                                    now(),
+                            ])
+                            ->save();
+
+                        $personnel =
+                            \App\Models\Personnel::query()
+                                ->where(
+                                    'user_id',
+                                    $user->id
+                                )
+                                ->lockForUpdate()
+                                ->first();
+
+                        $incident =
+                            \App\Models\Incident::query()
+                                ->where(
+                                    'report_id',
+                                    $report->id
+                                )
+                                ->lockForUpdate()
+                                ->first();
+
+                        $releasedPersonnelId = null;
+
+                        if (
+                            $incident &&
+                            $personnel &&
+                            (int) $incident
+                                ->assigned_personnel_id ===
+                                (int) $personnel->id
+                        ) {
+                            $releasedPersonnelId =
+                                $personnel->id;
+
+                            $incident->update([
+                                'assigned_personnel_id' =>
+                                    null,
+                            ]);
+
+                            if (
+                                $personnel->assignment ===
+                                $incident->incident_code
+                            ) {
+                                $personnel->update([
+                                    'availability' =>
+                                        'Available',
+
+                                    'assignment' =>
+                                        null,
+                                ]);
+                            }
+                        }
+
+                        \App\Models\AuditLog::create([
+                            'action' =>
+                                'Responder Assignment Declined',
+
+                            'category' =>
+                                'Incident',
+
+                            'target' =>
+                                $incident
+                                    ? $incident
+                                        ->incident_code
+                                    : $report
+                                        ->report_code,
+
+                            'field' =>
+                                'assigned_personnel_id',
+
+                            'old_value' =>
+                                $releasedPersonnelId
+                                    ? (string)
+                                        $releasedPersonnelId
+                                    : null,
+
+                            'new_value' =>
+                                null,
+
+                            'remarks' =>
+                                'Responder ' .
+                                $user->name .
+                                ' declined the assignment. Reason: ' .
+                                trim(
+                                    (string)
+                                    $validated['remarks']
+                                ),
+
+                            'user_name' =>
+                                $user->name,
+
+                            'user_role' =>
+                                $user->role,
+
+                            'status' =>
+                                'Success',
+                        ]);
+                    }
+
+                    /*
                      * Internal notes and exception requests are not
                      * automatically exposed as resident progress.
                      */
@@ -411,6 +526,7 @@ class ResponderReportController extends Controller
                                 'support',
                                 'unable-locate',
                                 'invalid-finding',
+                                'decline',
                             ],
                             true
                         )

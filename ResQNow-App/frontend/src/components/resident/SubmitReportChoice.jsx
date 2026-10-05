@@ -1,101 +1,191 @@
-// src/components/resident/SubmitReportChoice.jsx
-import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, FileText, ChevronRight, Clock3, ClipboardList, ShieldCheck } from 'lucide-react';
+import {
+  AlertTriangle,
+  ChevronRight,
+  FileText,
+  ShieldAlert,
+} from 'lucide-react';
+
+import {
+  useNavigate,
+} from 'react-router-dom';
+
 
 export default function SubmitReportChoice() {
-  const navigate = useNavigate();
+  const navigate =
+    useNavigate();
 
   return (
     <div className="px-4 pt-5 pb-8 min-h-screen">
 
-      {/* Header */}
       <div className="mb-4">
-        <h1 className="text-xl font-bold text-resqnow-primary">Submit a Report</h1>
-        <p className="text-xs text-resqnow-muted mt-1">Choose the type of report that matches your situation.</p>
+
+        <h1 className="text-xl font-bold text-resqnow-primary">
+          Submit a Report
+        </h1>
+
+        <p className="text-xs text-resqnow-muted mt-1">
+          Choose the type that best matches the situation.
+        </p>
+
       </div>
 
-      {/* Two big choice cards */}
+
+      {/* SOS THRESHOLD */}
+      <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-3.5">
+
+        <div className="flex items-start gap-3">
+
+          <div className="w-9 h-9 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+            <ShieldAlert className="w-4 h-4" />
+          </div>
+
+          <div>
+
+            <p className="text-[11px] font-extrabold text-red-700">
+              Is someone in immediate life-threatening danger?
+            </p>
+
+            <p className="text-[9px] leading-relaxed text-red-700/80 mt-1">
+              Use SOS Fast-Track when there may not be enough time to
+              complete a longer form, such as a severe medical emergency,
+              trapped person, active fire, violence, or another immediate
+              threat to life or safety.
+            </p>
+
+            <p className="text-[9px] font-bold text-red-600 mt-1.5">
+              SOS Fast-Track is separate from Emergency Report.
+            </p>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
       <div className="grid grid-cols-2 gap-3">
-        {/* Emergency card — red gradient for urgency */}
+
+        {/* EMERGENCY REPORT */}
         <button
           type="button"
-          onClick={() => navigate('/submit/emergency')}
-          className="rounded-3xl p-[1px] bg-emergency-gradient text-left shadow-sm hover:shadow-md active:scale-[0.99] transition-all"
+          onClick={() =>
+            navigate(
+              '/submit/emergency'
+            )
+          }
+          className="rounded-3xl p-[1px] bg-emergency-gradient text-left shadow-sm active:scale-[0.99] transition-all"
         >
+
           <div className="h-full rounded-[23px] bg-emergency-gradient p-4">
+
             <div className="flex items-start justify-between gap-2">
-              <div className="w-11 h-11 rounded-2xl bg-white/15 flex items-center justify-center text-white shrink-0">
+
+              <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center text-white">
                 <AlertTriangle className="w-5 h-5" />
               </div>
-              <ChevronRight className="w-4 h-4 text-white/70 shrink-0 mt-1" />
+
+              <ChevronRight className="w-4 h-4 text-white/70" />
+
             </div>
 
-            <div className="mt-5">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <h2 className="text-[14px] font-bold text-white leading-tight">Emergency</h2>
-                <span className="text-[8px] font-bold uppercase tracking-wide bg-white/20 text-white px-1.5 py-0.5 rounded-full">Urgent</span>
-              </div>
-              <p className="text-[11px] text-white/90 mt-2 leading-relaxed">For immediate danger, fire, flood, injury, rescue, or urgent evacuation.</p>
-            </div>
+            <h2 className="text-[13px] font-bold text-white mt-4">
+              Emergency Report
+            </h2>
 
-            <div className="mt-4 rounded-2xl bg-white/15 px-3 py-2.5">
-              <div className="flex items-center gap-2">
-                <Clock3 className="w-3.5 h-3.5 text-white shrink-0" />
-                <p className="text-[10px] font-medium text-white">Quick reporting flow</p>
-              </div>
-            </div>
+            <p className="text-[10px] text-white/90 mt-2 leading-relaxed">
+              Fire, flood, medical emergency, road accident,
+              violence or safety threat, rescue, or urgent evacuation.
+            </p>
+
+            <p className="text-[8px] font-bold text-white/90 mt-3">
+              Urgent guided reporting
+            </p>
+
           </div>
+
         </button>
 
-        {/* Non-Emergency card — brand gradient for calm */}
+
+        {/* NON-EMERGENCY */}
         <button
           type="button"
-          onClick={() => navigate('/submit/non-emergency')}
-          className="rounded-3xl p-[1px] bg-brand-gradient text-left shadow-sm hover:shadow-md active:scale-[0.99] transition-all"
+          onClick={() =>
+            navigate(
+              '/submit/non-emergency'
+            )
+          }
+          className="rounded-3xl p-[1px] bg-brand-gradient text-left shadow-sm active:scale-[0.99] transition-all"
         >
+
           <div className="h-full rounded-[23px] bg-brand-gradient p-4">
+
             <div className="flex items-start justify-between gap-2">
-              <div className="w-11 h-11 rounded-2xl bg-white/15 flex items-center justify-center text-white shrink-0">
+
+              <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center text-white">
                 <FileText className="w-5 h-5" />
               </div>
-              <ChevronRight className="w-4 h-4 text-white/70 shrink-0 mt-1" />
+
+              <ChevronRight className="w-4 h-4 text-white/70" />
+
             </div>
 
-            <div className="mt-5">
-              <h2 className="text-[14px] font-bold text-white leading-tight">Non-Emergency</h2>
-              <p className="text-[11px] text-white/90 mt-2 leading-relaxed">For barangay concerns like damaged facilities, obstructions, and assistance requests.</p>
-            </div>
+            <h2 className="text-[13px] font-bold text-white mt-4">
+              Non-Emergency Report
+            </h2>
 
-            <div className="mt-4 rounded-2xl bg-white/15 px-3 py-2.5">
-              <div className="flex items-center gap-2">
-                <ClipboardList className="w-3.5 h-3.5 text-white shrink-0" />
-                <p className="text-[10px] font-medium text-white">More details may be needed</p>
-              </div>
-            </div>
-          </div>
-        </button>
-      </div>
-
-      {/* Help tip */}
-      <div className="mt-4 bg-white border border-slate-200 rounded-2xl p-3.5">
-        <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-xl bg-resqnow-mint/10 flex items-center justify-center shrink-0">
-            <ShieldCheck className="w-4.5 h-4.5 text-resqnow-mint" />
-          </div>
-          <div>
-            <p className="text-[12px] font-semibold text-resqnow-primary">Not sure what to choose?</p>
-            <p className="text-[10px] text-resqnow-muted mt-1 leading-relaxed">
-              Use <span className="font-semibold text-resqnow-critical">Emergency</span> if urgent help is needed right away. Use{' '}
-              <span className="font-semibold text-resqnow-violet">Non-Emergency</span> for concerns that can be reviewed by barangay personnel.
+            <p className="text-[10px] text-white/90 mt-2 leading-relaxed">
+              Hazards or assistance that require barangay review
+              but are not an immediate threat to life.
             </p>
+
+            <p className="text-[8px] font-bold text-white/90 mt-3">
+              Hazard and assistance reporting
+            </p>
+
           </div>
-        </div>
+
+        </button>
+
       </div>
 
-      {/* Footer note */}
-      <p className="text-[10px] text-resqnow-muted text-center leading-relaxed px-4 mt-4">
-        If internet or mobile signal is weak during an emergency, use the Contacts page to call the barangay hotline directly.
-      </p>
+
+      <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3.5">
+
+        <p className="text-[11px] font-bold text-resqnow-primary">
+          Quick guide
+        </p>
+
+        <div className="mt-1.5 space-y-1 text-[9px] leading-relaxed text-resqnow-muted">
+
+          <p>
+            <span className="font-bold text-red-600">
+              SOS:
+            </span>
+            {' '}
+            immediate life-threatening danger and fastest reporting.
+          </p>
+
+          <p>
+            <span className="font-bold text-resqnow-critical">
+              Emergency Report:
+            </span>
+            {' '}
+            urgent incident when you can still answer a short
+            factual situation check.
+          </p>
+
+          <p>
+            <span className="font-bold text-resqnow-violet">
+              Non-Emergency:
+            </span>
+            {' '}
+            hazards or assistance that can be reviewed by barangay personnel.
+          </p>
+
+        </div>
+
+      </div>
+
     </div>
   );
 }

@@ -15,8 +15,8 @@ import {
   Stethoscope,
   TreePine,
   Wrench,
-  Broom,
-  MessageSquare,
+  Waves,
+  Zap,
   CircleHelp,
   MapPin,
   UserRound,
@@ -61,8 +61,8 @@ const iconMap = {
   'bhw-assistance': Stethoscope,
   'road-obstruction': TreePine,
   'damaged-facility': Wrench,
-  cleanup: Broom,
-  'community-concern': MessageSquare,
+  cleanup: Waves,
+  'community-concern': Zap,
   'other-assistance': CircleHelp,
 };
 
@@ -70,45 +70,45 @@ const iconMap = {
 
 const concernCategoryInfo = {
   'evac-assistance': {
-    label: 'Evacuation Help',
+    label: 'Evacuation Assistance',
     description:
-      'Non-urgent help preparing for or getting to an evacuation center.',
+      'Non-urgent help with transportation, evacuation preparation, temporary shelter, or supplies.',
   },
 
   'bhw-assistance': {
-    label: 'Health Worker Assistance',
+    label: 'Health Worker / BHW Assistance',
     description:
-      'Request a BHW visit, health check, or basic health assistance.',
+      'Request a non-emergency health check, home visit, mobility support, or basic health assistance.',
   },
 
   'road-obstruction': {
-    label: 'Blocked Road / Obstruction',
+    label: 'Road Obstruction / Fallen Tree',
     description:
-      'Tree, debris, vehicle, or object is blocking a road or pathway.',
+      'Tree, debris, vehicle, or object is blocking or limiting a road or pathway.',
   },
 
   'damaged-facility': {
     label: 'Damaged Public Facility',
     description:
-      'Damaged streetlight, road, drainage, or barangay facility.',
+      'Damaged road, pathway, drainage structure, barangay facility, or other public infrastructure.',
   },
 
   cleanup: {
-    label: 'Community Clean-Up',
+    label: 'Drainage / Flood Risk',
     description:
-      'Waste, branches, or scattered debris needs barangay clean-up.',
+      'Clogged drainage, standing water, recurring water buildup, or flooding risk without an active rescue emergency.',
   },
 
   'community-concern': {
-    label: 'Community Concern',
+    label: 'Electrical / Streetlight Hazard',
     description:
-      'Sanitation, noise, stray animals, or other neighborhood concerns.',
+      'Damaged streetlight, exposed or loose wiring, leaning electrical structure, or similar hazard without immediate life danger.',
   },
 
   'other-assistance': {
     label: 'Other Barangay Assistance',
     description:
-      'Request barangay help that does not fit the categories above.',
+      'Request non-urgent barangay help that does not fit the six main categories.',
   },
 };
 
@@ -151,18 +151,12 @@ const subcategories = {
     'Barangay Facility',
   ],
 
-  cleanup: [
-    'Waste Collection',
-    'Storm Debris / Branches',
-    'Drainage Clean-up',
-  ],
-
-  'community-concern': [
-    'Sanitation',
-    'Noise',
-    'Stray Animals',
-    'Public Area',
-  ],
+  /*
+   * Detailed facts for these two revised categories are
+   * collected through the factual situation-check questions.
+   */
+  cleanup: [],
+  'community-concern': [],
 };
 
 const affectedOptions = [
@@ -177,6 +171,7 @@ const PHOTO_OR_REASON_CONCERNS = new Set([
   'road-obstruction',
   'damaged-facility',
   'cleanup',
+  'community-concern',
 ]);
 
 const NO_PHOTO_REASONS = [
@@ -229,6 +224,16 @@ export default function NonEmergencyReport() {
     subcategory,
     setSubcategory,
   ] = useState('');
+
+  /*
+   * Keep the main report screen short.
+   * Category details and optional subcategories open
+   * in a focused popup instead of expanding the page.
+   */
+  const [
+    showConcernDetails,
+    setShowConcernDetails,
+  ] = useState(false);
 
   const [
     showSituationCheck,
@@ -839,7 +844,7 @@ export default function NonEmergencyReport() {
         </h1>
 
         <p className="text-[13px] text-resqnow-muted mt-1">
-          Report a barangay concern or request assistance.
+          Report a non-urgent hazard or request barangay assistance.
         </p>
       </div>
 
@@ -967,28 +972,29 @@ export default function NonEmergencyReport() {
       </section>
 
       {/* CONCERN TYPE */}
-      <section
-        id="ne-concern"
-        tabIndex={-1}
-        className="bg-white border border-resqnow-border-soft rounded-2xl p-4 mb-4 outline-none"
-      >
+      <section className="bg-white border border-resqnow-border-soft rounded-2xl p-4 mb-4">
 
         <h2 className="text-[15px] font-bold text-resqnow-primary">
           What is your concern?
         </h2>
 
-        <p className="text-[12px] text-resqnow-muted mt-1">
-          Select the category that best matches your report.
+        <p className="text-[11px] text-resqnow-muted mt-1">
+          Select the category that best matches the situation.
         </p>
 
-        <div className="grid grid-cols-2 gap-2 mt-3">
 
-          {nonEmergencyTypes.map(
-            (type) => {
+        {/* SIX MAIN CONCERN TILES */}
+        <div className="grid grid-cols-2 gap-2.5 mt-3">
+
+          {nonEmergencyTypes
+            .filter(
+              (type) =>
+                type.id !==
+                'other-assistance'
+            )
+            .map((type) => {
               const Icon =
-                iconMap[
-                  type.id
-                ] ||
+                iconMap[type.id] ||
                 CircleHelp;
 
               const selected =
@@ -996,53 +1002,33 @@ export default function NonEmergencyReport() {
                 type.id;
 
               const info =
-                getConcernInfo(
-                  type
-                );
+                getConcernInfo(type);
 
               return (
                 <button
-                  key={
-                    type.id
-                  }
+                  key={type.id}
                   type="button"
-                  aria-pressed={
-                    selected
-                  }
+                  aria-pressed={selected}
                   onClick={() => {
                     if (
                       selectedType?.id !==
                       type.id
                     ) {
+                      setSubcategory('');
                       setSvfAnswers({});
-                      setNoPhotoReason('');
                     }
 
-                    setSelectedType(
-                      type
-                    );
-
-                    setSubcategory(
-                      ''
-                    );
-
-                    setShowSituationCheck(
-                      true
-                    );
-
+                    setSelectedType(type);
                     setError('');
+                    setShowConcernDetails(true);
                   }}
-                  className={`p-3 min-h-[124px] rounded-xl border text-left active:scale-[0.98] transition-all ${
-                    type.id ===
-                    'other-assistance'
-                      ? 'col-span-2'
-                      : ''
-                  } ${
+                  className={`min-h-[132px] rounded-xl border p-3 text-left active:scale-[0.98] transition-all ${
                     selected
-                      ? 'bg-resqnow-violet/10 border-resqnow-violet/30 ring-1 ring-resqnow-violet/15'
-                      : 'bg-white border-resqnow-border-soft hover:bg-resqnow-violet/5 hover:border-resqnow-violet/20'
+                      ? 'bg-resqnow-violet/10 border-resqnow-violet/40 ring-1 ring-resqnow-violet/15'
+                      : 'bg-white border-resqnow-border-soft hover:bg-resqnow-violet/5'
                   }`}
                 >
+
                   <div
                     className={`w-9 h-9 rounded-xl flex items-center justify-center ${
                       selected
@@ -1054,102 +1040,253 @@ export default function NonEmergencyReport() {
                   </div>
 
                   <p
-                    className={`text-[13px] font-bold mt-2 leading-snug ${
+                    className={`text-[10.5px] font-bold leading-snug mt-2 ${
                       selected
                         ? 'text-resqnow-violet'
                         : 'text-resqnow-primary'
                     }`}
                   >
-                    {
-                      info.label
-                    }
+                    {info.label}
                   </p>
 
-                  <p
-                    className={`text-[11px] mt-1.5 leading-relaxed ${
-                      selected
-                        ? 'text-resqnow-violet/80'
-                        : 'text-resqnow-muted'
-                    }`}
-                  >
-                    {
-                      info.description
-                    }
+                  <p className="text-[9px] text-resqnow-muted leading-relaxed mt-1.5">
+                    {info.description}
                   </p>
+
                 </button>
               );
-            }
-          )}
+            })}
+
         </div>
 
-        {/* SUBCATEGORY */}
-        {availableSubcategories.length >
-          0 && (
-          <div className="mt-4 rounded-xl bg-resqnow-canvas border border-resqnow-border-soft p-3">
 
-            <p className="text-[12px] font-bold text-resqnow-secondary mb-2.5">
-              Specify the concern{' '}
-              <span className="text-resqnow-muted font-medium">
-                (optional)
-              </span>
-            </p>
+        {/* CONTROLLED FALLBACK */}
+        {(() => {
+          const otherType =
+            nonEmergencyTypes.find(
+              (type) =>
+                type.id ===
+                'other-assistance'
+            );
 
-            <div className="flex flex-wrap gap-2">
+          if (!otherType) {
+            return null;
+          }
 
-              {availableSubcategories.map(
-                (item) => (
-                  <button
-                    key={item}
-                    type="button"
-                    aria-pressed={
-                      subcategory ===
-                      item
-                    }
-                    onClick={() =>
-                      setSubcategory(
-                        item
-                      )
-                    }
-                    className={`px-3.5 py-2.5 min-h-[40px] rounded-full text-[12px] font-semibold border active:scale-95 transition-all ${
-                      subcategory ===
-                      item
-                        ? 'bg-resqnow-violet border-resqnow-violet text-white shadow-sm'
-                        : 'bg-white border-resqnow-border text-resqnow-muted hover:border-resqnow-violet/40 hover:text-resqnow-violet'
+          const Icon =
+            iconMap[otherType.id] ||
+            CircleHelp;
+
+          const selected =
+            selectedType?.id ===
+            otherType.id;
+
+          const info =
+            getConcernInfo(otherType);
+
+          return (
+            <button
+              type="button"
+              aria-pressed={selected}
+              onClick={() => {
+                if (
+                  selectedType?.id !==
+                  otherType.id
+                ) {
+                  setSubcategory('');
+                  setSvfAnswers({});
+                }
+
+                setSelectedType(
+                  otherType
+                );
+
+                setError('');
+                setShowConcernDetails(true);
+              }}
+              className={`w-full mt-2.5 min-h-[78px] rounded-xl border p-3 text-left active:scale-[0.98] transition-all ${
+                selected
+                  ? 'bg-resqnow-violet/10 border-resqnow-violet/40 ring-1 ring-resqnow-violet/15'
+                  : 'bg-white border-resqnow-border-soft hover:bg-resqnow-violet/5'
+              }`}
+            >
+
+              <div className="flex items-start gap-3">
+
+                <div
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                    selected
+                      ? 'bg-resqnow-violet/15 text-resqnow-violet'
+                      : 'bg-resqnow-canvas text-resqnow-muted'
+                  }`}
+                >
+                  <Icon className="w-[18px] h-[18px]" />
+                </div>
+
+                <div>
+
+                  <p
+                    className={`text-[10.5px] font-bold ${
+                      selected
+                        ? 'text-resqnow-violet'
+                        : 'text-resqnow-primary'
                     }`}
                   >
-                    {item}
+                    {info.label}
+                  </p>
+
+                  <p className="text-[9px] text-resqnow-muted leading-relaxed mt-1">
+                    {info.description}
+                  </p>
+
+                </div>
+
+              </div>
+
+            </button>
+          );
+        })()}
+
+      </section>
+
+      {/* CONCERN DETAIL POPUP */}
+      <Modal
+        open={
+          showConcernDetails &&
+          Boolean(selectedType)
+        }
+        onClose={() =>
+          setShowConcernDetails(false)
+        }
+        title={
+          selectedType
+            ? getConcernInfo(
+                selectedType
+              ).label
+            : 'Concern'
+        }
+        description={
+          selectedType
+            ? getConcernInfo(
+                selectedType
+              ).description
+            : ''
+        }
+      >
+        {selectedType && (
+          <div className="space-y-4">
+
+            {availableSubcategories.length > 0 && (
+              <div>
+
+                <p className="text-[11px] font-bold text-resqnow-primary">
+                  Specify the concern
+                  <span className="font-medium text-resqnow-muted">
+                    {' '}
+                    (optional)
+                  </span>
+                </p>
+
+                <p className="text-[10px] text-resqnow-muted mt-1">
+                  Choose the closest match if one applies.
+                </p>
+
+                <div className="grid grid-cols-2 gap-2 mt-3">
+
+                  {availableSubcategories.map(
+                    (item) => (
+                      <button
+                        key={item}
+                        type="button"
+                        aria-pressed={
+                          subcategory ===
+                          item
+                        }
+                        onClick={() => {
+                          setSubcategory(
+                            subcategory === item
+                              ? ''
+                              : item
+                          );
+
+                          setError('');
+                        }}
+                        className={`min-h-[42px] rounded-xl border px-3 py-2 text-[10px] font-semibold leading-snug active:scale-[0.98] transition-all ${
+                          subcategory === item
+                            ? 'bg-resqnow-violet border-resqnow-violet text-white'
+                            : 'bg-white border-resqnow-border-soft text-resqnow-secondary'
+                        }`}
+                      >
+                        {item}
+                      </button>
+                    )
+                  )}
+                </div>
+              </div>
+            )}
+
+
+            {selectedType.id ===
+              'evac-assistance' && (
+              <div className="rounded-xl border border-resqnow-caution/30 bg-resqnow-caution/10 p-3">
+
+                <p className="text-[11px] font-extrabold text-resqnow-primary">
+                  Is this actually urgent?
+                </p>
+
+                <p className="text-[10px] leading-relaxed text-resqnow-secondary mt-1">
+                  Use this non-emergency option for evacuation preparation,
+                  transportation, shelter, or supplies when there is no immediate
+                  life danger.
+                </p>
+
+                <div className="mt-3 grid grid-cols-1 gap-2">
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowConcernDetails(false);
+                      navigate(
+                        '/submit/emergency'
+                      );
+                    }}
+                    className="min-h-[42px] rounded-xl border border-resqnow-critical/30 bg-white px-3 text-[10px] font-bold text-resqnow-critical"
+                  >
+                    Urgent Evacuation → Emergency Report
                   </button>
-                )
-              )}
-            </div>
-          </div>
-        )}
 
-        {/* EVACUATION WARNING */}
-        {selectedType?.id ===
-          'evac-assistance' && (
-          <div className="mt-3 text-[12px] text-resqnow-secondary bg-resqnow-caution/10 border border-resqnow-caution/20 rounded-lg px-3 py-2.5 leading-relaxed">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowConcernDetails(false);
+                      navigate(
+                        '/dashboard'
+                      );
+                    }}
+                    className="min-h-[42px] rounded-xl bg-resqnow-critical px-3 text-[10px] font-extrabold text-white"
+                  >
+                    Immediate Life Danger → Use SOS
+                  </button>
 
-            In danger right now? Use{' '}
+                </div>
+              </div>
+            )}
+
 
             <button
               type="button"
-              onClick={() =>
-                navigate(
-                  '/submit/emergency'
-                )
-              }
-              className="font-bold text-resqnow-critical underline"
+              onClick={() => {
+                setShowConcernDetails(false);
+                setShowSituationCheck(true);
+              }}
+              className="w-full min-h-[44px] rounded-xl bg-resqnow-violet text-white text-[11px] font-extrabold"
             >
-              Emergency Report
-              ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¾ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¾ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ Urgent
-              Evacuation
-            </button>{' '}
+              Use This Concern
+            </button>
 
-            instead.
           </div>
         )}
-      </section>
+      </Modal>
 
       {/* LOCATION */}
       <section className="bg-white border border-resqnow-border-soft rounded-2xl overflow-hidden mb-4">

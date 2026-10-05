@@ -65,7 +65,7 @@ export default function Settings() {
   );
 
   const [purok, setPurok] = useState(
-    user?.purok || 'Purok 1'
+    user?.purok || 'Purok 1 — Juan Street'
   );
 
   const [householdCount, setHouseholdCount] = useState(
@@ -390,7 +390,7 @@ export default function Settings() {
     );
 
     setPurok(
-      user?.purok || 'Purok 1'
+      user?.purok || 'Purok 1 — Juan Street'
     );
 
     setHouseholdCount(
@@ -869,7 +869,7 @@ export default function Settings() {
                     )}
                   </select>
                 ) : (
-                  <p className="text-[12px] font-semibold text-resqnow-primary mt-1">
+                  <p className="mt-1 text-[12px] font-semibold text-resqnow-primary">
                     {purok}
                   </p>
                 )}

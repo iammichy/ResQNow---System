@@ -1,34 +1,20 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 
-import AdminLogin from "./auth/AdminLogin";
 
 import AdminLayout from "./components/layout/AdminLayout";
 
-import Dashboard from "./pages/dashboard/Dashboard";
 
-import AuditLogs from "./pages/audit-logs/AuditLogs";
 
-import SettingsRoles from "./pages/settings/SettingsRoles";
 
-import ManualAddReport from "./pages/manual-report/ManualAddReport";
 
-import AnnouncementsPage from "./pages/announcements/AnnouncementsPage";
 
-import IncidentMap from "./pages/map/IncidentMap";
 
-import AllReports from "./pages/all-reports/AllReports";
 
-import LiveUpdates from "./pages/live-updates/LiveUpdates";
 
-import Verification from "./pages/verification/Verification";
 
-import ReportDetails from "./pages/report-details/ReportDetails";
 
-import Prioritization from "./pages/prioritization/Prioritization";
 
-import ResidentsPage from "./pages/residents/ResidentsPage";
 
-import PersonnelPage from "./pages/personnel/PersonnelPage";
 
 import LanguageProvider from "./context/LanguageProvider";
 
@@ -42,6 +28,76 @@ import {
   isAuthenticated as hasAuthToken,
   logout as logoutUser,
 } from "./services/authService";
+
+const AdminLogin = lazy(
+  () => import("./auth/AdminLogin"),
+);
+
+const Dashboard = lazy(
+  () => import("./pages/dashboard/Dashboard"),
+);
+
+const AuditLogs = lazy(
+  () => import("./pages/audit-logs/AuditLogs"),
+);
+
+const SettingsRoles = lazy(
+  () => import("./pages/settings/SettingsRoles"),
+);
+
+const ManualAddReport = lazy(
+  () => import("./pages/manual-report/ManualAddReport"),
+);
+
+const AnnouncementsPage = lazy(
+  () => import("./pages/announcements/AnnouncementsPage"),
+);
+
+const IncidentMap = lazy(
+  () => import("./pages/map/IncidentMap"),
+);
+
+const AllReports = lazy(
+  () => import("./pages/all-reports/AllReports"),
+);
+
+const LiveUpdates = lazy(
+  () => import("./pages/live-updates/LiveUpdates"),
+);
+
+const Verification = lazy(
+  () => import("./pages/verification/Verification"),
+);
+
+const ReportDetails = lazy(
+  () => import("./pages/report-details/ReportDetails"),
+);
+
+const Prioritization = lazy(
+  () => import("./pages/prioritization/Prioritization"),
+);
+
+const ResidentsPage = lazy(
+  () => import("./pages/residents/ResidentsPage"),
+);
+
+const PersonnelPage = lazy(
+  () => import("./pages/personnel/PersonnelPage"),
+);
+
+function AdminLoadingFallback() {
+  return (
+    <div className="flex min-h-[220px] items-center justify-center">
+      <div className="text-center">
+        <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-[#D0D5DD] border-t-[#1F5FA6]" />
+
+        <p className="mt-3 text-sm font-semibold text-[#667085]">
+          Loading ResQNow...
+        </p>
+      </div>
+    </div>
+  );
+}
 
 function App() {
   /* =========================
@@ -60,7 +116,18 @@ function App() {
      NAVIGATION / RBAC
   ========================= */
 
-  const [activePage, setActivePage] = useState("dashboard");
+  const [activePage, setActivePage] = useState(() => {
+    // RESTORE ADMIN WORKSPACE
+    try {
+      return (
+        sessionStorage.getItem(
+          "resqnow-admin-active-page",
+        ) || "dashboard"
+      );
+    } catch {
+      return "dashboard";
+    }
+  });
   const can = (permission) => {
     if (!currentUser) {
       return false;
@@ -69,9 +136,49 @@ function App() {
     return hasPermission(currentUser.role, permission);
   };
 
-  const [selectedReport, setSelectedReport] = useState(null);
+  const [selectedReport, setSelectedReport] = useState(() => {
+    // RESTORE SELECTED ADMIN REPORT
+    try {
+      const savedReport =
+        sessionStorage.getItem(
+          "resqnow-admin-selected-report",
+        );
+
+      return savedReport
+        ? JSON.parse(savedReport)
+        : null;
+    } catch {
+      return null;
+    }
+  });
 
   const [selectedResident, setSelectedResident] = useState(null);
+
+  // PERSIST ADMIN WORKSPACE
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        "resqnow-admin-active-page",
+        activePage,
+      );
+
+      if (selectedReport) {
+        sessionStorage.setItem(
+          "resqnow-admin-selected-report",
+          JSON.stringify(selectedReport),
+        );
+      } else {
+        sessionStorage.removeItem(
+          "resqnow-admin-selected-report",
+        );
+      }
+    } catch {
+      // Storage failure must not interrupt Admin work.
+    }
+  }, [
+    activePage,
+    selectedReport,
+  ]);
 
   /* =========================
      SHARED REPORT DATA
@@ -129,6 +236,19 @@ function App() {
 
       setActivePage("dashboard");
 
+      // CLEAR ADMIN WORKSPACE
+      try {
+        sessionStorage.removeItem(
+          "resqnow-admin-active-page",
+        );
+
+        sessionStorage.removeItem(
+          "resqnow-admin-selected-report",
+        );
+      } catch {
+        // Ignore browser-storage cleanup failure.
+      }
+
       setSelectedReport(null);
 
       setSelectedResident(null);
@@ -159,6 +279,9 @@ function App() {
           localStorage.removeItem("resqnow_token");
           localStorage.removeItem("resqnow_user");
 
+          sessionStorage.removeItem("resqnow_token");
+          sessionStorage.removeItem("resqnow_user");
+
           setCurrentUser(null);
           setIsAuthenticated(false);
 
@@ -168,13 +291,22 @@ function App() {
         setCurrentUser(normalizedUser);
         setIsAuthenticated(true);
       } catch (error) {
-        console.error("Authentication verification failed:", error);
+        console.error(
+          "Authentication verification failed:",
+          error,
+        );
 
-        localStorage.removeItem("resqnow_token");
-        localStorage.removeItem("resqnow_user");
-
-        setCurrentUser(null);
-        setIsAuthenticated(false);
+        /*
+         * PRESERVE AUTH ON TRANSIENT VERIFICATION FAILURE
+         *
+         * apiClient already removes the current token when the
+         * backend genuinely returns 401. Network errors and
+         * temporary server errors must not behave like Logout.
+         */
+        if (!hasAuthToken()) {
+          setCurrentUser(null);
+          setIsAuthenticated(false);
+        }
       }
     };
 
@@ -202,6 +334,21 @@ function App() {
       ...report,
       ...(reportUpdates[report.id] || {}),
     };
+
+    // SAVE REPORT BEFORE NAVIGATION
+    try {
+      sessionStorage.setItem(
+        "resqnow-admin-selected-report",
+        JSON.stringify(latestReport),
+      );
+
+      sessionStorage.setItem(
+        "resqnow-admin-active-page",
+        "report-details",
+      );
+    } catch {
+      // Continue with in-memory navigation.
+    }
 
     setSelectedReport(latestReport);
 
@@ -257,6 +404,12 @@ function App() {
   ========================= */
 
   useEffect(() => {
+    // DEFER GLOBAL AUDIT LOGS
+    // Fetch the complete audit collection only when Admin
+    // actually opens the Audit Logs page.
+    if (activePage !== "audit-logs") {
+      return undefined;
+    }
     const loadAuditLogs = async () => {
       try {
         const data = await getAllAuditLogs();
@@ -306,9 +459,7 @@ function App() {
     if (isAuthenticated) {
       loadAuditLogs();
     }
-  }, [isAuthenticated]);
-
-  /* =========================
+  }, [activePage]);  /* =========================
      AUDIT LOG MANAGEMENT
   ========================= */
 
@@ -529,22 +680,18 @@ function App() {
         );
 
       default:
+        /*
+         * Defensive fallback:
+         * an unknown or stale page key must never expose an
+         * unfinished screen during Admin operations.
+         */
         return (
-          <div className="flex min-h-full items-center justify-center">
-            <div className="rounded-xl border border-[#E4E7EC] bg-white px-8 py-10 text-center shadow-sm">
-              <p className="text-sm font-semibold text-[#1F5FA6]">
-                ResQNow Web Admin
-              </p>
-
-              <h1 className="mt-2 text-2xl font-extrabold text-[#101C2E]">
-                Module Not Implemented Yet
-              </h1>
-
-              <p className="mt-2 text-sm text-[#667085]">
-                This module will be implemented in a future phase.
-              </p>
-            </div>
-          </div>
+          <Dashboard
+            onOpenReport={handleOpenReport}
+            onNavigate={handleNavigate}
+            reportUpdates={reportUpdates}
+            autoRefresh={systemSettings.autoRefresh}
+          />
         );
     }
   };
@@ -556,7 +703,9 @@ function App() {
   if (!isAuthenticated) {
     return (
       <LanguageProvider language={systemSettings?.language || "English"}>
-        <AdminLogin onLogin={handleLogin} />
+        <Suspense fallback={<AdminLoadingFallback />}>
+          <AdminLogin onLogin={handleLogin} />
+        </Suspense>
       </LanguageProvider>
     );
   }
@@ -576,7 +725,9 @@ function App() {
         can={can}
         systemSettings={systemSettings}
       >
-        {renderPage()}
+        <Suspense fallback={<AdminLoadingFallback />}>
+          {renderPage()}
+        </Suspense>
       </AdminLayout>
     </LanguageProvider>
   );

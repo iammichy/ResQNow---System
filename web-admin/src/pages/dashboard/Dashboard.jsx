@@ -135,6 +135,25 @@ const statConfig = [
   },
 ];
 
+import {
+  getReportDisplayTitle,
+} from "../../utils/reportDisplay";
+
+const DASHBOARD_TERMINAL_STATUSES = new Set([
+  "resolved",
+  "closed",
+  "cancelled",
+  "invalid",
+]);
+
+function isTerminalDashboardStatus(status) {
+  return DASHBOARD_TERMINAL_STATUSES.has(
+    String(status || "")
+      .trim()
+      .toLowerCase(),
+  );
+}
+
 export default function Dashboard({
   onNavigate,
   onOpenReport,
@@ -266,7 +285,9 @@ export default function Dashboard({
   const nonEmergencyReports = totalReports - emergencyReports;
 
   const pendingVerification = updatedReports.filter(
-    (report) => report.verification === "Pending",
+    (report) =>
+      report.verification === "Pending" &&
+      !isTerminalDashboardStatus(report.status),
   ).length;
 
   const resolvedReports = updatedReports.filter((report) => {
@@ -316,26 +337,79 @@ export default function Dashboard({
   ========================================================= */
 
   const activeIncidents = useMemo(() => {
-    return incidents.filter(
-      (incident) => !["Resolved", "Closed"].includes(incident.status),
-    );
-  }, [incidents]);
+    return incidents.filter((incident) => {
+      if (
+        isTerminalDashboardStatus(
+          incident.status,
+        )
+      ) {
+        return false;
+      }
+
+      const relatedReport = updatedReports.find(
+        (report) =>
+          Number(report.databaseId) ===
+          Number(incident.report_id),
+      );
+
+      if (
+        relatedReport &&
+        isTerminalDashboardStatus(
+          relatedReport.status,
+        )
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [incidents, updatedReports]);
 
   const activeIncident = activeIncidents[0] || null;
 
+  const activeIncidentReport = useMemo(() => {
+    if (!activeIncident) {
+      return null;
+    }
+
+    return (
+      updatedReports.find(
+        (report) =>
+          Number(report.databaseId) ===
+          Number(activeIncident.report_id),
+      ) || null
+    );
+  }, [activeIncident, updatedReports]);
+
   const urgentReports = useMemo(() => {
     return updatedReports.filter((report) => {
-      if (!["Critical", "High"].includes(report.priority)) {
+      if (
+        !["Critical", "High"].includes(
+          report.priority,
+        )
+      ) {
+        return false;
+      }
+
+      if (
+        isTerminalDashboardStatus(
+          report.status,
+        )
+      ) {
         return false;
       }
 
       const relatedIncident = incidents.find(
-        (incident) => incident.report_id === report.databaseId,
+        (incident) =>
+          Number(incident.report_id) ===
+          Number(report.databaseId),
       );
 
       if (
         relatedIncident &&
-        ["Resolved", "Closed"].includes(relatedIncident.status)
+        isTerminalDashboardStatus(
+          relatedIncident.status,
+        )
       ) {
         return false;
       }
@@ -525,7 +599,7 @@ export default function Dashboard({
                     </p>
 
                     <p className="mt-1 text-[26px] font-bold leading-none text-[var(--text-primary)]">
-                      {stat.value}
+                      {loading ? "—" : stat.value}
                     </p>
                   </div>
 
@@ -559,12 +633,18 @@ export default function Dashboard({
             </div>
 
             <span className="rounded-full bg-[#FFF0F3] px-3 py-1 text-xs font-bold text-[#D90429]">
-              {urgentReports.length}
+              {loading ? "…" : urgentReports.length}
             </span>
           </div>
 
           <div className="p-4">
-            {urgentReports.length === 0 ? (
+            {loading ? (
+            <div className="flex min-h-[100px] items-center justify-center text-center">
+              <p className="text-sm text-[var(--text-muted)]">
+                Loading emergency reports...
+              </p>
+            </div>
+          ) : urgentReports.length === 0 ? (
               <div className="flex min-h-[100px] items-center justify-center text-center">
                 <p className="text-sm text-[var(--text-muted)]">
                   No urgent emergency reports at this time.
@@ -584,9 +664,9 @@ export default function Dashboard({
                         </span>
 
                         <span className="text-xs text-[var(--text-muted)]">
-                          {report.report_type ||
-                            report.type ||
-                            "Emergency Report"}
+                          {getReportDisplayTitle(
+                            report,
+                          )}
                         </span>
                       </div>
 
@@ -639,9 +719,13 @@ export default function Dashboard({
                   <span className="h-2.5 w-2.5 rounded-full bg-[#FF2D55]" />
 
                   <span className="text-sm font-semibold text-[#D90429]">
-                    {activeIncident
-                      ? t("activeIncidentStatus")
-                      : t("noActiveIncident")}
+                    {loading
+            ? "Loading..."
+            : activeIncident
+              ? t("activeIncidentStatus")
+              : urgentReports.length > 0
+                ? "Awaiting coordination"
+                : t("noActiveIncident")}
                   </span>
                 </div>
               </div>
@@ -659,7 +743,55 @@ export default function Dashboard({
                   <>
                     {/* ALERT CARD */}
 
-                    <div className="rounded-xl bg-[#B42318] p-5 text-white">
+                    <div
+                      role={
+                        activeIncidentReport
+                          ? "button"
+                          : undefined
+                      }
+                      tabIndex={
+                        activeIncidentReport
+                          ? 0
+                          : undefined
+                      }
+                      aria-label={
+                        activeIncidentReport
+                          ? "Open active incident report"
+                          : undefined
+                      }
+                      title={
+                        activeIncidentReport
+                          ? "Open full report"
+                          : undefined
+                      }
+                      onClick={() => {
+                        if (activeIncidentReport) {
+                          onOpenReport?.(
+                            activeIncidentReport,
+                          );
+                        }
+                      }}
+                      onKeyDown={(event) => {
+                        if (
+                          activeIncidentReport &&
+                          (
+                            event.key === "Enter" ||
+                            event.key === " "
+                          )
+                        ) {
+                          event.preventDefault();
+
+                          onOpenReport?.(
+                            activeIncidentReport,
+                          );
+                        }
+                      }}
+                      className={`rounded-xl bg-[#B42318] p-5 text-white ${
+                        activeIncidentReport
+                          ? "cursor-pointer transition hover:bg-[#912018] focus:outline-none focus:ring-2 focus:ring-[#FDA29B] focus:ring-offset-2"
+                          : ""
+                      }`}
+                    >
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-4">
                           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white text-[#D90429]">
@@ -668,9 +800,13 @@ export default function Dashboard({
 
                           <div>
                             <h3 className="text-[21px] font-bold">
-                              {activeIncident.title ||
-                                activeIncident.type ||
-                                t("emergencyIncident")}
+                              {activeIncidentReport
+                                ? getReportDisplayTitle(
+                                    activeIncidentReport,
+                                  )
+                                : activeIncident.title ||
+                                  activeIncident.type ||
+                                  t("emergencyIncident")}
                             </h3>
 
                             <p className="mt-1 text-sm text-white/85">
@@ -688,6 +824,12 @@ export default function Dashboard({
                           <p className="mt-1 text-lg font-bold">
                             {activeIncident.status}
                           </p>
+
+                          {activeIncidentReport && (
+                            <p className="mt-2 text-[11px] font-semibold text-white/80">
+                              Open full report →
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -737,19 +879,51 @@ export default function Dashboard({
                       </div>
                     </div>
                   </>
-                ) : (
-                  <div className="flex min-h-[170px] flex-col items-center justify-center text-center">
-                    <Check size={34} className="text-[#2ED47A]" />
+                ) : urgentReports.length > 0 ? (
+        <div className="flex min-h-[170px] flex-col items-center justify-center px-5 text-center">
+          <AlertTriangle
+            size={34}
+            className="text-[#F59E0B]"
+          />
 
-                    <h3 className="mt-3 font-bold text-[var(--text-primary)]">
-                      {t("noActiveIncidents")}
-                    </h3>
+          <h3 className="mt-3 font-bold text-[var(--text-primary)]">
+            No active response incident yet
+          </h3>
 
-                    <p className="mt-1 text-sm text-[var(--text-muted)]">
-                      {t("allIncidentsResolved")}
-                    </p>
-                  </div>
-                )}
+          <p className="mt-1 max-w-lg text-sm text-[var(--text-muted)]">
+            {urgentReports.length === 1
+              ? "1 urgent report is awaiting verification or response coordination."
+              : `${urgentReports.length} urgent reports are awaiting verification or response coordination.`}
+          </p>
+
+          <button
+            type="button"
+            onClick={() =>
+              onOpenReport?.(
+                urgentReports[0]
+              )
+            }
+            className="mt-4 rounded-lg bg-[#1F5FA6] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#174A86]"
+          >
+            Open urgent report
+          </button>
+        </div>
+      ) : (
+        <div className="flex min-h-[170px] flex-col items-center justify-center text-center">
+          <Check
+            size={34}
+            className="text-[#2ED47A]"
+          />
+
+          <h3 className="mt-3 font-bold text-[var(--text-primary)]">
+            No active response incidents
+          </h3>
+
+          <p className="mt-1 text-sm text-[var(--text-muted)]">
+            There are no incidents currently in response coordination.
+          </p>
+        </div>
+      )}
               </div>
             </section>
 

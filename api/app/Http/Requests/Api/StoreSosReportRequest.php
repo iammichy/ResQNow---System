@@ -61,6 +61,17 @@ class StoreSosReportRequest extends FormRequest
                 'nullable',
                 'date',
             ],
+            'location.source' => [
+                'nullable',
+                'string',
+                'in:gps,manual',
+            ],
+
+            'location.label' => [
+                'nullable',
+                'string',
+                'max:240',
+            ],
         ];
     }
 

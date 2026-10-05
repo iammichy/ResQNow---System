@@ -18,6 +18,7 @@ import {
   openSosSms,
   submitSos,
 } from '../../services/sosService';
+import SosLocationConfirm from './SosLocationConfirm';
 
 const SWIPE_THRESHOLD = 0.84;
 const HOLD_MS = 2000;
@@ -38,6 +39,12 @@ export default function SOSAction({ user, hotline, onCreated, onCallHotline }) {
   const [lastKey, setLastKey] = useState(null);
   const [selectedReason, setSelectedReason] = useState(null);
   const [lastError, setLastError] = useState('');
+  const [locationMode, setLocationMode] = useState('gps');
+  const [locationOutcome, setLocationOutcome] = useState(null);
+  const [gpsLocation, setGpsLocation] = useState(null);
+  const [manualLocation, setManualLocation] = useState(null);
+  const [manualLocationText, setManualLocationText] = useState('');
+  const [locationError, setLocationError] = useState('');
 
   const isBusy = ['locating', 'sending'].includes(phase);
   const maxTravel = Math.max(0, trackWidth - 64);
@@ -63,14 +70,122 @@ export default function SOSAction({ user, hotline, onCreated, onCallHotline }) {
   const instruction = useMemo(() => {
     if (phase === 'locating') return 'Getting the fastest available location...';
     if (phase === 'sending') return 'Sending SOS securely to ResQNow...';
+    if (phase === 'location') return 'Confirm where help is needed.';
     if (phase === 'fallback') return 'Online delivery could not be confirmed.';
     return 'Life-threatening emergency only';
   }, [phase]);
 
-  const executeSos = async ({ reuseLocation = false, reason = null } = {}) => {
-    if (isBusy) return;
+  const sendSos = async ({
+    location = null,
+    reason = selectedReason,
+  } = {}) => {
+    if (
+      !reason ||
+      phase === 'sending'
+    ) {
+      return;
+    }
 
-    const chosenReason = reason || selectedReason;
+    const idempotencyKey =
+      lastKey ||
+      getOrCreateSosKey(
+        reason
+      );
+
+    setLastKey(
+      idempotencyKey
+    );
+
+    setLastError('');
+    setLocationError('');
+
+    // Preserve the exact location for retry / SMS fallback.
+    setLastLocation(
+      location
+    );
+
+    setPhase('sending');
+
+    try {
+      const result =
+        await submitSos({
+          location,
+          idempotencyKey,
+          reason,
+        });
+
+      clearPendingSosKey();
+
+      setPhase(
+        'success'
+      );
+
+      onCreated?.(
+        result.report
+      );
+    } catch (error) {
+      setLastError(
+        error?.message ||
+          'ResQNow could not confirm online delivery. Use the SMS or hotline fallback now.'
+      );
+
+      setPhase(
+        'fallback'
+      );
+    }
+  };
+
+  const captureSosLocation = async () => {
+    setLastError('');
+    setLocationError('');
+    setPhase('locating');
+
+    const result =
+      await captureBestEffortLocation();
+
+    const captured =
+      result.location
+        ? {
+            ...result.location,
+            source: 'gps',
+          }
+        : null;
+
+    setLocationOutcome(
+      result.outcome
+    );
+
+    setGpsLocation(
+      captured
+    );
+
+    // Manual coordinates are intentionally separate from GPS.
+    setManualLocation(
+      null
+    );
+
+    setLocationMode(
+      captured
+        ? 'gps'
+        : 'manual'
+    );
+
+    setPhase(
+      'location'
+    );
+  };
+
+  const executeSos = async ({
+    reuseLocation = false,
+    reason = null,
+  } = {}) => {
+    if (isBusy) {
+      return;
+    }
+
+    const chosenReason =
+      reason ||
+      selectedReason;
 
     if (!chosenReason) {
       setPhase('reason');
@@ -79,44 +194,149 @@ export default function SOSAction({ user, hotline, onCreated, onCallHotline }) {
       return;
     }
 
-    setSelectedReason(chosenReason);
+    setSelectedReason(
+      chosenReason
+    );
 
-    const idempotencyKey =
-      lastKey || getOrCreateSosKey(chosenReason);
-
-    setLastKey(idempotencyKey);
-    setLastError('');
-
-    let location = reuseLocation ? lastLocation : null;
-
-    if (!reuseLocation) {
-      setPhase('locating');
-      const result = await captureBestEffortLocation();
-      location = result.location;
-      setLastLocation(location);
-    }
-
-    setPhase('sending');
-
-    try {
-      const result = await submitSos({
-        location,
-        idempotencyKey,
-        reason: chosenReason,
+    if (reuseLocation) {
+      await sendSos({
+        location:
+          lastLocation,
+        reason:
+          chosenReason,
       });
 
-      clearPendingSosKey();
-      setPhase('success');
-      onCreated?.(result.report);
-    } catch (error) {
-      setLastError(
-        error?.message ||
-          'ResQNow could not confirm online delivery. Use the SMS or hotline fallback now.'
-      );
-      setPhase('fallback');
+      return;
     }
+
+    await captureSosLocation();
   };
 
+  const sendGpsLocation = async () => {
+    if (!gpsLocation) {
+      setLocationError(
+        'Current GPS is unavailable. Retry GPS or use Manual Location.'
+      );
+
+      return;
+    }
+
+    await sendSos({
+      location: {
+        ...gpsLocation,
+        source: 'gps',
+      },
+      reason:
+        selectedReason,
+    });
+  };
+
+  const handleManualMapChange = (
+    next
+  ) => {
+    setLocationError('');
+
+    if (!next) {
+      setManualLocation(
+        null
+      );
+
+      return;
+    }
+
+    setManualLocation({
+      latitude:
+        Number(
+          next.latitude
+        ),
+      longitude:
+        Number(
+          next.longitude
+        ),
+      source:
+        'manual',
+      capturedAt:
+        new Date()
+          .toISOString(),
+    });
+  };
+
+  const sendManualLocation = async () => {
+    const label =
+      manualLocationText
+        .trim();
+
+    const latitude =
+      manualLocation?.latitude;
+
+    const longitude =
+      manualLocation?.longitude;
+
+    const hasCoordinates =
+      Number.isFinite(
+        Number(latitude)
+      ) &&
+      Number.isFinite(
+        Number(longitude)
+      );
+
+    if (
+      !label &&
+      !hasCoordinates
+    ) {
+      setLocationError(
+        'Enter a brief location or place the incident pin on the map.'
+      );
+
+      return;
+    }
+
+    const location = {
+      source:
+        'manual',
+
+      label:
+        label ||
+        'Resident-pinned incident location',
+
+      capturedAt:
+        new Date()
+          .toISOString(),
+
+      ...(hasCoordinates
+        ? {
+            latitude:
+              Number(
+                latitude
+              ),
+
+            longitude:
+              Number(
+                longitude
+              ),
+          }
+        : {}),
+    };
+
+    await sendSos({
+      location,
+      reason:
+        selectedReason,
+    });
+  };
+
+  const sendRegisteredAddressFallback = async () => {
+    /*
+     * Null is intentional:
+     * Laravel will use the resident's saved profile location
+     * and mark the location source as "saved".
+     */
+    await sendSos({
+      location: null,
+      reason:
+        selectedReason,
+    });
+  };
   const resetSwipe = () => {
     draggingRef.current = false;
     setDragX(0);
@@ -349,6 +569,36 @@ export default function SOSAction({ user, hotline, onCreated, onCallHotline }) {
           </div>
         </div>
       </section>
+    );
+  }
+
+  if (phase === 'location') {
+    return (
+      <SosLocationConfirm
+        mode={locationMode}
+        gpsLocation={gpsLocation}
+        manualLocation={manualLocation}
+        locationOutcome={locationOutcome}
+        manualText={manualLocationText}
+        error={locationError}
+        onModeChange={(nextMode) => {
+          setLocationMode(nextMode);
+          setLocationError('');
+        }}
+        onManualTextChange={(value) => {
+          setManualLocationText(value);
+          setLocationError('');
+        }}
+        onManualMapChange={handleManualMapChange}
+        onRetryGps={captureSosLocation}
+        onSendGps={sendGpsLocation}
+        onSendManual={sendManualLocation}
+        onUseSavedAddress={sendRegisteredAddressFallback}
+        onBack={() => {
+          setLocationError('');
+          setPhase('reason');
+        }}
+      />
     );
   }
 

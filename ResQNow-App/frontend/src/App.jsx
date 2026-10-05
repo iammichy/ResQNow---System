@@ -223,7 +223,6 @@ export default function App() {
               path="/submit/non-emergency"
               element={<NonEmergencyReport />}
             />
-
             <Route
               path="/track"
               element={<TrackReports />}

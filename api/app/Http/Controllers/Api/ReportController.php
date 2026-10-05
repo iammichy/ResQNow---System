@@ -17,7 +17,7 @@ class ReportController extends Controller
 {
     public function index(): JsonResponse
     {
-        $reports = Report::with('user')
+        $reports = Report::with(['user.profile', 'statusLogs'])
             ->latest()
             ->get();
 
@@ -31,7 +31,7 @@ class ReportController extends Controller
     public function forVerification(
         SvfVerificationService $svfVerification
     ): JsonResponse {
-        $reports = Report::with(['user', 'svfAnswer'])
+        $reports = Report::with(['user.profile', 'statusLogs', 'svfAnswer'])
             ->where('verification_status', 'Pending')
             ->latest()
             ->get();
@@ -174,7 +174,7 @@ class ReportController extends Controller
             $admin?->id
         );
 
-        $freshReport = $report->fresh(['user', 'svfAnswer']);
+        $freshReport = $report->fresh(['user.profile', 'statusLogs', 'svfAnswer']);
 
         $freshReport->setAttribute(
             'svf_allowed_answers',
@@ -234,7 +234,7 @@ class ReportController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Report returned for review successfully.',
-            'data' => $report->fresh('user'),
+            'data' => $report->fresh(['user.profile', 'statusLogs']),
         ]);
     }
 
@@ -242,7 +242,7 @@ class ReportController extends Controller
     {
 
     
-        $reports = Report::with(['user', 'svfAnswer'])
+        $reports = Report::with(['user.profile', 'statusLogs', 'svfAnswer'])
             ->where('verification_status', 'Verified')
             ->where('status', 'For Prioritization')
             ->latest()
@@ -369,7 +369,7 @@ class ReportController extends Controller
             'success' => true,
             'message' => 'Triage assessment completed successfully.',
             'data' => [
-                'report' => $report->fresh('user'),
+                'report' => $report->fresh(['user.profile', 'statusLogs']),
                 'score' => $assessment['score'],
                 'recommendation' => $assessment['recommendation'],
                 'factor_scores' => $assessment['factor_scores'],
@@ -458,7 +458,7 @@ class ReportController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'System-computed report priority confirmed successfully.',
-            'data' => $report->fresh('user'),
+            'data' => $report->fresh(['user.profile', 'statusLogs']),
         ]);
     }
 

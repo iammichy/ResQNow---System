@@ -6,7 +6,7 @@ import {
   X,
 } from 'lucide-react';
 
-import { cancelReport } from '../../services/reportService';
+import { cancelReport, getReport } from '../../services/reportService';
 
 const CANCELLABLE_STATUSES = [
   'Submitted',
@@ -106,11 +106,91 @@ export default function CancelReportModal({
     setError('');
 
     try {
-      const updated = await cancelReport(report.id, {
-        reason,
-        remarks,
-        expectedVersion: report.version,
-      });
+      let latestReportForCancellation =
+        await getReport(report.id);
+
+      let updated = null;
+
+      /*
+       * Admin/responder actions may increase the report version while
+       * the Resident still has an older dashboard copy.
+       *
+       * Refresh immediately before cancellation so the Resident does
+       * not have to submit the same cancellation twice.
+       */
+      if (
+        latestReportForCancellation?.status ===
+        'Cancelled'
+      ) {
+        updated =
+          latestReportForCancellation;
+      } else {
+        if (
+          !canResidentCancel(
+            latestReportForCancellation
+          )
+        ) {
+          throw new Error(
+            'This report can no longer be cancelled because its response is already complete or closed.'
+          );
+        }
+
+        try {
+          updated =
+            await cancelReport(
+              report.id,
+              {
+                reason,
+                remarks,
+                expectedVersion:
+                  latestReportForCancellation?.version ??
+                  report.version,
+              }
+            );
+        } catch (cancelError) {
+          /*
+           * A second actor can still update the report in the tiny
+           * interval between the refresh and PATCH. On a version
+           * conflict, refresh once and retry once.
+           */
+          if (
+            Number(cancelError?.status) !==
+            409
+          ) {
+            throw cancelError;
+          }
+
+          latestReportForCancellation =
+            await getReport(report.id);
+
+          if (
+            latestReportForCancellation?.status ===
+            'Cancelled'
+          ) {
+            updated =
+              latestReportForCancellation;
+          } else if (
+            canResidentCancel(
+              latestReportForCancellation
+            )
+          ) {
+            updated =
+              await cancelReport(
+                report.id,
+                {
+                  reason,
+                  remarks,
+                  expectedVersion:
+                    latestReportForCancellation?.version,
+                }
+              );
+          } else {
+            throw new Error(
+              'This report changed and can no longer be cancelled.'
+            );
+          }
+        }
+      }
 
       window.dispatchEvent(
         new CustomEvent('resqnow:notifications-changed')
@@ -238,7 +318,7 @@ export default function CancelReportModal({
               ) : (
                 <CheckCircle2 className="w-4 h-4" />
               )}
-              Confirm Cancellation
+              {submitting ? 'Cancelling...' : 'Confirm Cancellation'}
             </button>
           </div>
         </div>

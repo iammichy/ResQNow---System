@@ -25,10 +25,33 @@ export async function login(email, password, rememberMe = false) {
   const user = result.data.user;
   const token = result.data.token;
 
-  const storage = rememberMe ? localStorage : sessionStorage;
+  /*
+   * SINGLE AUTHORITATIVE ADMIN SESSION
+   *
+   * Never leave an old token in the opposite storage.
+   * apiClient checks localStorage first, so stale credentials
+   * could otherwise override the newly issued session.
+   */
+  localStorage.removeItem("resqnow_token");
+  localStorage.removeItem("resqnow_user");
 
-  storage.setItem("resqnow_token", token);
-  storage.setItem("resqnow_user", JSON.stringify(user));
+  sessionStorage.removeItem("resqnow_token");
+  sessionStorage.removeItem("resqnow_user");
+
+  const storage =
+    rememberMe
+      ? localStorage
+      : sessionStorage;
+
+  storage.setItem(
+    "resqnow_token",
+    token,
+  );
+
+  storage.setItem(
+    "resqnow_user",
+    JSON.stringify(user),
+  );
 
   return {
     ...result,

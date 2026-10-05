@@ -14,6 +14,9 @@ class ReportWorkflow
         'acknowledge' =>
             'Acknowledge assignment',
 
+        'decline' =>
+            'Decline assignment',
+
         'start' =>
             'Start response',
 
@@ -92,9 +95,10 @@ class ReportWorkflow
         }
 
         /*
-         * The responder must acknowledge the
-         * assignment before performing any
-         * operational action.
+         * Before acknowledgement, the responder may
+         * either acknowledge or decline the assignment.
+         * Decline is only available while the report
+         * is still at the Assigned stage.
          */
         if (
             !$assignment->acknowledged_at
@@ -107,6 +111,15 @@ class ReportWorkflow
                     'label' =>
                         self::ACTIONS[
                             'acknowledge'
+                        ],
+                ],
+                [
+                    'value' =>
+                        'decline',
+
+                    'label' =>
+                        self::ACTIONS[
+                            'decline'
                         ],
                 ],
             ];

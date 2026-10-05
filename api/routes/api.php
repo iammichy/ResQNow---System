@@ -19,6 +19,32 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::post('/login', [AuthController::class, 'login']);
+/*
+|--------------------------------------------------------------------------
+| Private report evidence
+|--------------------------------------------------------------------------
+|
+| ReportResource issues this route only as a short-lived signed URL.
+| The underlying file lives on the private local disk.
+|
+*/
+Route::get(
+    '/reports/{reportCode}/evidence',
+    [
+        \App\Http\Controllers\Api\ReportEvidenceController::class,
+        'show',
+    ]
+)
+    ->where(
+        'reportCode',
+        '^(EM|NE)-[0-9]{6}$'
+    )
+    ->middleware([
+        'signed',
+        'throttle:60,1',
+    ])
+    ->name('reports.evidence');
+
 
 Route::middleware('auth:sanctum')->group(function () {
 

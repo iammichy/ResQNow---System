@@ -908,9 +908,10 @@ export const nonEmergencyTypes = [
 
 // ============ PUROKS ============
 export const purokOptions = [
-  'Purok 1',
-  'Purok 2',
-  'Purok 3',
+  'Purok 1 — Juan Street',
+  'Purok 2 — Albano Street',
+  'Purok 3 — Pagurigan Street',
+  'Purok 3 — Maramag Street',
 ];
 
 // ============ SAFETY TIPS ============

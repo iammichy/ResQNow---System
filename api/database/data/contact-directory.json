@@ -54,7 +54,7 @@
       "id": "kagawad-eva-p-sabado",
       "group": "barangay",
       "category": "Officials",
-      "name": "Eva P. Sabado",
+      "name": "Demo Person",
       "role": "Kagawad",
       "address": null,
       "phoneNumbers": [
@@ -79,7 +79,7 @@
       "id": "kagawad-florina-m-pagulayan",
       "group": "barangay",
       "category": "Officials",
-      "name": "Florina M. Pagulayan",
+      "name": "Demo Person",
       "role": "Kagawad",
       "address": null,
       "phoneNumbers": [
@@ -104,7 +104,7 @@
       "id": "kagawad-solita-m-noriega",
       "group": "barangay",
       "category": "Officials",
-      "name": "Solita M. Noriega",
+      "name": "Demo Person",
       "role": "Kagawad",
       "address": null,
       "phoneNumbers": [],
@@ -122,7 +122,7 @@
       "id": "kagawad-roseller-g-casasola",
       "group": "barangay",
       "category": "Officials",
-      "name": "Roseller G. Casasola",
+      "name": "Demo Person",
       "role": "Kagawad",
       "address": null,
       "phoneNumbers": [
@@ -147,7 +147,7 @@
       "id": "kagawad-remedios-c-fugaban",
       "group": "barangay",
       "category": "Officials",
-      "name": "Remedios C. Fugaban",
+      "name": "Demo Person",
       "role": "Kagawad",
       "address": null,
       "phoneNumbers": [
@@ -172,7 +172,7 @@
       "id": "kagawad-ricardo-c-zipagan",
       "group": "barangay",
       "category": "Officials",
-      "name": "Ricardo C. Zipagan",
+      "name": "Demo Person",
       "role": "Kagawad",
       "address": null,
       "phoneNumbers": [
@@ -197,7 +197,7 @@
       "id": "kagawad-albert-a-maramag",
       "group": "barangay",
       "category": "Officials",
-      "name": "Albert A. Maramag",
+      "name": "Demo Person",
       "role": "Kagawad",
       "address": null,
       "phoneNumbers": [
@@ -222,7 +222,7 @@
       "id": "secretary-gloria-d-candelaria",
       "group": "barangay",
       "category": "Officials",
-      "name": "Gloria D. Candelaria",
+      "name": "Demo Person",
       "role": "Barangay Secretary",
       "address": null,
       "phoneNumbers": [
@@ -247,7 +247,7 @@
       "id": "treasurer-shirley-m-aganinta",
       "group": "barangay",
       "category": "Officials",
-      "name": "Shirley M. Aganinta",
+      "name": "Demo Person",
       "role": "Barangay Treasurer",
       "address": null,
       "phoneNumbers": [],
@@ -265,7 +265,7 @@
       "id": "sk-chairperson-jomel-evans-p-sabado",
       "group": "barangay",
       "category": "Officials",
-      "name": "Jomel Evans P. Sabado",
+      "name": "Demo Person",
       "role": "SK Chairperson",
       "address": null,
       "phoneNumbers": [

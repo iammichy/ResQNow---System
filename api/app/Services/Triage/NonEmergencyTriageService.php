@@ -245,9 +245,9 @@ class NonEmergencyTriageService
         match ($a['areaImpact'] ?? null) {
             'small' => null,
             'moderate' =>
-                $this->add($flags, $score, 15, 'Moderate area affected by debris or waste'),
+                $this->add($flags, $score, 15, 'Moderate area affected by drainage or water buildup'),
             'widespread' =>
-                $this->add($flags, $score, 30, 'Widespread debris or waste reported'),
+                $this->add($flags, $score, 30, 'Widespread drainage or water buildup reported'),
             'unknown' =>
                 $this->add($flags, $score, 10, 'Affected area size is uncertain'),
             default => null,
@@ -256,9 +256,9 @@ class NonEmergencyTriageService
         match ($a['accessImpact'] ?? null) {
             'none' => null,
             'limited' =>
-                $this->add($flags, $score, 20, 'Debris or waste limits access'),
+                $this->add($flags, $score, 20, 'Drainage or water buildup limits access'),
             'blocked' =>
-                $this->add($flags, $score, 40, 'Debris or waste blocks access'),
+                $this->add($flags, $score, 40, 'Drainage or water buildup blocks access'),
             'unknown' =>
                 $this->add($flags, $score, 10, 'Access impact is uncertain'),
             default => null,

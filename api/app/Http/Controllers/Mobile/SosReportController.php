@@ -142,28 +142,97 @@ class SosReportController extends Controller
                 }
 
                 $profile = $user->profile;
-                $hasGps = is_array($location)
-                    && isset($location['latitude'], $location['longitude']);
 
-                if ($hasGps) {
-                    $latitude = $location['latitude'];
-                    $longitude = $location['longitude'];
-                    $locationSource = 'gps';
-                    $locationAccuracy = $location['accuracy'] ?? null;
-                    $locationCapturedAt = $location['capturedAt'] ?? now();
-                    $locationText = 'Current GPS location (coordinates transmitted)';
-                } else {
-                    $latitude = $profile?->home_latitude;
-                    $longitude = $profile?->home_longitude;
-                    $locationSource = $profile?->address || ($latitude !== null && $longitude !== null)
-                        ? 'saved'
+                $hasCoordinates = is_array($location)
+                    && isset(
+                        $location['latitude'],
+                        $location['longitude']
+                    );
+
+                $requestedSource = is_array($location)
+                    ? ($location['source'] ?? null)
+                    : null;
+
+                $manualLabel = trim(
+                    (string) (
+                        is_array($location)
+                            ? ($location['label'] ?? '')
+                            : ''
+                    )
+                );
+
+                if (
+                    $requestedSource === 'manual'
+                    && ($hasCoordinates || $manualLabel !== '')
+                ) {
+                    $latitude = $hasCoordinates
+                        ? $location['latitude']
                         : null;
-                    $locationAccuracy = null;
-                    $locationCapturedAt = null;
-                    $locationText = $profile?->address
-                        ?: 'Location unavailable - contact resident immediately';
-                }
 
+                    $longitude = $hasCoordinates
+                        ? $location['longitude']
+                        : null;
+
+                    $locationSource = 'manual';
+                    $locationAccuracy = null;
+
+                    $locationCapturedAt =
+                        $location['capturedAt'] ?? now();
+
+                    $locationText =
+                        $manualLabel !== ''
+                            ? $manualLabel
+                            : 'Resident-pinned incident location';
+                } elseif ($hasCoordinates) {
+                    /*
+                     * Current device GPS.
+                     * Old clients without location.source remain compatible.
+                     */
+                    $latitude =
+                        $location['latitude'];
+
+                    $longitude =
+                        $location['longitude'];
+
+                    $locationSource =
+                        'gps';
+
+                    $locationAccuracy =
+                        $location['accuracy'] ?? null;
+
+                    $locationCapturedAt =
+                        $location['capturedAt'] ?? now();
+
+                    $locationText =
+                        'Current GPS location (coordinates transmitted)';
+                } else {
+                    /*
+                     * Last-resort resident registration fallback.
+                     * This does NOT claim that the resident is currently home.
+                     */
+                    $latitude =
+                        $profile?->home_latitude;
+
+                    $longitude =
+                        $profile?->home_longitude;
+
+                    $locationSource =
+                        $profile?->address ||
+                        ($latitude !== null &&
+                            $longitude !== null)
+                            ? 'saved'
+                            : null;
+
+                    $locationAccuracy =
+                        null;
+
+                    $locationCapturedAt =
+                        null;
+
+                    $locationText =
+                        $profile?->address
+                            ?: 'Location unavailable - contact resident immediately';
+                }
                 $affectedIndividuals = array_values(array_filter([
                     $profile?->has_senior_citizen ? 'Senior Citizen' : null,
                     $profile?->has_child ? 'Child' : null,

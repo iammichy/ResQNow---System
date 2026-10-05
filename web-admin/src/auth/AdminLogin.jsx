@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { login } from "../services/authService";
 
-import camunatanEntrance from "../assets/camunatan-entrance.png";
+import camunatanEntrance from "../assets/camunatan-entrance-optimized.jpg";
 
 function AdminLogin({ onLogin }) {
   const usernameRef = useRef(null);
