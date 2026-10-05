@@ -122,6 +122,7 @@ function formatDisplayDate(value) {
     year: "numeric",
     hour: "numeric",
     minute: "2-digit",
+    timeZone: "Asia/Manila",
   });
 }
 
@@ -137,6 +138,7 @@ function formatHistoryTime(value) {
     year: "numeric",
     hour: "numeric",
     minute: "2-digit",
+    timeZone: "Asia/Manila",
   });
 }
 
@@ -284,6 +286,42 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
   const [priorityError, setPriorityError] = useState("");
 
   /*
+   * Admin resolution and administrative closure are
+   * deliberately separate from responder field progress.
+   */
+  const [showResolutionModal, setShowResolutionModal] =
+    useState(false);
+
+  const [showClosureModal, setShowClosureModal] =
+    useState(false);
+
+  const [resolutionType, setResolutionType] =
+    useState("");
+
+  const [resolutionRemarks, setResolutionRemarks] =
+    useState("");
+
+  const [handoffAgency, setHandoffAgency] =
+    useState("");
+
+  const [handoffDetails, setHandoffDetails] =
+    useState("");
+
+  const [lifecycleLoading, setLifecycleLoading] =
+    useState(false);
+
+  const [lifecycleError, setLifecycleError] =
+    useState("");
+
+  const [closureChecklist, setClosureChecklist] =
+    useState({
+      fieldOutcomeReviewed: false,
+      resolutionReviewed: false,
+      handoffVerified: false,
+      readyConfirmed: false,
+    });
+
+  /*
    * Keeps the acknowledgement timeout current while
    * the Admin remains on this report page.
    */
@@ -412,30 +450,209 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
     loadAssignmentData();
   }, [selectedReport?.id]);
 
-  const handleStatusChange = async (newStatus) => {
-    if (!incident || newStatus === status) return;
+  const handleStatusChange = async (
+    newStatus,
+    details = {},
+  ) => {
+    if (!incident || newStatus === status) {
+      return incident;
+    }
 
-    try {
-      const updatedIncident = await updateIncidentStatus(
+    const updatedIncident =
+      await updateIncidentStatus(
         incident.id,
-        newStatus,
+        {
+          status: newStatus,
+          ...details,
+        },
       );
 
-      setIncident(updatedIncident);
-      setStatus(updatedIncident.status);
+    setIncident(updatedIncident);
+    setStatus(updatedIncident.status);
 
-      const newHistoryItem = {
+    setHistory((current) => [
+      ...current,
+      {
         status: updatedIncident.status,
         detail: `Incident status updated to ${updatedIncident.status} by Barangay Personnel`,
         time: "Just now",
-      };
+      },
+    ]);
 
-      setHistory((current) => [...current, newHistoryItem]);
+    return updatedIncident;
+  };
+
+  const openResolutionModal = () => {
+    if (!incident || lifecycleLoading) return;
+
+    setLifecycleError("");
+
+    setResolutionType(
+      incident.resolution_type || "",
+    );
+
+    setResolutionRemarks(
+      incident.resolution_remarks || "",
+    );
+
+    setHandoffAgency(
+      incident.handoff_agency || "",
+    );
+
+    setHandoffDetails(
+      incident.handoff_details || "",
+    );
+
+    setShowResolutionModal(true);
+  };
+
+  const openClosureModal = () => {
+    if (!incident || lifecycleLoading) return;
+
+    setLifecycleError("");
+
+    setClosureChecklist({
+      fieldOutcomeReviewed: false,
+      resolutionReviewed: false,
+      handoffVerified: false,
+      readyConfirmed: false,
+    });
+
+    setShowClosureModal(true);
+  };
+
+  const handleSubmitResolution = async () => {
+    if (lifecycleLoading) return;
+
+    const remarks =
+      resolutionRemarks.trim();
+
+    const agency =
+      handoffAgency.trim();
+
+    const handoff =
+      handoffDetails.trim();
+
+    if (!resolutionType) {
+      setLifecycleError(
+        "Select a resolution type.",
+      );
+      return;
+    }
+
+    if (!remarks) {
+      setLifecycleError(
+        "Admin resolution remarks are required.",
+      );
+      return;
+    }
+
+    if (
+      resolutionType === "referred_handoff" &&
+      (!agency || !handoff)
+    ) {
+      setLifecycleError(
+        "Agency / Office and handoff details are required for a referred or handed-off case.",
+      );
+      return;
+    }
+
+    try {
+      setLifecycleLoading(true);
+      setLifecycleError("");
+
+      await handleStatusChange(
+        "Resolved",
+        {
+          resolution_type:
+            resolutionType,
+
+          resolution_remarks:
+            remarks,
+
+          handoff_agency:
+            resolutionType ===
+            "referred_handoff"
+              ? agency
+              : null,
+
+          handoff_details:
+            resolutionType ===
+            "referred_handoff"
+              ? handoff
+              : null,
+        },
+      );
+
+      setShowResolutionModal(false);
     } catch (error) {
-      console.error("Failed to update incident status:", error);
-      alert(error.message || "Failed to update incident status.");
+      console.error(
+        "Failed to resolve incident:",
+        error,
+      );
+
+      setLifecycleError(
+        error.message ||
+          "Failed to mark the case resolved.",
+      );
+    } finally {
+      setLifecycleLoading(false);
     }
   };
+
+  const handleSubmitClosure = async () => {
+    if (lifecycleLoading) return;
+
+    const allConfirmed =
+      closureChecklist.fieldOutcomeReviewed &&
+      closureChecklist.resolutionReviewed &&
+      closureChecklist.handoffVerified &&
+      closureChecklist.readyConfirmed;
+
+    if (!allConfirmed) {
+      setLifecycleError(
+        "Complete all closure confirmations before closing this response case.",
+      );
+      return;
+    }
+
+    try {
+      setLifecycleLoading(true);
+      setLifecycleError("");
+
+      await handleStatusChange(
+        "Closed",
+        {
+          closure_field_outcome_reviewed:
+            closureChecklist.fieldOutcomeReviewed,
+
+          closure_resolution_reviewed:
+            closureChecklist.resolutionReviewed,
+
+          closure_handoff_information_verified:
+            closureChecklist.handoffVerified,
+
+          closure_ready_confirmed:
+            closureChecklist.readyConfirmed,
+        },
+      );
+
+      setShowClosureModal(false);
+    } catch (error) {
+      console.error(
+        "Failed to close incident:",
+        error,
+      );
+
+      setLifecycleError(
+        error.message ||
+          "Failed to close the response case.",
+      );
+    } finally {
+      setLifecycleLoading(false);
+    }
+  };
+
   const handleCreateIncident = async () => {
     const reportIdMatch = String(selectedReport?.id || "").match(/\d+$/);
     const reportDatabaseId =
@@ -519,6 +736,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
         year: "numeric",
         hour: "2-digit",
         minute: "2-digit",
+    timeZone: "Asia/Manila",
       });
 
       const newAssignment = {
@@ -640,7 +858,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
       : assignmentMonitor.acknowledged
         ? "Acknowledged"
         : isAssignmentOverdue
-          ? `Overdue — ${liveMinutesWaiting} min waiting`
+          ? `Overdue - ${liveMinutesWaiting} min waiting`
           : "Awaiting responder acknowledgement";
 
   const nextIncidentStatus =
@@ -649,6 +867,20 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
       : status === "Resolved"
         ? "Closed"
         : null;
+
+  const resolutionTypeLabels = {
+    resolved_on_scene:
+      "Resolved on scene",
+
+    referred_handoff:
+      "Referred / handed off",
+
+    no_further_barangay_response:
+      "No further barangay response required",
+
+    other:
+      "Other",
+  };
   const canAssignPriority = !incident && report.status === "For Prioritization";
 
   const handleExportPDF = () => {
@@ -837,7 +1069,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
       doc.setTextColor(152, 162, 179);
 
       doc.text(
-        `Generated by ResQNow â€¢ Page ${page} of ${totalPages}`,
+        `Generated by ResQNow - Page ${page} of ${totalPages}`,
         pageWidth / 2,
         height - 10,
         { align: "center" },
@@ -880,7 +1112,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
             onClick={onBack}
             className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#667085] transition hover:text-[#1F5FA6]"
           >
-            â† Back to All Reports
+             Back to All Reports
           </button>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -929,7 +1161,6 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
             onClick={handleExportPDF}
             className="flex items-center gap-2 rounded-lg border border-[#E4E7EC] bg-white px-4 py-2.5 text-sm font-semibold text-[#475467] shadow-sm transition hover:border-[#1F5FA6] hover:text-[#1F5FA6]"
           >
-            <span>â†“</span>
             Export PDF
           </button>
         </div>
@@ -1161,7 +1392,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                       className="overflow-hidden rounded-lg border border-[#E4E7EC] bg-[#F8FAFC] text-left transition hover:border-[#1F5FA6]"
                     >
                       <div className="flex h-28 items-center justify-center bg-[#EAF1FA] text-2xl text-[#1F5FA6]">
-                        â–§
+                        Evidence
                       </div>
 
                       <div className="px-3 py-2.5">
@@ -1222,7 +1453,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
 
                   {!incident ? (
                     <p className="mt-2 text-[11px] text-[#667085]">
-                      Response coordination has not been started for this report yet.
+                      Loading response coordination details...
                     </p>
                   ) : status === "Pending Response" ? (
                     <p className="mt-2 text-[11px] text-[#667085]">
@@ -1494,21 +1725,414 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
               </div>
             </section>
 
+            {/* ADMIN RESOLUTION RECORD */}
+            {incident?.resolution_type && (
+              <section className="rounded-xl border border-[#D1E9FF] bg-[#F5FAFF] p-5 shadow-sm">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-[#175CD3]">
+                      Admin Resolution Record
+                    </p>
+
+                    <h3 className="mt-1 text-sm font-bold text-[#101C2E]">
+                      {resolutionTypeLabels[
+                        incident.resolution_type
+                      ] ||
+                        incident.resolution_type}
+                    </h3>
+                  </div>
+
+                  {incident.resolved_at && (
+                    <span className="text-[11px] font-semibold text-[#667085]">
+                      {formatDisplayDate(
+                        incident.resolved_at,
+                      )}
+                    </span>
+                  )}
+                </div>
+
+                <div className="mt-4">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]">
+                    Admin Resolution Remarks
+                  </p>
+
+                  <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-[#344054]">
+                    {incident.resolution_remarks ||
+                      "Not provided"}
+                  </p>
+                </div>
+
+                {incident.resolution_type ===
+                  "referred_handoff" && (
+                  <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    <div>
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]">
+                        Agency / Office
+                      </p>
+
+                      <p className="mt-1 text-sm font-semibold text-[#344054]">
+                        {incident.handoff_agency ||
+                          "Not provided"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]">
+                        Handoff Details
+                      </p>
+
+                      <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-[#344054]">
+                        {incident.handoff_details ||
+                          "Not provided"}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {incident.status === "Closed" &&
+                  incident.closed_at && (
+                    <div className="mt-4 rounded-lg border border-[#D0D5DD] bg-white px-3 py-2">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-[#667085]">
+                        Final Administrative Closure
+                      </p>
+
+                      <p className="mt-1 text-xs font-semibold text-[#344054]">
+                        Closed{" "}
+                        {formatDisplayDate(
+                          incident.closed_at,
+                        )}
+                      </p>
+                    </div>
+                  )}
+              </section>
+            )}
+
             {/* NEXT RESPONSE ACTION */}
             {incident && nextIncidentStatus && (
               <button
                 type="button"
-                onClick={() => handleStatusChange(nextIncidentStatus)}
-                className="w-full rounded-lg bg-[#1F5FA6] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#1F5FA6]"
+                onClick={() => {
+                  if (
+                    nextIncidentStatus ===
+                    "Resolved"
+                  ) {
+                    openResolutionModal();
+                  } else {
+                    openClosureModal();
+                  }
+                }}
+                disabled={lifecycleLoading}
+                className="w-full rounded-lg bg-[#1F5FA6] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#174A86] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {nextIncidentStatus === "Resolved"
-                  ? "Mark Case Resolved"
-                  : "Close Response Case"}
+                  ? "Review and Mark Case Resolved"
+                  : "Review and Close Response Case"}
               </button>
             )}
           </div>
         </div>
       </div>
+
+      {/* ADMIN RESOLUTION REVIEW MODAL */}
+      {showResolutionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-[#101C2E]/50 p-4">
+          <div className="w-full max-w-xl rounded-xl bg-white shadow-xl">
+            <div className="border-b border-[#E4E7EC] px-6 py-4">
+              <h2 className="text-lg font-bold text-[#101C2E]">
+                Admin Resolution Review
+              </h2>
+
+              <p className="mt-1 text-xs leading-5 text-[#667085]">
+                Review the responder field outcome and document the official barangay resolution decision.
+              </p>
+            </div>
+
+            <div className="max-h-[70vh] space-y-5 overflow-y-auto p-6">
+              <div>
+                <label className="text-xs font-bold text-[#475467]">
+                  Resolution Type *
+                </label>
+
+                <select
+                  value={resolutionType}
+                  onChange={(event) => {
+                    const value =
+                      event.target.value;
+
+                    setResolutionType(value);
+                    setLifecycleError("");
+
+                    if (
+                      value !==
+                      "referred_handoff"
+                    ) {
+                      setHandoffAgency("");
+                      setHandoffDetails("");
+                    }
+                  }}
+                  disabled={lifecycleLoading}
+                  className="mt-2 h-11 w-full rounded-lg border border-[#D0D5DD] bg-white px-3 text-sm text-[#344054] outline-none focus:border-[#1F5FA6] disabled:bg-[#F2F4F7]"
+                >
+                  <option value="">
+                    Select resolution type
+                  </option>
+
+                  <option value="resolved_on_scene">
+                    Resolved on scene
+                  </option>
+
+                  <option value="referred_handoff">
+                    Referred / handed off
+                  </option>
+
+                  <option value="no_further_barangay_response">
+                    No further barangay response required
+                  </option>
+
+                  <option value="other">
+                    Other
+                  </option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#475467]">
+                  Admin Resolution Remarks *
+                </label>
+
+                <textarea
+                  value={resolutionRemarks}
+                  onChange={(event) => {
+                    setResolutionRemarks(
+                      event.target.value,
+                    );
+
+                    setLifecycleError("");
+                  }}
+                  disabled={lifecycleLoading}
+                  rows={4}
+                  maxLength={3000}
+                  placeholder="Summarize the Admin review, final barangay action, and basis for resolution."
+                  className="mt-2 w-full resize-y rounded-lg border border-[#D0D5DD] px-3 py-2.5 text-sm text-[#344054] outline-none focus:border-[#1F5FA6] disabled:bg-[#F2F4F7]"
+                />
+              </div>
+
+              {resolutionType ===
+                "referred_handoff" && (
+                <>
+                  <div>
+                    <label className="text-xs font-bold text-[#475467]">
+                      Agency / Office *
+                    </label>
+
+                    <input
+                      type="text"
+                      value={handoffAgency}
+                      onChange={(event) => {
+                        setHandoffAgency(
+                          event.target.value,
+                        );
+
+                        setLifecycleError("");
+                      }}
+                      disabled={lifecycleLoading}
+                      maxLength={255}
+                      placeholder="Example: City Health Office"
+                      className="mt-2 h-11 w-full rounded-lg border border-[#D0D5DD] px-3 text-sm text-[#344054] outline-none focus:border-[#1F5FA6] disabled:bg-[#F2F4F7]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-[#475467]">
+                      Handoff Details *
+                    </label>
+
+                    <textarea
+                      value={handoffDetails}
+                      onChange={(event) => {
+                        setHandoffDetails(
+                          event.target.value,
+                        );
+
+                        setLifecycleError("");
+                      }}
+                      disabled={lifecycleLoading}
+                      rows={3}
+                      maxLength={3000}
+                      placeholder="State what was endorsed, to whom, and the relevant continuation of care or response."
+                      className="mt-2 w-full resize-y rounded-lg border border-[#D0D5DD] px-3 py-2.5 text-sm text-[#344054] outline-none focus:border-[#1F5FA6] disabled:bg-[#F2F4F7]"
+                    />
+                  </div>
+                </>
+              )}
+
+              {lifecycleError && (
+                <p className="rounded-lg border border-[#FECDCA] bg-[#FEF3F2] px-3 py-2.5 text-xs font-semibold leading-5 text-[#B42318]">
+                  {lifecycleError}
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-wrap justify-end gap-3 border-t border-[#E4E7EC] px-6 py-4">
+              <button
+                type="button"
+                onClick={() => {
+                  if (lifecycleLoading) return;
+
+                  setLifecycleError("");
+                  setShowResolutionModal(false);
+                }}
+                disabled={lifecycleLoading}
+                className="rounded-lg border border-[#D0D5DD] px-4 py-2.5 text-sm font-semibold text-[#475467] disabled:opacity-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSubmitResolution}
+                disabled={
+                  lifecycleLoading ||
+                  !resolutionType ||
+                  !resolutionRemarks.trim() ||
+                  (
+                    resolutionType ===
+                      "referred_handoff" &&
+                    (
+                      !handoffAgency.trim() ||
+                      !handoffDetails.trim()
+                    )
+                  )
+                }
+                className="rounded-lg bg-[#1F5FA6] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#174A86] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {lifecycleLoading
+                  ? "Saving Resolution..."
+                  : "Confirm Resolution"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FINAL ADMINISTRATIVE CLOSURE MODAL */}
+      {showClosureModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-[#101C2E]/50 p-4">
+          <div className="w-full max-w-xl rounded-xl bg-white shadow-xl">
+            <div className="border-b border-[#E4E7EC] px-6 py-4">
+              <h2 className="text-lg font-bold text-[#101C2E]">
+                Final Administrative Closure
+              </h2>
+
+              <p className="mt-1 text-xs leading-5 text-[#667085]">
+                Closing the response case is a final administrative action after resolution. Confirm every item before closure.
+              </p>
+            </div>
+
+            <div className="space-y-3 p-6">
+              {[
+                {
+                  key:
+                    "fieldOutcomeReviewed",
+                  label:
+                    "Responder field outcome has been reviewed.",
+                },
+                {
+                  key:
+                    "resolutionReviewed",
+                  label:
+                    "Admin resolution record has been reviewed and is complete.",
+                },
+                {
+                  key:
+                    "handoffVerified",
+                  label:
+                    incident?.resolution_type ===
+                    "referred_handoff"
+                      ? "Required agency / office handoff information has been reviewed and is complete."
+                      : "Handoff requirement has been reviewed and is not applicable to this case.",
+                },
+                {
+                  key:
+                    "readyConfirmed",
+                  label:
+                    "This case is ready for final administrative closure.",
+                },
+              ].map((item) => (
+                <label
+                  key={item.key}
+                  className="flex cursor-pointer items-start gap-3 rounded-lg border border-[#E4E7EC] bg-[#F9FAFB] p-3"
+                >
+                  <input
+                    type="checkbox"
+                    checked={
+                      closureChecklist[
+                        item.key
+                      ]
+                    }
+                    onChange={(event) => {
+                      setClosureChecklist(
+                        (current) => ({
+                          ...current,
+                          [item.key]:
+                            event.target.checked,
+                        }),
+                      );
+
+                      setLifecycleError("");
+                    }}
+                    disabled={lifecycleLoading}
+                    className="mt-0.5 h-4 w-4"
+                  />
+
+                  <span className="text-sm leading-5 text-[#344054]">
+                    {item.label}
+                  </span>
+                </label>
+              ))}
+
+              {lifecycleError && (
+                <p className="rounded-lg border border-[#FECDCA] bg-[#FEF3F2] px-3 py-2.5 text-xs font-semibold leading-5 text-[#B42318]">
+                  {lifecycleError}
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-wrap justify-end gap-3 border-t border-[#E4E7EC] px-6 py-4">
+              <button
+                type="button"
+                onClick={() => {
+                  if (lifecycleLoading) return;
+
+                  setLifecycleError("");
+                  setShowClosureModal(false);
+                }}
+                disabled={lifecycleLoading}
+                className="rounded-lg border border-[#D0D5DD] px-4 py-2.5 text-sm font-semibold text-[#475467] disabled:opacity-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSubmitClosure}
+                disabled={
+                  lifecycleLoading ||
+                  !closureChecklist.fieldOutcomeReviewed ||
+                  !closureChecklist.resolutionReviewed ||
+                  !closureChecklist.handoffVerified ||
+                  !closureChecklist.readyConfirmed
+                }
+                className="rounded-lg bg-[#1F5FA6] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#174A86] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {lifecycleLoading
+                  ? "Closing Case..."
+                  : "Confirm Final Closure"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ASSIGNMENT MODAL */}
       {showAssignmentModal && (
@@ -1533,7 +2157,7 @@ function ReportDetails({ report: selectedReport, onBack, onReportUpdate }) {
                 }}
                 className="text-lg font-bold text-[#98A2B3] hover:text-[#344054]"
               >
-                Ã—
+                X
               </button>
             </div>
 

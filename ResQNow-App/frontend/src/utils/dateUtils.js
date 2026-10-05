@@ -47,6 +47,7 @@ function formatDate(
         year: 'numeric',
         hour: 'numeric',
         minute: '2-digit',
+        timeZone: 'Asia/Manila',
       }
     );
   } catch {
@@ -58,6 +59,7 @@ function formatDate(
         year: 'numeric',
         hour: 'numeric',
         minute: '2-digit',
+        timeZone: 'Asia/Manila',
       }
     );
   }

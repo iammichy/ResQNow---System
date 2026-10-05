@@ -181,9 +181,10 @@ class ReportResource extends JsonResource
 
             'invalidReason' =>
                 $this->invalid_reason,
-
             'resolvedRemarks' =>
-                $this->resolved_remarks,
+                $residentView
+                    ? null
+                    : $this->resolved_remarks,
 
 
             // ============ HISTORY ============
@@ -203,9 +204,10 @@ class ReportResource extends JsonResource
 
 
             // ============ ASSIGNMENT ============
-
             'assignedPersonnel' =>
-                $this->getAssignedPersonnelText(),
+                $residentView
+                    ? null
+                    : $this->getAssignedPersonnelText(),
 
             'assignedPersonnelList' =>
                 $residentView
@@ -237,16 +239,12 @@ class ReportResource extends JsonResource
 
             'submittedAt' =>
                 $this->created_at
-                    ? $this->created_at->format(
-                        'Y-m-d h:i A'
-                    )
+                    ? $this->created_at->copy()->timezone('Asia/Manila')->format('Y-m-d h:i A')
                     : null,
 
             'updatedAt' =>
                 $this->updated_at
-                    ? $this->updated_at->format(
-                        'Y-m-d h:i A'
-                    )
+                    ? $this->updated_at->copy()->timezone('Asia/Manila')->format('Y-m-d h:i A')
                     : null,
 
 
@@ -400,9 +398,7 @@ class ReportResource extends JsonResource
                     $log?->created_at
                         ? $log
                             ->created_at
-                            ->format(
-                                'Y-m-d h:i A'
-                            )
+                            ->copy()->timezone('Asia/Manila')->format('Y-m-d h:i A')
                         : null,
 
                 'done' =>
@@ -433,9 +429,7 @@ class ReportResource extends JsonResource
                     $invalidLog?->created_at
                         ? $invalidLog
                             ->created_at
-                            ->format(
-                                'Y-m-d h:i A'
-                            )
+                            ->copy()->timezone('Asia/Manila')->format('Y-m-d h:i A')
                         : null,
 
                 'done' =>
@@ -475,9 +469,7 @@ class ReportResource extends JsonResource
                     $cancelledLog?->created_at
                         ? $cancelledLog
                             ->created_at
-                            ->format(
-                                'Y-m-d h:i A'
-                            )
+                            ->copy()->timezone('Asia/Manila')->format('Y-m-d h:i A')
                         : null,
 
                 'done' =>
@@ -693,7 +685,7 @@ class ReportResource extends JsonResource
 
 
     /**
-     * Existing Resident-compatible assignment text.
+     * Internal active assignment text.
      */
     private function getAssignedPersonnelText(): ?string
     {

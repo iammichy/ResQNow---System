@@ -453,21 +453,44 @@ export async function assignIncidentPersonnel(incidentId, personnelId) {
   return result.data;
 }
 
-export async function updateIncidentStatus(incidentId, status) {
-  const response = await apiFetch(`/incidents/${incidentId}/status`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
+export async function updateIncidentStatus(
+  incidentId,
+  statusOrPayload,
+) {
+  const payload =
+    typeof statusOrPayload === "string"
+      ? { status: statusOrPayload }
+      : statusOrPayload;
+
+  if (
+    !payload ||
+    typeof payload !== "object" ||
+    !payload.status
+  ) {
+    throw new Error(
+      "A valid incident status update is required.",
+    );
+  }
+
+  const response = await apiFetch(
+    `/incidents/${incidentId}/status`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
     },
-    body: JSON.stringify({
-      status,
-    }),
-  });
+  );
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
+    const errorData =
+      await response.json().catch(() => null);
 
-    throw new Error(errorData?.message || "Failed to update incident status.");
+    throw new Error(
+      errorData?.message ||
+        "Failed to update incident status.",
+    );
   }
 
   const result = await response.json();

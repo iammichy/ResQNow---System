@@ -949,49 +949,6 @@ export default function ReportDetail() {
         )}
       </section>
 
-      {/* ============ ASSIGNED PERSONNEL ============ */}
-      <section className="bg-white border border-resqnow-border-soft rounded-2xl p-4 mb-4">
-
-        <div className="flex items-center gap-2 mb-3">
-
-          <UserRound className="w-4 h-4 text-resqnow-insight" />
-
-          <h2 className="text-[15px] font-bold text-resqnow-primary">
-            Assigned Personnel
-          </h2>
-        </div>
-
-        {report.assignedPersonnel ? (
-          <div className="flex items-center gap-3 bg-resqnow-insight/5 border border-resqnow-insight/10 rounded-xl p-3">
-
-            <div className="w-9 h-9 rounded-full bg-resqnow-insight/15 text-resqnow-insight flex items-center justify-center">
-
-              <UserRound className="w-4 h-4" />
-            </div>
-
-            <div>
-
-              <p className="text-[12px] font-semibold text-resqnow-primary">
-                {
-                  report.assignedPersonnel
-                }
-              </p>
-
-              <p className="text-[11px] text-resqnow-muted mt-0.5">
-                Assigned to this report
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="bg-resqnow-canvas rounded-xl p-3">
-
-            <p className="text-[12px] text-resqnow-muted">
-              No personnel has been assigned yet.
-            </p>
-          </div>
-        )}
-      </section>
-
       {/* ============ LOCATION ============ */}
       <section className="bg-white border border-resqnow-border-soft rounded-2xl p-4 mb-4">
 

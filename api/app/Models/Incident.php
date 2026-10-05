@@ -35,6 +35,17 @@ class Incident extends Model
         'closed_at',
     ];
 
+    protected $casts = [
+        'dispatched_at' => 'datetime',
+        'resolved_at' => 'datetime',
+        'closed_at' => 'datetime',
+
+        'closure_field_outcome_reviewed' => 'boolean',
+        'closure_resolution_reviewed' => 'boolean',
+        'closure_handoff_information_verified' => 'boolean',
+        'closure_ready_confirmed' => 'boolean',
+    ];
+
     /**
      * Computed operational assignment state returned
      * with every Incident API response.
