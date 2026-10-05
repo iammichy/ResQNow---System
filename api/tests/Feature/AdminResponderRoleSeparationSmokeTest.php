@@ -164,6 +164,58 @@ class AdminResponderRoleSeparationSmokeTest extends TestCase
         );
 
         /*
+         * A field outcome alone is still insufficient.
+         * Admin must document the resolution decision.
+         */
+        Sanctum::actingAs($admin);
+
+        $resolveWithoutResolutionRecord =
+            $this->patchJson(
+                "/api/incidents/{$incident->id}/status",
+                [
+                    'status' => 'Resolved',
+                ]
+            );
+
+        $resolveWithoutResolutionRecord
+            ->assertStatus(422)
+            ->assertJsonPath(
+                'success',
+                false
+            )
+            ->assertJsonPath(
+                'message',
+                'Resolution type and Admin resolution remarks are required before this response case can be marked resolved.'
+            );
+
+        /*
+         * Referred / handed-off cases require the
+         * receiving agency and handoff details.
+         */
+        $resolveWithoutHandoff =
+            $this->patchJson(
+                "/api/incidents/{$incident->id}/status",
+                [
+                    'status' => 'Resolved',
+                    'resolution_type' =>
+                        'referred_handoff',
+                    'resolution_remarks' =>
+                        'Responder outcome reviewed by Admin.',
+                ]
+            );
+
+        $resolveWithoutHandoff
+            ->assertStatus(422)
+            ->assertJsonPath(
+                'success',
+                false
+            )
+            ->assertJsonPath(
+                'message',
+                'Agency / Office and handoff details are required for a referred or handed-off case.'
+            );
+
+        /*
          * Once the responder field outcome exists,
          * Admin may finalize the operational response.
          */
@@ -173,6 +225,14 @@ class AdminResponderRoleSeparationSmokeTest extends TestCase
             "/api/incidents/{$incident->id}/status",
             [
                 'status' => 'Resolved',
+                'resolution_type' =>
+                    'referred_handoff',
+                'resolution_remarks' =>
+                    'Responder field outcome reviewed. Case referred for continuing care.',
+                'handoff_agency' =>
+                    'City Health Office',
+                'handoff_details' =>
+                    'Case endorsed for continuing medical assessment and care.',
             ]
         );
 
@@ -204,14 +264,55 @@ class AdminResponderRoleSeparationSmokeTest extends TestCase
             $report->status
         );
 
+        $this->assertDatabaseHas(
+            'incidents',
+            [
+                'id' => $incident->id,
+                'resolution_type' =>
+                    'referred_handoff',
+                'handoff_agency' =>
+                    'City Health Office',
+            ]
+        );
+
         /*
          * Final administrative closure remains
          * an Admin responsibility.
+         *
+         * Closing without the required checklist
+         * confirmations must be rejected.
          */
+        $closeWithoutChecklist =
+            $this->patchJson(
+                "/api/incidents/{$incident->id}/status",
+                [
+                    'status' => 'Closed',
+                ]
+            );
+
+        $closeWithoutChecklist
+            ->assertStatus(422)
+            ->assertJsonPath(
+                'success',
+                false
+            )
+            ->assertJsonPath(
+                'message',
+                'Complete all final administrative closure confirmations before closing this response case.'
+            );
+
         $close = $this->patchJson(
             "/api/incidents/{$incident->id}/status",
             [
                 'status' => 'Closed',
+                'closure_field_outcome_reviewed' =>
+                    true,
+                'closure_resolution_reviewed' =>
+                    true,
+                'closure_handoff_information_verified' =>
+                    true,
+                'closure_ready_confirmed' =>
+                    true,
             ]
         );
 
@@ -231,6 +332,30 @@ class AdminResponderRoleSeparationSmokeTest extends TestCase
         $this->assertSame(
             'Closed',
             $incident->status
+        );
+
+        $this->assertNotNull(
+            $incident->closed_at
+        );
+
+        $this->assertTrue(
+            (bool) $incident
+                ->closure_field_outcome_reviewed
+        );
+
+        $this->assertTrue(
+            (bool) $incident
+                ->closure_resolution_reviewed
+        );
+
+        $this->assertTrue(
+            (bool) $incident
+                ->closure_handoff_information_verified
+        );
+
+        $this->assertTrue(
+            (bool) $incident
+                ->closure_ready_confirmed
         );
 
         $this->assertDatabaseHas(

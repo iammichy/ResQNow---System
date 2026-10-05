@@ -24,6 +24,15 @@ class Incident extends Model
         'status',
         'dispatched_at',
         'resolved_at',
+        'resolution_type',
+        'resolution_remarks',
+        'handoff_agency',
+        'handoff_details',
+        'closure_field_outcome_reviewed',
+        'closure_resolution_reviewed',
+        'closure_handoff_information_verified',
+        'closure_ready_confirmed',
+        'closed_at',
     ];
 
     /**

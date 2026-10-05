@@ -205,138 +205,406 @@ $notificationService->notifyPersonnelAssignment(
     /**
      * Update the response status of an incident.
      */
-  public function updateStatus(
-    Request $request,
-    Incident $incident
-): JsonResponse {
-    $validated = $request->validate([
-        'status' => [
-            'required',
-            'string',
-            'in:Pending Response,Dispatched,In Progress,Resolved,Closed',
-        ],
-    ]);
+    public function updateStatus(
+        Request $request,
+        Incident $incident
+    ): JsonResponse {
+        $admin = $request->user();
 
-    $currentStatus = $incident->status;
-    $newStatus = $validated['status'];
+        abort_unless(
+            $admin &&
+            $admin->role === 'admin',
+            403,
+            'Only an Admin account may resolve or close a response case.'
+        );
 
-    /*
-     * Field progress is responder-controlled.
-     * Admin may only finalize a response after the
-     * responder has completed the operational workflow.
-     */
-    $allowedTransitions = [
-        'Pending Response' => [],
-        'Dispatched' => [],
-        'In Progress' => [
-            'Resolved',
-        ],
-        'Resolved' => [
-            'Closed',
-        ],
-        'Closed' => [],
-    ];
+        $validated = $request->validate([
+            'status' => [
+                'required',
+                'string',
+                'in:Pending Response,Dispatched,In Progress,Resolved,Closed',
+            ],
 
-    if (
-        $currentStatus !== $newStatus &&
-        !in_array(
-            $newStatus,
-            $allowedTransitions[$currentStatus] ?? [],
-            true
-        )
-    ) {
-        return response()->json([
-            'success' => false,
-            'message' => "Invalid incident status transition from {$currentStatus} to {$newStatus}.",
-        ], 422);
-    }
+            'resolution_type' => [
+                'nullable',
+                'string',
+                'in:resolved_on_scene,referred_handoff,no_further_barangay_response,other',
+            ],
 
-    /*
-     * A responder reaching the scene is not enough to
-     * resolve the case. Admin may mark it Resolved only
-     * after a responder has submitted a field outcome.
-     */
-    if ($newStatus === 'Resolved') {
-        $report = $incident->report;
+            'resolution_remarks' => [
+                'nullable',
+                'string',
+                'max:3000',
+            ],
 
-        $hasFieldOutcome =
-            $report &&
-            $report
-                ->statusLogs()
-                ->where(
-                    'activity',
-                    'Responder submitted field outcome'
-                )
-                ->exists();
+            'handoff_agency' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
 
-        if (! $hasFieldOutcome) {
+            'handoff_details' => [
+                'nullable',
+                'string',
+                'max:3000',
+            ],
+
+            'closure_field_outcome_reviewed' => [
+                'nullable',
+                'boolean',
+            ],
+
+            'closure_resolution_reviewed' => [
+                'nullable',
+                'boolean',
+            ],
+
+            'closure_handoff_information_verified' => [
+                'nullable',
+                'boolean',
+            ],
+
+            'closure_ready_confirmed' => [
+                'nullable',
+                'boolean',
+            ],
+        ]);
+
+        $currentStatus = $incident->status;
+        $newStatus = $validated['status'];
+
+        /*
+         * Repeated requests are safe and idempotent.
+         * This protects against accidental double-clicks
+         * without creating duplicate audit events.
+         */
+        if ($currentStatus === $newStatus) {
+            return response()->json([
+                'success' => true,
+                'message' =>
+                    "Incident is already {$currentStatus}.",
+                'data' =>
+                    $incident
+                        ->fresh()
+                        ->load([
+                            'report',
+                            'personnel',
+                        ]),
+            ]);
+        }
+
+        /*
+         * Field progress belongs to the responder.
+         * Admin controls only resolution and closure.
+         */
+        $allowedTransitions = [
+            'Pending Response' => [],
+            'Dispatched' => [],
+            'In Progress' => [
+                'Resolved',
+            ],
+            'Resolved' => [
+                'Closed',
+            ],
+            'Closed' => [],
+        ];
+
+        if (
+            ! in_array(
+                $newStatus,
+                $allowedTransitions[$currentStatus] ?? [],
+                true
+            )
+        ) {
             return response()->json([
                 'success' => false,
                 'message' =>
-                    'A responder field outcome is required before this response case can be marked resolved.',
+                    "Invalid incident status transition from {$currentStatus} to {$newStatus}.",
             ], 422);
         }
-    }
 
-    $updates = [
-        'status' => $newStatus,
-    ];
+        /*
+         * Resolution requires the official responder
+         * field outcome and an Admin resolution record.
+         */
+        if ($newStatus === 'Resolved') {
+            $report = $incident->report;
 
-    if (
-        $newStatus === 'Dispatched' &&
-        !$incident->dispatched_at
-    ) {
-        $updates['dispatched_at'] = now();
-    }
+            $hasFieldOutcome =
+                $report &&
+                $report
+                    ->statusLogs()
+                    ->where(
+                        'activity',
+                        'Responder submitted field outcome'
+                    )
+                    ->exists();
 
-    if (
-        $newStatus === 'Resolved' &&
-        !$incident->resolved_at
-    ) {
-        $updates['resolved_at'] = now();
-    }
+            if (! $hasFieldOutcome) {
+                return response()->json([
+                    'success' => false,
+                    'message' =>
+                        'A responder field outcome is required before this response case can be marked resolved.',
+                ], 422);
+            }
 
-    $incident->update($updates);
+            $resolutionType =
+                $validated['resolution_type'] ?? null;
 
-    if ($newStatus === 'Closed' && $incident->assigned_personnel_id) {
-    $personnel = \App\Models\Personnel::find(
-        $incident->assigned_personnel_id
-    );
+            $resolutionRemarks =
+                trim(
+                    (string) (
+                        $validated['resolution_remarks']
+                        ?? ''
+                    )
+                );
 
-    if ($personnel) {
-        $personnel->update([
-            'availability' => 'Available',
-            'assignment' => null,
+            if (
+                ! $resolutionType ||
+                $resolutionRemarks === ''
+            ) {
+                return response()->json([
+                    'success' => false,
+                    'message' =>
+                        'Resolution type and Admin resolution remarks are required before this response case can be marked resolved.',
+                ], 422);
+            }
+
+            if (
+                $resolutionType ===
+                'referred_handoff'
+            ) {
+                $handoffAgency =
+                    trim(
+                        (string) (
+                            $validated['handoff_agency']
+                            ?? ''
+                        )
+                    );
+
+                $handoffDetails =
+                    trim(
+                        (string) (
+                            $validated['handoff_details']
+                            ?? ''
+                        )
+                    );
+
+                if (
+                    $handoffAgency === '' ||
+                    $handoffDetails === ''
+                ) {
+                    return response()->json([
+                        'success' => false,
+                        'message' =>
+                            'Agency / Office and handoff details are required for a referred or handed-off case.',
+                    ], 422);
+                }
+            }
+        }
+
+        /*
+         * Final closure requires an existing resolution
+         * record and all Admin closure confirmations.
+         */
+        if ($newStatus === 'Closed') {
+            if (
+                ! $incident->resolution_type ||
+                trim(
+                    (string)
+                    $incident->resolution_remarks
+                ) === ''
+            ) {
+                return response()->json([
+                    'success' => false,
+                    'message' =>
+                        'A completed Admin resolution record is required before final closure.',
+                ], 422);
+            }
+
+            if (
+                $incident->resolution_type ===
+                    'referred_handoff' &&
+                (
+                    trim(
+                        (string)
+                        $incident->handoff_agency
+                    ) === '' ||
+                    trim(
+                        (string)
+                        $incident->handoff_details
+                    ) === ''
+                )
+            ) {
+                return response()->json([
+                    'success' => false,
+                    'message' =>
+                        'Required agency handoff information must be completed before final closure.',
+                ], 422);
+            }
+
+            $closureComplete =
+                $request->boolean(
+                    'closure_field_outcome_reviewed'
+                ) &&
+                $request->boolean(
+                    'closure_resolution_reviewed'
+                ) &&
+                $request->boolean(
+                    'closure_handoff_information_verified'
+                ) &&
+                $request->boolean(
+                    'closure_ready_confirmed'
+                );
+
+            if (! $closureComplete) {
+                return response()->json([
+                    'success' => false,
+                    'message' =>
+                        'Complete all final administrative closure confirmations before closing this response case.',
+                ], 422);
+            }
+        }
+
+        $updates = [
+            'status' => $newStatus,
+        ];
+
+        if ($newStatus === 'Resolved') {
+            if (! $incident->resolved_at) {
+                $updates['resolved_at'] = now();
+            }
+
+            $updates['resolution_type'] =
+                $validated['resolution_type'];
+
+            $updates['resolution_remarks'] =
+                trim(
+                    (string)
+                    $validated['resolution_remarks']
+                );
+
+            if (
+                $validated['resolution_type'] ===
+                'referred_handoff'
+            ) {
+                $updates['handoff_agency'] =
+                    trim(
+                        (string)
+                        $validated['handoff_agency']
+                    );
+
+                $updates['handoff_details'] =
+                    trim(
+                        (string)
+                        $validated['handoff_details']
+                    );
+            } else {
+                $updates['handoff_agency'] = null;
+                $updates['handoff_details'] = null;
+            }
+        }
+
+        if ($newStatus === 'Closed') {
+            $updates[
+                'closure_field_outcome_reviewed'
+            ] = true;
+
+            $updates[
+                'closure_resolution_reviewed'
+            ] = true;
+
+            $updates[
+                'closure_handoff_information_verified'
+            ] = true;
+
+            $updates[
+                'closure_ready_confirmed'
+            ] = true;
+
+            if (! $incident->closed_at) {
+                $updates['closed_at'] = now();
+            }
+        }
+
+        $incident->update($updates);
+
+        /*
+         * Assigned personnel becomes available only
+         * after final administrative closure.
+         */
+        if (
+            $newStatus === 'Closed' &&
+            $incident->assigned_personnel_id
+        ) {
+            $personnel =
+                \App\Models\Personnel::find(
+                    $incident->assigned_personnel_id
+                );
+
+            if ($personnel) {
+                $personnel->update([
+                    'availability' => 'Available',
+                    'assignment' => null,
+                ]);
+            }
+        }
+
+        /*
+         * Resolution is mirrored to the resident report.
+         * Administrative closure remains internal.
+         */
+        \App\Support\ReportBridge::incidentStatus(
+            $incident->fresh()->load('report'),
+            $admin
+        );
+
+        $auditRemarks =
+            match ($newStatus) {
+                'Resolved' =>
+                    "Incident {$incident->incident_code} marked Resolved after Admin resolution review ({$validated['resolution_type']}).",
+
+                'Closed' =>
+                    "Incident {$incident->incident_code} closed after final administrative closure checklist.",
+
+                default =>
+                    "Incident {$incident->incident_code} status changed from {$currentStatus} to {$newStatus}.",
+            };
+
+        AuditLog::create([
+            'action' =>
+                'Incident Status Updated',
+            'category' =>
+                'Incident',
+            'target' =>
+                $incident->incident_code,
+            'field' =>
+                'status',
+            'old_value' =>
+                $currentStatus,
+            'new_value' =>
+                $newStatus,
+            'remarks' =>
+                $auditRemarks,
+            'user_name' =>
+                $admin?->name,
+            'user_role' =>
+                $admin?->role,
+            'status' =>
+                'Success',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' =>
+                'Incident status updated successfully.',
+            'data' =>
+                $incident
+                    ->fresh()
+                    ->load([
+                        'report',
+                        'personnel',
+                    ]),
         ]);
     }
-}
-
-    $admin = $request->user();
-
-    \App\Support\ReportBridge::incidentStatus(
-        $incident->fresh()->load('report'),
-        $admin
-    );
-
-    AuditLog::create([
-        'action' => 'Incident Status Updated',
-        'category' => 'Incident',
-        'target' => $incident->incident_code,
-        'field' => 'status',
-        'old_value' => $currentStatus,
-        'new_value' => $newStatus,
-        'remarks' => "Incident {$incident->incident_code} status changed from {$currentStatus} to {$newStatus}.",
-        'user_name' => $admin?->name,
-        'user_role' => $admin?->role,
-        'status' => 'Success',
-    ]);
-
-    return response()->json([
-        'success' => true,
-        'message' => 'Incident status updated successfully.',
-        'data' => $incident
-            ->fresh()
-            ->load(['report', 'personnel']),
-    ]);
-}
 }
